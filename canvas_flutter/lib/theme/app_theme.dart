@@ -1,31 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Dark "science lab" palette shared across the app.
+/// Light, minimal palette: warm neutrals, white surfaces, one orange accent.
+///
+/// Colour is spent deliberately — the chrome stays neutral so the orange
+/// accent and the category hues on the canvas are the only things that pull
+/// the eye.
 abstract final class AppColors {
-  static const background = Color(0xFF0B1020);
-  static const surface = Color(0xFF141B31);
-  static const surfaceAlt = Color(0xFF1C2542);
-  static const border = Color(0xFF2A3556);
+  /// Page behind the panels, and the canvas itself.
+  static const background = Color(0xFFFAF9F7);
 
-  static const primary = Color(0xFF3B82F6);
-  static const success = Color(0xFF10B981);
-  static const warning = Color(0xFFF59E0B);
-  static const danger = Color(0xFFEF4444);
-  static const accent = Color(0xFFEC4899);
-  static const purple = Color(0xFF8B5CF6);
+  /// Panels, cards, dialogs.
+  static const surface = Color(0xFFFFFFFF);
 
-  static const textPrimary = Color(0xFFF1F5F9);
-  static const textSecondary = Color(0xFF94A3B8);
-  static const textMuted = Color(0xFF64748B);
+  /// Insets: list tiles, inputs, chips.
+  static const surfaceAlt = Color(0xFFF5F3F0);
 
-  /// Canvas grid dot colour.
-  static const grid = Color(0xFF243050);
+  /// Hairlines and outlines.
+  static const border = Color(0xFFE7E3DD);
+
+  /// The accent. Used for primary actions, selection and focus.
+  static const primary = Color(0xFFEA580C);
+
+  /// A tint of [primary] for filled backgrounds behind it.
+  static const primarySoft = Color(0xFFFFF1E7);
+
+  /// Deeper accent for text on light tints.
+  static const primaryDeep = Color(0xFFC2410C);
+
+  static const success = Color(0xFF059669);
+  static const warning = Color(0xFFD97706);
+  static const danger = Color(0xFFDC2626);
+  static const accent = Color(0xFFF97316);
+  static const purple = Color(0xFF7C3AED);
+
+  static const textPrimary = Color(0xFF1C1917);
+  static const textSecondary = Color(0xFF57534E);
+  static const textMuted = Color(0xFFA8A29E);
+
+  /// Canvas grid dots.
+  static const grid = Color(0xFFDDD8D1);
+
+  /// Soft shadow used sparingly for elevation.
+  static const shadow = Color(0x14000000);
 }
 
 abstract final class AppTheme {
-  static ThemeData get dark {
-    const scheme = ColorScheme.dark(
+  static ThemeData get light {
+    const scheme = ColorScheme.light(
       primary: AppColors.primary,
       secondary: AppColors.accent,
       surface: AppColors.surface,
@@ -36,34 +58,53 @@ abstract final class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       colorScheme: scheme,
       scaffoldBackgroundColor: AppColors.background,
       canvasColor: AppColors.background,
-      fontFamily: _systemFont,
       dividerColor: AppColors.border,
       splashFactory: InkSparkle.splashFactory,
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.textPrimary,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: false,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
       cardTheme: CardThemeData(
         color: AppColors.surface,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           side: const BorderSide(color: AppColors.border),
         ),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           side: const BorderSide(color: AppColors.border),
         ),
+        titleTextStyle: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+      ),
+      drawerTheme: const DrawerThemeData(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -74,25 +115,29 @@ abstract final class AppTheme {
           vertical: 12,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+          elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.1,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -101,32 +146,34 @@ abstract final class AppTheme {
           side: const BorderSide(color: AppColors.border),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
           ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
       ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(foregroundColor: AppColors.textSecondary),
+      ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surfaceAlt,
-        contentTextStyle: const TextStyle(color: AppColors.textPrimary),
+        backgroundColor: AppColors.textPrimary,
+        contentTextStyle: const TextStyle(color: Colors.white, fontSize: 13),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
-          color: AppColors.surfaceAlt,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.border),
+          color: AppColors.textPrimary,
+          borderRadius: BorderRadius.circular(6),
         ),
-        textStyle: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
+        textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+      ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.primary,
+        linearTrackColor: AppColors.surfaceAlt,
       ),
     );
   }
-
-  /// Null lets Flutter pick the platform default, which avoids a network fetch.
-  static const String? _systemFont = null;
 }

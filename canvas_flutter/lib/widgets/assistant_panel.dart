@@ -99,12 +99,15 @@ class _AssistantPanelState extends State<AssistantPanel> {
             height: 32,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primary, AppColors.purple],
-              ),
+              color: AppColors.primarySoft,
+              border: Border.all(color: AppColors.border),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Text('🤖', style: TextStyle(fontSize: 16)),
+            child: const Icon(
+              Icons.smart_toy_outlined,
+              size: 16,
+              color: AppColors.primary,
+            ),
           ),
           const SizedBox(width: 10),
           const Expanded(

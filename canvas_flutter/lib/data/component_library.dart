@@ -176,10 +176,7 @@ final List<ComponentData> kComponentLibrary = <ComponentData>[
     const [
       _Variation('555 Timer', {'type': 'timer', 'model': '555'}),
       _Variation('741 Op-Amp', {'type': 'opamp', 'model': '741'}),
-      _Variation('7805 Voltage Regulator', {
-        'type': 'regulator',
-        'voltage': 5,
-      }),
+      _Variation('7805 Voltage Regulator', {'type': 'regulator', 'voltage': 5}),
       _Variation('7812 Voltage Regulator', {
         'type': 'regulator',
         'voltage': 12,
@@ -361,10 +358,7 @@ final List<ComponentData> kComponentLibrary = <ComponentData>[
         'pH': 12,
       }),
       _Variation('Ammonia (NH3)', {'formula': 'NH3', 'pH': 11}),
-      _Variation('Sodium Carbonate (Na2CO3)', {
-        'formula': 'Na2CO3',
-        'pH': 11,
-      }),
+      _Variation('Sodium Carbonate (Na2CO3)', {'formula': 'Na2CO3', 'pH': 11}),
     ],
   ),
 
@@ -409,16 +403,10 @@ final List<ComponentData> kComponentLibrary = <ComponentData>[
       _Variation('Butane (C4H10)', {'formula': 'C4H10', 'type': 'alkane'}),
       _Variation('Ethene (C2H4)', {'formula': 'C2H4', 'type': 'alkene'}),
       _Variation('Benzene (C6H6)', {'formula': 'C6H6', 'type': 'aromatic'}),
-      _Variation('Ethanol (C2H5OH)', {
-        'formula': 'C2H5OH',
-        'type': 'alcohol',
-      }),
+      _Variation('Ethanol (C2H5OH)', {'formula': 'C2H5OH', 'type': 'alcohol'}),
       _Variation('Methanol (CH3OH)', {'formula': 'CH3OH', 'type': 'alcohol'}),
       _Variation('Acetone (C3H6O)', {'formula': 'C3H6O', 'type': 'ketone'}),
-      _Variation('Glucose (C6H12O6)', {
-        'formula': 'C6H12O6',
-        'type': 'sugar',
-      }),
+      _Variation('Glucose (C6H12O6)', {'formula': 'C6H12O6', 'type': 'sugar'}),
     ],
   ),
 
@@ -543,14 +531,8 @@ final List<ComponentData> kComponentLibrary = <ComponentData>[
       _Variation('Sound Wave 440Hz', {'type': 'sound', 'frequency': 440}),
       _Variation('Sound Wave 1kHz', {'type': 'sound', 'frequency': 1000}),
       _Variation('Radio Wave FM', {'type': 'radio', 'band': 'FM'}),
-      _Variation('Microwave', {
-        'type': 'electromagnetic',
-        'wavelength': 0.01,
-      }),
-      _Variation('X-Ray', {
-        'type': 'electromagnetic',
-        'wavelength': 0.000001,
-      }),
+      _Variation('Microwave', {'type': 'electromagnetic', 'wavelength': 0.01}),
+      _Variation('X-Ray', {'type': 'electromagnetic', 'wavelength': 0.000001}),
       _Variation('Gamma Ray', {
         'type': 'electromagnetic',
         'wavelength': 0.0000001,
@@ -569,14 +551,8 @@ final List<ComponentData> kComponentLibrary = <ComponentData>[
       properties: {'temperature': 0},
     ),
     const [
-      _Variation('Heat Source 100°C', {
-        'type': 'source',
-        'temperature': 100,
-      }),
-      _Variation('Heat Source 500°C', {
-        'type': 'source',
-        'temperature': 500,
-      }),
+      _Variation('Heat Source 100°C', {'type': 'source', 'temperature': 100}),
+      _Variation('Heat Source 500°C', {'type': 'source', 'temperature': 500}),
       _Variation('Ice Bath 0°C', {'type': 'sink', 'temperature': 0}),
       _Variation('Insulator', {'type': 'insulator'}),
       _Variation('Conductor Copper', {
@@ -909,10 +885,7 @@ final List<ComponentData> kComponentLibrary = <ComponentData>[
       properties: {'type': 'generic'},
     ),
     const [
-      _Variation('Oscillator (Sine)', {
-        'type': 'oscillator',
-        'wave': 'sine',
-      }),
+      _Variation('Oscillator (Sine)', {'type': 'oscillator', 'wave': 'sine'}),
       _Variation('Oscillator (Square)', {
         'type': 'oscillator',
         'wave': 'square',
@@ -921,10 +894,7 @@ final List<ComponentData> kComponentLibrary = <ComponentData>[
         'type': 'oscillator',
         'wave': 'sawtooth',
       }),
-      _Variation('Filter (Low Pass)', {
-        'type': 'filter',
-        'subtype': 'lowpass',
-      }),
+      _Variation('Filter (Low Pass)', {'type': 'filter', 'subtype': 'lowpass'}),
       _Variation('Filter (High Pass)', {
         'type': 'filter',
         'subtype': 'highpass',
@@ -972,19 +942,10 @@ final List<ComponentData> kComponentLibrary = <ComponentData>[
       properties: {'type': 'generic'},
     ),
     const [
-      _Variation('Neural Network Layer', {
-        'type': 'layer',
-        'subtype': 'dense',
-      }),
-      _Variation('Convolution Layer', {
-        'type': 'layer',
-        'subtype': 'conv2d',
-      }),
+      _Variation('Neural Network Layer', {'type': 'layer', 'subtype': 'dense'}),
+      _Variation('Convolution Layer', {'type': 'layer', 'subtype': 'conv2d'}),
       _Variation('Pooling Layer', {'type': 'layer', 'subtype': 'maxpool'}),
-      _Variation('Activation (ReLU)', {
-        'type': 'activation',
-        'func': 'relu',
-      }),
+      _Variation('Activation (ReLU)', {'type': 'activation', 'func': 'relu'}),
       _Variation('Activation (Sigmoid)', {
         'type': 'activation',
         'func': 'sigmoid',
@@ -995,10 +956,7 @@ final List<ComponentData> kComponentLibrary = <ComponentData>[
       }),
       _Variation('Dataset (Images)', {'type': 'data', 'subtype': 'images'}),
       _Variation('Dataset (Text)', {'type': 'data', 'subtype': 'text'}),
-      _Variation('Optimizer (Adam)', {
-        'type': 'optimizer',
-        'name': 'adam',
-      }),
+      _Variation('Optimizer (Adam)', {'type': 'optimizer', 'name': 'adam'}),
       _Variation('Loss Function', {'type': 'loss'}),
     ],
   ),

@@ -87,7 +87,11 @@ class _ComponentLibraryPanelState extends State<ComponentLibraryPanel> {
         children: [
           Row(
             children: [
-              const Text('🧪', style: TextStyle(fontSize: 18)),
+              const Icon(
+                Icons.widgets_outlined,
+                size: 17,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: 8),
               const Text(
                 'Components',
@@ -99,10 +103,7 @@ class _ComponentLibraryPanelState extends State<ComponentLibraryPanel> {
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceAlt,
                   borderRadius: BorderRadius.circular(20),
@@ -185,7 +186,7 @@ class _ComponentLibraryPanelState extends State<ComponentLibraryPanel> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('🔍', style: TextStyle(fontSize: 32)),
+            Icon(Icons.search_off, size: 30, color: AppColors.textMuted),
             SizedBox(height: 10),
             Text(
               'No components match',
@@ -228,7 +229,9 @@ class _CategoryChip extends StatelessWidget {
       padding: const EdgeInsets.only(right: 6),
       child: Center(
         child: Material(
-          color: selected ? color.withValues(alpha: 0.18) : AppColors.surfaceAlt,
+          color: selected
+              ? color.withValues(alpha: 0.18)
+              : AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(20),
           child: InkWell(
             onTap: onTap,
@@ -384,12 +387,12 @@ class _DragGhost extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color, width: 2),
-            boxShadow: [
+            border: Border.all(color: color, width: 1.5),
+            boxShadow: const [
               BoxShadow(
-                color: color.withValues(alpha: 0.4),
-                blurRadius: 18,
-                spreadRadius: 1,
+                color: Color(0x26000000),
+                blurRadius: 14,
+                offset: Offset(0, 4),
               ),
             ],
           ),

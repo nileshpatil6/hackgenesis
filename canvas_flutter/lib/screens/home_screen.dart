@@ -224,11 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() {
       _chat.add(
-        ChatMessage(
-          isUser: true,
-          content: question,
-          timestamp: DateTime.now(),
-        ),
+        ChatMessage(isUser: true, content: question, timestamp: DateTime.now()),
       );
       _assistantLoading = true;
     });
@@ -335,8 +331,7 @@ class _HomeScreenState extends State<HomeScreen> {
             controller: _confetti,
             child: Row(
               children: [
-                if (isWide)
-                  SizedBox(width: 280, child: _buildLibrary()),
+                if (isWide) SizedBox(width: 280, child: _buildLibrary()),
                 Expanded(child: _buildCanvasArea()),
                 if (isWide && _assistantOpen)
                   SizedBox(width: 340, child: _buildAssistant()),
@@ -356,7 +351,11 @@ class _HomeScreenState extends State<HomeScreen> {
       title: Row(
         children: [
           if (isWide) ...[
-            const Text('⚗️', style: TextStyle(fontSize: 20)),
+            const Icon(
+              Icons.science_outlined,
+              size: 20,
+              color: AppColors.primary,
+            ),
             const SizedBox(width: 10),
             const Text(
               'AI Experiment Lab',
@@ -404,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         IconButton(
           tooltip: 'Lab assistant',
-          icon: const Text('🤖', style: TextStyle(fontSize: 17)),
+          icon: const Icon(Icons.smart_toy_outlined, size: 20),
           onPressed: () {
             if (MediaQuery.of(context).size.width >= _wideBreakpoint) {
               setState(() => _assistantOpen = !_assistantOpen);
@@ -419,7 +418,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: FilledButton.icon(
             onPressed: _isAnalyzing ? null : _runExperiment,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.success,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
             icon: const Icon(Icons.play_arrow_rounded, size: 19),

@@ -214,7 +214,8 @@ class GameState extends ChangeNotifier {
   int get largestGraphEdges => _largestGraphEdges;
 
   /// Distinct [ComponentData.category] ids the player has ever placed.
-  Set<String> get categoriesUsed => UnmodifiableSetView<String>(_categoriesUsed);
+  Set<String> get categoriesUsed =>
+      UnmodifiableSetView<String>(_categoriesUsed);
 
   /// Unlocked achievements, resolved and kept in [kAchievements] order.
   List<Achievement> get unlocked => List<Achievement>.unmodifiable(
@@ -246,7 +247,8 @@ class GameState extends ChangeNotifier {
   }
 
   /// Whether [quest] has hit its target today.
-  bool isQuestComplete(Quest quest) => questProgress(quest) >= quest.targetCount;
+  bool isQuestComplete(Quest quest) =>
+      questProgress(quest) >= quest.targetCount;
 
   /// Whether [load] has completed.
   bool get isLoaded => _isLoaded;

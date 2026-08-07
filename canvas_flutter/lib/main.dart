@@ -38,7 +38,7 @@ class CanvasLabApp extends StatelessWidget {
       child: MaterialApp(
         title: 'AI Experiment Lab',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.dark,
+        theme: AppTheme.light,
         home: const HomeScreen(),
       ),
     );

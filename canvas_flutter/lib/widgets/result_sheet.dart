@@ -147,7 +147,11 @@ class _AnalyzingViewState extends State<_AnalyzingView>
             children: [
               Transform.rotate(
                 angle: _controller.value * 6.28318,
-                child: const Text('⚗️', style: TextStyle(fontSize: 44)),
+                child: const Icon(
+                  Icons.science_outlined,
+                  size: 44,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(height: 18),
               const Text(
@@ -355,7 +359,11 @@ class _SvgPanel extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('🖼️', style: TextStyle(fontSize: 24)),
+              Icon(
+                Icons.image_not_supported_outlined,
+                size: 24,
+                color: Colors.black38,
+              ),
               SizedBox(height: 6),
               Text(
                 'Diagram could not be rendered',

@@ -99,10 +99,7 @@ class OpenAiService {
   /// Asks the lab-assistant robot for a nudge instead of an answer.
   ///
   /// Throws [OpenAiException] when no key is set or the request fails.
-  Future<String> getHint(
-    ExperimentJson experiment,
-    String userQuestion,
-  ) async {
+  Future<String> getHint(ExperimentJson experiment, String userQuestion) async {
     // Fail fast with the exact "no key" message, unwrapped by the catch below.
     _requireApiKey();
 
@@ -205,9 +202,7 @@ Analyze this experiment and determine:
 
       final decoded = jsonDecode(text);
       if (decoded is! Map) {
-        throw OpenAiException(
-          'The AI returned an unexpected response shape.',
-        );
+        throw OpenAiException('The AI returned an unexpected response shape.');
       }
       return AnalysisResult.fromJson(Map<String, dynamic>.from(decoded));
     } on OpenAiException catch (e) {

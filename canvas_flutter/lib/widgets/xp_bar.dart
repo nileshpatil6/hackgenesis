@@ -153,7 +153,7 @@ class _LevelBadge extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[AppColors.primary, AppColors.purple],
+          colors: <Color>[AppColors.accent, AppColors.primaryDeep],
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(

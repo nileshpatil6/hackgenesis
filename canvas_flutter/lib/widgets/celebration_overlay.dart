@@ -359,11 +359,7 @@ class _ToastHostState extends State<_ToastHost>
 
 /// Shared chrome for both toast kinds: dark card, tinted border and glow.
 class _ToastCard extends StatelessWidget {
-  const _ToastCard({
-    required this.child,
-    required this.tint,
-    this.onDismiss,
-  });
+  const _ToastCard({required this.child, required this.tint, this.onDismiss});
 
   final Widget child;
   final Color tint;

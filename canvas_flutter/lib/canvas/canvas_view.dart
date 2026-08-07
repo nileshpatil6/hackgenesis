@@ -286,8 +286,7 @@ class _CanvasViewState extends State<CanvasView>
                   key: ValueKey<String>(node.id),
                   node: node,
                   isSelected: _controller.selectedNodeId == node.id,
-                  isConnecting:
-                      connectingId != null && connectingId != node.id,
+                  isConnecting: connectingId != null && connectingId != node.id,
                   onTap: () {
                     _focusNode.requestFocus();
                     _controller.selectNode(node.id);

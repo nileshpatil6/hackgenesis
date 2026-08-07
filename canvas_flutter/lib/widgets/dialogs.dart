@@ -43,7 +43,9 @@ class _ApiKeyDialogState extends State<ApiKeyDialog> {
   Future<void> _save() async {
     final value = _controller.text.trim();
     if (value.isEmpty) {
-      setState(() => _error = 'Enter a key, or cancel to keep playing offline.');
+      setState(
+        () => _error = 'Enter a key, or cancel to keep playing offline.',
+      );
       return;
     }
     if (!SettingsStore.looksLikeApiKey(value)) {
@@ -62,7 +64,7 @@ class _ApiKeyDialogState extends State<ApiKeyDialog> {
     return AlertDialog(
       title: const Row(
         children: [
-          Text('🔑', style: TextStyle(fontSize: 20)),
+          Icon(Icons.vpn_key_outlined, size: 20, color: AppColors.primary),
           SizedBox(width: 10),
           Text('OpenAI API Key'),
         ],
@@ -145,11 +147,27 @@ class WelcomeDialog extends StatelessWidget {
     );
   }
 
-  static const _steps = [
-    ('🧩', 'Drag components in', 'Pick from 300+ parts on the left.'),
-    ('🔗', 'Wire them together', 'Drag from a node\'s right dot to another.'),
-    ('▶️', 'Run the experiment', 'The AI simulates it and scores your build.'),
-    ('🏆', 'Level up', 'Earn XP, unlock achievements, keep your streak.'),
+  static const _steps = <(IconData, String, String)>[
+    (
+      Icons.widgets_outlined,
+      'Drag components in',
+      'Pick from 300+ parts on the left.',
+    ),
+    (
+      Icons.timeline,
+      'Wire them together',
+      'Drag from a node\'s right dot to another.',
+    ),
+    (
+      Icons.play_arrow_rounded,
+      'Run the experiment',
+      'The AI simulates it and scores your build.',
+    ),
+    (
+      Icons.military_tech_outlined,
+      'Level up',
+      'Earn XP, unlock achievements, keep your streak.',
+    ),
   ];
 
   @override
@@ -157,7 +175,7 @@ class WelcomeDialog extends StatelessWidget {
     return AlertDialog(
       title: const Row(
         children: [
-          Text('⚗️', style: TextStyle(fontSize: 22)),
+          Icon(Icons.science_outlined, size: 22, color: AppColors.primary),
           SizedBox(width: 10),
           Expanded(child: Text('Welcome to the Lab')),
         ],
@@ -178,13 +196,22 @@ class WelcomeDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
-            for (final (emoji, title, body) in _steps)
+            for (final (icon, title, body) in _steps)
               Padding(
                 padding: const EdgeInsets.only(bottom: 13),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(emoji, style: const TextStyle(fontSize: 17)),
+                    Container(
+                      width: 30,
+                      height: 30,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySoft,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(icon, size: 16, color: AppColors.primary),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -241,7 +268,7 @@ class ExamplesDialog extends StatelessWidget {
     return AlertDialog(
       title: const Row(
         children: [
-          Text('📚', style: TextStyle(fontSize: 20)),
+          Icon(Icons.auto_stories_outlined, size: 20, color: AppColors.primary),
           SizedBox(width: 10),
           Text('Load an example'),
         ],
@@ -403,17 +430,18 @@ class ProgressSheet extends StatelessWidget {
                 const SizedBox(height: 18),
                 _buildLevelHeader(),
                 const SizedBox(height: 24),
-                _buildSectionTitle('🎯  Today\'s quests'),
+                _buildSectionTitle(Icons.flag_outlined, 'Today\'s quests'),
                 const SizedBox(height: 10),
                 for (final q in game.todaysQuests) _buildQuest(q),
                 const SizedBox(height: 22),
-                _buildSectionTitle('📊  Stats'),
+                _buildSectionTitle(Icons.insights_outlined, 'Stats'),
                 const SizedBox(height: 10),
                 _buildStats(),
                 const SizedBox(height: 22),
                 _buildSectionTitle(
-                  '🏆  Achievements  '
-                  '(${game.unlocked.length}/${kAchievements.length})',
+                  Icons.military_tech_outlined,
+                  'Achievements  '
+                  '${game.unlocked.length}/${kAchievements.length}',
                 ),
                 const SizedBox(height: 10),
                 _buildAchievementGrid(),
@@ -425,28 +453,29 @@ class ProgressSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(String text) => Text(
-    text,
-    style: const TextStyle(
-      fontSize: 13,
-      fontWeight: FontWeight.w800,
-      letterSpacing: 0.3,
-      color: AppColors.textPrimary,
-    ),
+  Widget _buildSectionTitle(IconData icon, String text) => Row(
+    children: [
+      Icon(icon, size: 15, color: AppColors.primary),
+      const SizedBox(width: 8),
+      Text(
+        text,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.2,
+          color: AppColors.textPrimary,
+        ),
+      ),
+    ],
   );
 
   Widget _buildLevelHeader() {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary.withValues(alpha: 0.22),
-            AppColors.purple.withValues(alpha: 0.18),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+        color: AppColors.primarySoft,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.28)),
       ),
       child: Row(
         children: [
@@ -538,10 +567,7 @@ class ProgressSheet extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(
-            done ? '✅' : quest.emoji,
-            style: const TextStyle(fontSize: 17),
-          ),
+          Text(done ? '✅' : quest.emoji, style: const TextStyle(fontSize: 17)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -599,19 +625,19 @@ class ProgressSheet extends StatelessWidget {
   }
 
   Widget _buildStats() {
-    final stats = <(String, String, String)>[
-      ('🧪', 'Experiments', '${game.experimentsRun}'),
-      ('✅', 'Successes', '${game.successCount}'),
-      ('🧩', 'Components', '${game.componentsPlaced}'),
-      ('🔗', 'Connections', '${game.edgesConnected}'),
-      ('⚡', 'Best streak', '${game.bestSuccessStreak}'),
-      ('🗂️', 'Fields used', '${game.categoriesUsed.length}'),
+    final stats = <(IconData, String, String)>[
+      (Icons.science_outlined, 'Experiments', '${game.experimentsRun}'),
+      (Icons.check_circle_outline, 'Successes', '${game.successCount}'),
+      (Icons.widgets_outlined, 'Components', '${game.componentsPlaced}'),
+      (Icons.timeline, 'Connections', '${game.edgesConnected}'),
+      (Icons.bolt_outlined, 'Best streak', '${game.bestSuccessStreak}'),
+      (Icons.category_outlined, 'Fields used', '${game.categoriesUsed.length}'),
     ];
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        for (final (emoji, label, value) in stats)
+        for (final (icon, label, value) in stats)
           Container(
             width: 108,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
@@ -623,7 +649,7 @@ class ProgressSheet extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(emoji, style: const TextStyle(fontSize: 15)),
+                Icon(icon, size: 16, color: AppColors.primary),
                 const SizedBox(height: 6),
                 Text(
                   value,

@@ -62,10 +62,12 @@ class CanvasController extends ChangeNotifier {
   // ---------------------------------------------------------------------
 
   /// All nodes currently on the canvas, in insertion order.
-  List<ExperimentNode> get nodes => UnmodifiableListView<ExperimentNode>(_nodes);
+  List<ExperimentNode> get nodes =>
+      UnmodifiableListView<ExperimentNode>(_nodes);
 
   /// All edges currently on the canvas, in insertion order.
-  List<ExperimentEdge> get edges => UnmodifiableListView<ExperimentEdge>(_edges);
+  List<ExperimentEdge> get edges =>
+      UnmodifiableListView<ExperimentEdge>(_edges);
 
   /// The id of the selected node, or `null` when nothing is selected.
   String? get selectedNodeId => _selectedNodeId;
@@ -86,8 +88,7 @@ class CanvasController extends ChangeNotifier {
   bool get isEmpty => _nodes.isEmpty;
 
   /// Returns a value that is unique for the lifetime of this controller.
-  String _nextId() =>
-      '${DateTime.now().millisecondsSinceEpoch}_${_idSeed++}';
+  String _nextId() => '${DateTime.now().millisecondsSinceEpoch}_${_idSeed++}';
 
   /// Looks up a node by [id], or returns `null` when it no longer exists.
   ExperimentNode? nodeById(String id) {
@@ -412,8 +413,8 @@ class CanvasController extends ChangeNotifier {
     }
 
     const double padding = 72;
-    final double contentWidth = math.max(1, maxX - minX) + padding * 2;
-    final double contentHeight = math.max(1, maxY - minY) + padding * 2;
+    final double contentWidth = math.max(1.0, maxX - minX) + padding * 2;
+    final double contentHeight = math.max(1.0, maxY - minY) + padding * 2;
 
     final double fitted = math
         .min(

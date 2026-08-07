@@ -234,18 +234,20 @@ class _CardBody extends StatelessWidget {
           color: isSelected ? AppColors.primary : AppColors.border,
           width: isSelected ? 2 : 1,
         ),
+        // Restrained elevation: a neutral drop shadow lifts the card off the
+        // canvas, and only the selected card earns a hint of accent colour.
         boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: accent.withValues(alpha: isSelected ? 0.34 : 0.18),
-            blurRadius: isSelected ? 22 : 12,
-            spreadRadius: isSelected ? 1 : 0,
-            offset: const Offset(0, 4),
+          const BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 10,
+            offset: Offset(0, 2),
           ),
           if (isSelected)
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.22),
-              blurRadius: 26,
-              spreadRadius: 2,
+              color: AppColors.primary.withValues(alpha: 0.16),
+              blurRadius: 16,
+              spreadRadius: 1,
+              offset: const Offset(0, 3),
             ),
         ],
       ),
@@ -332,13 +334,16 @@ class _PortDot extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: AppColors.background, width: 3),
+        border: Border.all(color: AppColors.surface, width: 3),
         boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: color.withValues(alpha: emphasised ? 0.75 : 0.35),
-            blurRadius: emphasised ? 14 : 6,
-            spreadRadius: emphasised ? 2 : 0,
-          ),
+          if (emphasised)
+            BoxShadow(
+              color: color.withValues(alpha: 0.35),
+              blurRadius: 10,
+              spreadRadius: 1,
+            )
+          else
+            const BoxShadow(color: AppColors.shadow, blurRadius: 4),
         ],
       ),
     );
@@ -363,12 +368,9 @@ class _DeleteButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.danger,
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.background, width: 2),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: AppColors.danger.withValues(alpha: 0.45),
-              blurRadius: 10,
-            ),
+          border: Border.all(color: AppColors.surface, width: 2),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(color: AppColors.shadow, blurRadius: 6),
           ],
         ),
         child: const Icon(Icons.close_rounded, size: 12, color: Colors.white),

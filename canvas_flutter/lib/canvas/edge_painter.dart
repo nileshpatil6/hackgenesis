@@ -16,20 +16,10 @@ const double kEdgeCurveMin = 40;
 /// control points are pushed horizontally by half the horizontal distance
 /// (at least [kEdgeCurveMin]) which gives the familiar node-editor S-curve.
 Path buildEdgePath(Offset from, Offset to) {
-  final double control = math.max(
-    kEdgeCurveMin,
-    (to.dx - from.dx).abs() * 0.5,
-  );
+  final double control = math.max(kEdgeCurveMin, (to.dx - from.dx).abs() * 0.5);
   return Path()
     ..moveTo(from.dx, from.dy)
-    ..cubicTo(
-      from.dx + control,
-      from.dy,
-      to.dx - control,
-      to.dy,
-      to.dx,
-      to.dy,
-    );
+    ..cubicTo(from.dx + control, from.dy, to.dx - control, to.dy, to.dx, to.dy);
 }
 
 /// Returns the id of the edge whose curve passes within [tolerance] of
@@ -57,7 +47,10 @@ String? edgeAtPoint({
     final ExperimentNode? target = byId[edge.target];
     if (source == null || target == null) continue;
 
-    final Path path = buildEdgePath(nodeOutputPort(source), nodeInputPort(target));
+    final Path path = buildEdgePath(
+      nodeOutputPort(source),
+      nodeInputPort(target),
+    );
     for (final ui.PathMetric metric in path.computeMetrics()) {
       final double length = metric.length;
       if (length <= 0) continue;
@@ -216,16 +209,16 @@ class EdgePainter extends CustomPainter {
       final Offset b =
           a +
           Offset(
-            math.cos(angle + math.pi - 0.45),
-            math.sin(angle + math.pi - 0.45),
-          ) *
+                math.cos(angle + math.pi - 0.45),
+                math.sin(angle + math.pi - 0.45),
+              ) *
               size;
       final Offset c =
           a +
           Offset(
-            math.cos(angle + math.pi + 0.45),
-            math.sin(angle + math.pi + 0.45),
-          ) *
+                math.cos(angle + math.pi + 0.45),
+                math.sin(angle + math.pi + 0.45),
+              ) *
               size;
 
       canvas.drawPath(
@@ -283,10 +276,7 @@ class EdgePainter extends CustomPainter {
         ..strokeWidth = 1
         ..color = AppColors.border,
     );
-    painter.paint(
-      canvas,
-      Offset(chip.left + padX, chip.top + padY),
-    );
+    painter.paint(canvas, Offset(chip.left + padX, chip.top + padY));
     painter.dispose();
   }
 
