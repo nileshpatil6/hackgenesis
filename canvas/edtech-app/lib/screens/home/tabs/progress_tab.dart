@@ -38,8 +38,11 @@ class ProgressTab extends StatelessWidget {
                 builder: (context, userProvider, child) {
                   final user = userProvider.currentUser;
                   final achievements = userProvider.achievements;
-                  final unlockedAchievements = achievements.where((a) => a.isUnlocked).length;
-                  final progress = achievements.isEmpty ? 0.0 : unlockedAchievements / achievements.length;
+                  final unlockedAchievements =
+                      achievements.where((a) => a.isUnlocked).length;
+                  final progress = achievements.isEmpty
+                      ? 0.0
+                      : unlockedAchievements / achievements.length;
 
                   return SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -87,7 +90,8 @@ class ProgressTab extends StatelessWidget {
                               ),
                               const SizedBox(height: 16),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(20),
@@ -114,13 +118,20 @@ class ProgressTab extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.color,
                               ),
                             ),
                             Text(
                               '$unlockedAchievements / ${achievements.length}',
                               style: TextStyle(
-                                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.color
+                                    ?.withOpacity(0.6),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -131,8 +142,10 @@ class ProgressTab extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                           child: LinearProgressIndicator(
                             value: progress,
-                            backgroundColor: isDark ? Colors.white10 : Colors.grey[200],
-                            valueColor: const AlwaysStoppedAnimation(AppTheme.primaryAccent),
+                            backgroundColor:
+                                isDark ? Colors.white10 : Colors.grey[200],
+                            valueColor: const AlwaysStoppedAnimation(
+                                AppTheme.primaryAccent),
                             minHeight: 8,
                           ),
                         ),
@@ -141,11 +154,14 @@ class ProgressTab extends StatelessWidget {
                         GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 0.85,
+                            crossAxisSpacing: 14,
+                            mainAxisSpacing: 14,
+                            // Taller cells: at 0.85 the card content needed
+                            // 145px in a 140px cell and overflowed on build.
+                            childAspectRatio: 0.78,
                           ),
                           itemCount: achievements.length,
                           itemBuilder: (context, index) {
@@ -159,57 +175,81 @@ class ProgressTab extends StatelessWidget {
                                 border: Border.all(
                                   color: isUnlocked
                                       ? AppTheme.primaryAccent.withOpacity(0.3)
-                                      : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+                                      : (isDark
+                                          ? Colors.white.withOpacity(0.05)
+                                          : Colors.black.withOpacity(0.05)),
                                   width: isUnlocked ? 2 : 1,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: isDark ? Colors.black.withOpacity(0.2) : Colors.grey.withOpacity(0.05),
+                                    color: isDark
+                                        ? Colors.black.withOpacity(0.2)
+                                        : Colors.grey.withOpacity(0.05),
                                     blurRadius: 15,
                                     offset: const Offset(0, 5),
                                   ),
                                 ],
                               ),
                               child: Padding(
-                                padding: const EdgeInsets.all(16),
+                                padding: const EdgeInsets.all(14),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.all(16),
+                                      padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
                                         color: isUnlocked
-                                            ? const Color(0xFFFED330).withOpacity(0.15)
-                                            : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.1)),
+                                            ? const Color(0xFFFED330)
+                                                .withOpacity(0.15)
+                                            : (isDark
+                                                ? Colors.white.withOpacity(0.05)
+                                                : Colors.grey.withOpacity(0.1)),
                                         shape: BoxShape.circle,
                                       ),
                                       child: Icon(
                                         Icons.emoji_events_rounded,
-                                        size: 32,
-                                        color: isUnlocked ? const Color(0xFFFED330) : Colors.grey,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      achievement.title,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
+                                        size: 26,
                                         color: isUnlocked
-                                            ? Theme.of(context).textTheme.bodyLarge?.color
-                                            : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                                            ? const Color(0xFFFED330)
+                                            : Colors.grey,
                                       ),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 10),
+                                    // Flexible so a two-line title shrinks
+                                    // rather than pushing the XP row out.
+                                    Flexible(
+                                      child: Text(
+                                        achievement.title,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          height: 1.2,
+                                          fontWeight: FontWeight.bold,
+                                          color: isUnlocked
+                                              ? Theme.of(context)
+                                                  .textTheme
+                                                  .bodyLarge
+                                                  ?.color
+                                              : Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.color
+                                                  ?.withOpacity(0.5),
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
                                     Text(
                                       '+${achievement.xpReward} XP',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 11.5,
                                         fontWeight: FontWeight.bold,
-                                        color: isUnlocked ? AppTheme.primaryAccent : Colors.grey,
+                                        color: isUnlocked
+                                            ? AppTheme.primaryAccent
+                                            : Colors.grey,
                                       ),
                                     ),
                                   ],
