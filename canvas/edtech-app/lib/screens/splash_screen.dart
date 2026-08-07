@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:lottie/lottie.dart';
 import '../providers/user_provider.dart';
 import '../services/auth_service.dart';
 import '../utils/app_theme.dart';
@@ -8,6 +7,11 @@ import 'auth/login_screen.dart';
 import 'home/home_screen.dart';
 import 'onboarding/onboarding_screen.dart';
 
+/// Launch screen shown while auth state is resolved.
+///
+/// The mark is drawn in code rather than loaded from a Lottie file: the
+/// bundled `education_loading.json` is a single-layer placeholder that renders
+/// as a small rectangle, which looked broken sitting inside a 200px circle.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -16,45 +20,52 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _intro = AnimationController(
+    duration: const Duration(milliseconds: 900),
+    vsync: this,
+  );
+
+  late final Animation<double> _fade = CurvedAnimation(
+    parent: _intro,
+    curve: const Interval(0, 0.7, curve: Curves.easeOut),
+  );
+
+  // Settles slightly past its final size, so the mark lands rather than
+  // simply appearing.
+  late final Animation<double> _scale = Tween<double>(
+    begin: 0.86,
+    end: 1,
+  ).animate(
+    CurvedAnimation(parent: _intro, curve: Curves.easeOutBack),
+  );
+
+  late final Animation<double> _rise = Tween<double>(
+    begin: 18,
+    end: 0,
+  ).animate(
+    CurvedAnimation(
+      parent: _intro,
+      curve: const Interval(0.2, 1, curve: Curves.easeOutCubic),
+    ),
+  );
 
   @override
   void initState() {
     super.initState();
-
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-        CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
-
-    _fadeController.forward();
-    _slideController.forward();
-
+    _intro.forward();
     _checkAuthStatus();
+  }
+
+  @override
+  void dispose() {
+    _intro.dispose();
+    super.dispose();
   }
 
   Future<void> _checkAuthStatus() async {
     try {
-      await Future.delayed(const Duration(milliseconds: 2500));
+      await Future.delayed(const Duration(milliseconds: 2200));
 
       if (!mounted) return;
 
@@ -64,7 +75,7 @@ class _SplashScreenState extends State<SplashScreen>
       try {
         isLoggedIn = await authService.isLoggedIn();
       } catch (e) {
-        print('Auth check failed: $e');
+        debugPrint('Auth check failed: $e');
         isLoggedIn = false;
       }
 
@@ -76,51 +87,41 @@ class _SplashScreenState extends State<SplashScreen>
               Provider.of<UserProvider>(context, listen: false);
           await userProvider.init();
 
+          if (!mounted) return;
           final user = userProvider.currentUser;
 
           if (user != null && user.educationLevel.isEmpty) {
-            if (mounted) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-              );
-            }
+            _go(const OnboardingScreen());
           } else {
-            if (mounted) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const HomeScreen()),
-              );
-            }
+            _go(const HomeScreen());
           }
         } catch (e) {
-          print('User initialization failed: $e');
-          if (mounted) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const LoginScreen()),
-            );
-          }
+          debugPrint('User initialization failed: $e');
+          _go(const LoginScreen());
         }
       } else {
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
-          );
-        }
+        _go(const LoginScreen());
       }
     } catch (e) {
-      print('Splash screen error: $e');
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      }
+      debugPrint('Splash screen error: $e');
+      _go(const LoginScreen());
     }
   }
 
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    _slideController.dispose();
-    super.dispose();
+  void _go(Widget screen) {
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 420),
+        pageBuilder: (context, animation, secondaryAnimation) => screen,
+        // A plain cross-fade: the default zoom transition briefly renders the
+        // outgoing page inset from the edge, which reads as a misaligned
+        // splash in a screenshot.
+        transitionsBuilder:
+            (context, animation, secondaryAnimation, child) =>
+                FadeTransition(opacity: animation, child: child),
+      ),
+    );
   }
 
   @override
@@ -128,145 +129,171 @@ class _SplashScreenState extends State<SplashScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: isDark
-              ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF0F172A),
-                    Color(0xFF1E293B),
-                    Color(0xFF334155),
-                  ],
-                )
-              : const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFF0F4FF), // Soft Blue-White
-                    Color(0xFFFFF8F0), // Warm Cream
-                    Color(0xFFF5F0FF), // Lavender Tint
-                  ],
-                ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                // Centred and padded so nothing can sit against (or past) the
-                // screen edge, and the whole column scales down on short
-                // screens instead of overflowing.
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Spacer(),
-
-                    // Lottie Animation
-                    Container(
-                      width: 176,
-                      height: 176,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: AppTheme.primaryGradient,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primaryAccent.withOpacity(0.3),
-                            blurRadius: 40,
-                            offset: const Offset(0, 20),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Lottie.asset(
-                          'assets/animations/education_loading.json',
-                          width: 108,
-                          height: 108,
-                          fit: BoxFit.contain,
-                          // A missing or corrupt animation must not take the
-                          // whole launch screen down with it.
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.school_rounded,
-                                  size: 72, color: Colors.white),
+      // SizedBox.expand guarantees the gradient covers the whole window, so
+      // no strip of scaffold background can show along an edge.
+      body: SizedBox.expand(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: isDark
+                ? const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF0B0E14),
+                      Color(0xFF141B2B),
+                      Color(0xFF1B1440),
+                    ],
+                  )
+                : const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFFF7F8FF),
+                      Color(0xFFFFFBF6),
+                      Color(0xFFF6F2FF),
+                    ],
+                  ),
+          ),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                // True centre, independent of the footer below.
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: AnimatedBuilder(
+                      animation: _intro,
+                      builder: (context, child) => Opacity(
+                        opacity: _fade.value,
+                        child: Transform.translate(
+                          offset: Offset(0, _rise.value),
+                          child: child,
                         ),
                       ),
+                      child: _buildBrand(isDark),
                     ),
-
-                    const SizedBox(height: 40),
-
-                    // App Name with Gradient
-                    ShaderMask(
-                      shaderCallback: (bounds) =>
-                          AppTheme.primaryGradient.createShader(
-                        Rect.fromLTWH(0, 0, bounds.width, bounds.height),
-                      ),
-                      child: Text(
-                        'EduAI',
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        style: TextStyle(
-                          fontSize: 52,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black,
-                          letterSpacing: -1,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Tagline
-                    Text(
-                      'Your Personalized Learning Companion',
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: isDark ? Colors.white70 : Colors.black54,
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-
-                    const Spacer(),
-
-                    // Loading Indicator
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 48),
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            width: 40,
-                            height: 40,
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                isDark ? Colors.white : AppTheme.primaryAccent,
-                              ),
-                              strokeWidth: 3,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Loading...',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isDark ? Colors.white60 : Colors.black45,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 40,
+                  child: FadeTransition(
+                    opacity: _fade,
+                    child: _buildFooter(isDark),
+                  ),
+                ),
+              ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrand(bool isDark) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ScaleTransition(scale: _scale, child: const _LogoMark()),
+        const SizedBox(height: 30),
+        ShaderMask(
+          shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(
+            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+          ),
+          child: const Text(
+            'EduAI',
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            style: TextStyle(
+              fontSize: 44,
+              height: 1.1,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -1.2,
+              // Painted over by the shader; must be opaque white.
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Your personalised learning companion',
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 14.5,
+            height: 1.4,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.1,
+            color: isDark ? Colors.white70 : const Color(0xFF64748B),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFooter(bool isDark) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 128,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              minHeight: 3,
+              backgroundColor: isDark
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : const Color(0xFF6366F1).withValues(alpha: 0.12),
+              valueColor: const AlwaysStoppedAnimation(AppTheme.primaryAccent),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'Getting things ready',
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.2,
+            color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The app mark: a gradient squircle with a graduation cap.
+///
+/// Drawn with framework widgets so it renders identically everywhere and
+/// cannot fail to load.
+class _LogoMark extends StatelessWidget {
+  const _LogoMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 104,
+      height: 104,
+      decoration: BoxDecoration(
+        gradient: AppTheme.primaryGradient,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryAccent.withValues(alpha: 0.34),
+            blurRadius: 32,
+            spreadRadius: -4,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.school_rounded,
+          size: 52,
+          color: Colors.white,
         ),
       ),
     );
