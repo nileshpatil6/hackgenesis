@@ -7,6 +7,9 @@ import 'package:canvas_lab/game/game_state.dart';
 import 'package:canvas_lab/models/component_data.dart';
 import 'package:canvas_lab/canvas/canvas_controller.dart';
 import 'package:canvas_lab/widgets/xp_bar.dart';
+import 'package:canvas_lab/game/waiting_quiz.dart';
+import 'package:canvas_lab/models/experiment.dart';
+import 'package:canvas_lab/widgets/result_sheet.dart';
 
 void main() {
   group('XpBar', () {
@@ -177,6 +180,172 @@ void main() {
       expect(json['nodes'], hasLength(2));
       expect(json['edges'], hasLength(1));
       expect((json['metadata'] as Map)['title'], 'Test');
+    });
+  });
+
+  group('waiting quiz', () {
+    test('every question is answerable and well formed', () {
+      expect(kQuizQuestions, isNotEmpty);
+      for (final q in kQuizQuestions) {
+        expect(
+          q.options.length,
+          greaterThanOrEqualTo(2),
+          reason: 'needs a real choice: ${q.question}',
+        );
+        expect(
+          q.correctIndex,
+          greaterThanOrEqualTo(0),
+          reason: 'correctIndex out of range: ${q.question}',
+        );
+        expect(
+          q.correctIndex,
+          lessThan(q.options.length),
+          reason: 'correctIndex out of range: ${q.question}',
+        );
+        expect(
+          q.options.toSet().length,
+          q.options.length,
+          reason: 'duplicate options: ${q.question}',
+        );
+        expect(q.question.trim(), isNotEmpty);
+        expect(q.fact.trim(), isNotEmpty);
+        expect(q.options.every((o) => o.trim().isNotEmpty), isTrue);
+      }
+    });
+
+    test('question categories all resolve to a real domain', () {
+      final known = kCategories.map((c) => c.id).toSet()..add(kGeneralCategory);
+      final orphans = kQuizQuestions
+          .map((q) => q.category)
+          .where((c) => !known.contains(c))
+          .toSet();
+      expect(orphans, isEmpty, reason: 'quiz categories with no domain');
+    });
+
+    test('general questions exist so any build gets a full quiz', () {
+      final general = kQuizQuestions.where(
+        (q) => q.category == kGeneralCategory,
+      );
+      expect(general.length, greaterThanOrEqualTo(3));
+    });
+
+    test('quizForCategories leads with the domains in play', () {
+      final quiz = quizForCategories(
+        <String>['electronics'],
+        count: 6,
+        seed: 1,
+      );
+      expect(quiz.length, 6);
+      expect(quiz.first.category, 'electronics');
+      // Never runs dry, even for a domain with only a handful of questions.
+      final tiny = quizForCategories(<String>['music'], count: 20, seed: 1);
+      expect(tiny.length, 20);
+    });
+
+    test('an unknown category still yields a usable quiz', () {
+      final quiz = quizForCategories(<String>['not_a_real_domain'], seed: 2);
+      expect(quiz, isNotEmpty);
+    });
+  });
+
+  group('result sheet', () {
+    const question = QuizQuestion(
+      category: 'electronics',
+      question: 'Does the quiz render while we wait?',
+      options: <String>['Yes', 'No'],
+      correctIndex: 0,
+      fact: 'It should, so the wait is not dead time.',
+    );
+
+    Future<void> pump(WidgetTester tester, ExperimentRun run) {
+      return tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ResultSheet(
+              run: ValueNotifier<ExperimentRun>(run),
+              questions: const <QuizQuestion>[question],
+              onClose: () {},
+              onRetry: () {},
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('shows the quiz, not a result, while still running', (
+      tester,
+    ) async {
+      await pump(tester, const ExperimentRun(isAnalyzing: true));
+      await tester.pump();
+
+      expect(find.text(question.question), findsOneWidget);
+      expect(find.text('Explanation'), findsNothing);
+    });
+
+    testWidgets('still quizzes when only the image is outstanding', (
+      tester,
+    ) async {
+      // The reveal waits for BOTH calls, so a finished analysis alone must
+      // not drop the player onto a half-built result.
+      await pump(
+        tester,
+        const ExperimentRun(
+          isRenderingImage: true,
+          result: AnalysisResult(
+            success: true,
+            title: 'Experiment Success!',
+            message: 'It worked.',
+            explanation: 'Because it did.',
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text(question.question), findsOneWidget);
+      expect(find.text('Experiment Success!'), findsNothing);
+    });
+
+    testWidgets('answering reveals the takeaway and advances', (tester) async {
+      await pump(tester, const ExperimentRun(isAnalyzing: true));
+      await tester.pump();
+
+      // pumpAndSettle would hang here: the "still working" spinner animates
+      // forever by design, so settle never arrives. Fixed pumps instead.
+      await tester.tap(find.text('Yes'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Correct'), findsOneWidget);
+      expect(find.text(question.fact), findsOneWidget);
+
+      // The default 800x600 test viewport puts the button below the fold.
+      await tester.ensureVisible(find.text('Next question'));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('Next question'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Correct'), findsNothing);
+      expect(find.text(question.question), findsOneWidget);
+    });
+
+    testWidgets('reveals the verdict once nothing is in flight', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        const ExperimentRun(
+          result: AnalysisResult(
+            success: false,
+            title: 'Experiment Failed',
+            message: 'Something is off.',
+            explanation: 'Here is why.',
+            mistake: 'A part is missing.',
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text(question.question), findsNothing);
+      expect(find.text('Experiment Failed'), findsOneWidget);
+      expect(find.text('What went wrong'), findsOneWidget);
+      expect(find.text('Explanation'), findsOneWidget);
     });
   });
 

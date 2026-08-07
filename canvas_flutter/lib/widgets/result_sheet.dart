@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../game/waiting_quiz.dart';
 import '../models/experiment.dart';
 import '../theme/app_theme.dart';
+import 'waiting_quiz_view.dart';
 
 /// Everything the result sheet needs to know about the current run.
 ///
@@ -26,6 +28,12 @@ class ExperimentRun {
   final bool isRenderingImage;
   final Uint8List? imageBytes;
   final String? imageError;
+
+  /// Whether anything is still in flight.
+  ///
+  /// The sheet holds the quiz until this clears, so the verdict, the
+  /// explanation and the picture all arrive together as one reveal.
+  bool get isBusy => isAnalyzing || isRenderingImage;
 }
 
 /// Displays the AI's verdict on an experiment run.
@@ -37,11 +45,15 @@ class ResultSheet extends StatelessWidget {
   const ResultSheet({
     super.key,
     required this.run,
+    required this.questions,
     required this.onClose,
     required this.onRetry,
   });
 
   final ValueListenable<ExperimentRun> run;
+
+  /// Local quiz shown while the run is still in flight.
+  final List<QuizQuestion> questions;
   final VoidCallback onClose;
   final VoidCallback onRetry;
 
@@ -70,8 +82,8 @@ class ResultSheet extends StatelessWidget {
                 children: [
                   _buildGrabber(),
                   Expanded(
-                    child: state.isAnalyzing
-                        ? const _AnalyzingView()
+                    child: state.isBusy
+                        ? WaitingQuizView(questions: questions)
                         : state.result == null
                         ? const SizedBox.shrink()
                         : _ResultView(
@@ -104,7 +116,7 @@ class ResultSheet extends StatelessWidget {
   }
 
   Widget _buildActions(ExperimentRun state) {
-    final busy = state.isAnalyzing || state.isRenderingImage;
+    final busy = state.isBusy;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       decoration: const BoxDecoration(
@@ -133,91 +145,6 @@ class ResultSheet extends StatelessWidget {
   }
 }
 
-class _AnalyzingView extends StatefulWidget {
-  const _AnalyzingView();
-
-  @override
-  State<_AnalyzingView> createState() => _AnalyzingViewState();
-}
-
-class _AnalyzingViewState extends State<_AnalyzingView>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1600),
-  )..repeat();
-
-  static const _steps = [
-    'Reading your build…',
-    'Checking the connections…',
-    'Simulating the outcome…',
-    'Writing up the results…',
-  ];
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          final step = (_controller.value * _steps.length).floor().clamp(
-            0,
-            _steps.length - 1,
-          );
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Transform.rotate(
-                angle: _controller.value * 6.28318,
-                child: const Icon(
-                  Icons.science_outlined,
-                  size: 44,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'Running your experiment',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 260),
-                child: Text(
-                  _steps[step],
-                  key: ValueKey(step),
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 22),
-              const SizedBox(
-                width: 180,
-                child: LinearProgressIndicator(
-                  minHeight: 5,
-                  borderRadius: BorderRadius.all(Radius.circular(4)),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
 class _ResultView extends StatelessWidget {
   const _ResultView({required this.state, required this.scrollController});
 
@@ -228,70 +155,25 @@ class _ResultView extends StatelessWidget {
   Widget build(BuildContext context) {
     final result = state.result!;
     final ok = result.success;
-    final accent = ok ? AppColors.success : AppColors.warning;
+    // Failure leans on a deep red so a bad run is unmistakable at a glance.
+    final accent = ok ? AppColors.success : AppColors.dangerDeep;
 
     return ListView(
       controller: scrollController,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: accent.withValues(alpha: 0.4)),
-              ),
-              child: Icon(
-                ok ? Icons.celebration_outlined : Icons.build_outlined,
-                size: 22,
-                color: accent,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    result.title,
-                    style: TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                      color: accent,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    result.message,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      height: 1.4,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        if (state.isRenderingImage ||
-            state.imageBytes != null ||
-            state.imageError != null) ...[
-          const SizedBox(height: 20),
-          _ImagePanel(state: state),
-        ],
+        _buildHeader(result, ok, accent),
+
+        // Words first: the explanation is the substance, the picture is
+        // the garnish, so reading order runs top-down from verdict to image.
         if (result.mistake != null) ...[
           const SizedBox(height: 18),
           _Section(
-            icon: Icons.explore_outlined,
-            title: 'What to look at',
+            icon: Icons.error_outline,
+            title: 'What went wrong',
             body: result.mistake!,
-            tint: AppColors.warning,
+            tint: AppColors.dangerDeep,
+            fill: AppColors.dangerSoft,
           ),
         ],
         if (result.explanation.isNotEmpty) ...[
@@ -300,10 +182,73 @@ class _ResultView extends StatelessWidget {
             icon: Icons.menu_book_outlined,
             title: 'Explanation',
             body: result.explanation,
-            tint: AppColors.primary,
+            tint: ok ? AppColors.primary : AppColors.dangerDeep,
           ),
         ],
+        if (state.imageBytes != null || state.imageError != null) ...[
+          const SizedBox(height: 18),
+          _ImagePanel(state: state),
+        ],
       ],
+    );
+  }
+
+  Widget _buildHeader(AnalysisResult result, bool ok, Color accent) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ok
+            ? AppColors.success.withValues(alpha: 0.07)
+            : AppColors.dangerSoft,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: ok ? 0.3 : 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(
+              ok ? Icons.check_rounded : Icons.priority_high_rounded,
+              size: 24,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  result.title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: accent,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  result.message,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.45,
+                    color: ok
+                        ? AppColors.textSecondary
+                        : AppColors.dangerDeep.withValues(alpha: 0.85),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -314,6 +259,7 @@ class _Section extends StatelessWidget {
     required this.title,
     required this.body,
     required this.tint,
+    this.fill,
   });
 
   final IconData icon;
@@ -321,12 +267,15 @@ class _Section extends StatelessWidget {
   final String body;
   final Color tint;
 
+  /// Background wash; defaults to the neutral inset colour.
+  final Color? fill;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
+        color: fill ?? AppColors.surfaceAlt,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: tint.withValues(alpha: 0.22)),
       ),

@@ -10,6 +10,7 @@ import '../canvas/canvas_view.dart';
 import '../data/example_experiments.dart';
 import '../game/achievements.dart';
 import '../game/game_state.dart';
+import '../game/waiting_quiz.dart';
 import '../models/component_data.dart';
 import '../models/experiment.dart';
 import '../services/openai_service.dart';
@@ -67,6 +68,10 @@ class _HomeScreenState extends State<HomeScreen> {
   /// The result sheet is a separate modal route, so a `setState` here would
   /// never reach it — it listens to this notifier instead.
   final _run = ValueNotifier<ExperimentRun>(const ExperimentRun());
+
+  /// Questions shown while the current run is in flight, matched to the
+  /// domains the player built with.
+  List<QuizQuestion> _quiz = const <QuizQuestion>[];
 
   @override
   void initState() {
@@ -182,11 +187,17 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!await _ensureApiKey()) return;
     if (!mounted) return;
 
-    _run.value = const ExperimentRun(isAnalyzing: true, isRenderingImage: true);
-    _showResultSheet();
-
     final service = context.read<OpenAiService>();
     final experiment = _controller.toExperiment();
+
+    // Quiz the player on the fields they actually built with, so the wait
+    // feels like part of the lab. Entirely local — no extra API load.
+    _quiz = quizForCategories(
+      experiment.nodes.map((n) => n.component.category),
+    );
+
+    _run.value = const ExperimentRun(isAnalyzing: true, isRenderingImage: true);
+    _showResultSheet();
 
     // Both requests go out together. The illustration is prompted from the
     // graph itself (see buildExperimentImagePrompt), so it does not have to
@@ -197,33 +208,27 @@ class _HomeScreenState extends State<HomeScreen> {
       service,
       buildExperimentImagePrompt(experiment),
     );
-
     final result = await service.analyzeExperiment(experiment);
+    final image = await imageFuture;
+
     if (!mounted) return;
 
-    // Show the verdict the moment it lands, with the picture still rendering.
-    _run.value = ExperimentRun(result: result, isRenderingImage: true);
+    // Reveal everything in one go: the quiz covers the wait, so there is no
+    // reason to show a half-finished result and then shuffle it about.
+    _run.value = ExperimentRun(
+      result: result,
+      imageBytes: image.bytes,
+      imageError: image.error,
+    );
 
     if (result.success) _confetti.play();
 
-    // Award XP straight away — the picture is cosmetic and must never gate
-    // progression or block the result the player already earned.
     await _award(
       () => context.read<GameState>().recordExperimentRun(
         success: result.success,
         nodeCount: experiment.nodes.length,
         edgeCount: experiment.edges.length,
       ),
-    );
-
-    final image = await imageFuture;
-    if (!mounted) return;
-    // Drop it if a newer run replaced this result while the image rendered.
-    if (!identical(_run.value.result, result)) return;
-    _run.value = ExperimentRun(
-      result: result,
-      imageBytes: image.bytes,
-      imageError: image.error,
     );
   }
 
@@ -251,6 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
       isDismissible: true,
       builder: (sheetContext) => ResultSheet(
         run: _run,
+        questions: _quiz,
         onClose: () => Navigator.of(sheetContext).pop(),
         onRetry: () {
           Navigator.of(sheetContext).pop();

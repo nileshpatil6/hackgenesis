@@ -1124,17 +1124,19 @@ List<ComponentData> familyVariations(String familyId) => kComponentLibrary
 /// An empty (or whitespace-only) [query] matches every family.
 List<ComponentFamily> searchFamilies(String query, {String? categoryId}) {
   final String q = query.trim().toLowerCase();
-  return kComponentFamilies.where((ComponentFamily family) {
-    if (categoryId != null && family.category != categoryId) return false;
-    if (q.isEmpty) return true;
-    if (family.label.toLowerCase().contains(q) ||
-        family.description.toLowerCase().contains(q)) {
-      return true;
-    }
-    return familyVariations(
-      family.id,
-    ).any((ComponentData c) => c.label.toLowerCase().contains(q));
-  }).toList(growable: false);
+  return kComponentFamilies
+      .where((ComponentFamily family) {
+        if (categoryId != null && family.category != categoryId) return false;
+        if (q.isEmpty) return true;
+        if (family.label.toLowerCase().contains(q) ||
+            family.description.toLowerCase().contains(q)) {
+          return true;
+        }
+        return familyVariations(
+          family.id,
+        ).any((ComponentData c) => c.label.toLowerCase().contains(q));
+      })
+      .toList(growable: false);
 }
 
 /// Looks up a component by [ComponentData.id], or `null` when there is none.

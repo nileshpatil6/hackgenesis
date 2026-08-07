@@ -31,6 +31,13 @@ abstract final class AppColors {
   static const success = Color(0xFF059669);
   static const warning = Color(0xFFD97706);
   static const danger = Color(0xFFDC2626);
+
+  /// Deep red for failure headlines — reads as "this did not work" at a
+  /// glance, without the alarm of pure red on a light background.
+  static const dangerDeep = Color(0xFF7F1D1D);
+
+  /// Pale red wash behind failure content.
+  static const dangerSoft = Color(0xFFFEF2F2);
   static const accent = Color(0xFFF97316);
   static const purple = Color(0xFF7C3AED);
 

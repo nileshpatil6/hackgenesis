@@ -269,7 +269,11 @@ class _CategoryChip extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: 13, color: selected ? color : AppColors.textSecondary),
+                  Icon(
+                    icon,
+                    size: 13,
+                    color: selected ? color : AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 5),
                   Text(
                     label,
@@ -372,7 +376,11 @@ class _FamilyHeaderTile extends StatelessWidget {
                     color: color.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(categoryIcon(family.category), size: 16, color: color),
+                  child: Icon(
+                    categoryIcon(family.category),
+                    size: 16,
+                    color: color,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -462,7 +470,9 @@ class _VariationTile extends StatelessWidget {
       margin: const EdgeInsets.only(left: 14, top: 2),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        border: Border(left: BorderSide(color: color.withValues(alpha: 0.35), width: 2)),
+        border: Border(
+          left: BorderSide(color: color.withValues(alpha: 0.35), width: 2),
+        ),
       ),
       child: Material(
         color: Colors.transparent,
