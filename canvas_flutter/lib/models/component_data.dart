@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// A single draggable building block in the component library.
+/// A single building block in the component library.
 /// Mirrors `ComponentData` from the React app's `src/types/index.ts`.
 @immutable
 class ComponentData {

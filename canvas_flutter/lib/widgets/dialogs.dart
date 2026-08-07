@@ -150,7 +150,7 @@ class WelcomeDialog extends StatelessWidget {
   static const _steps = <(IconData, String, String)>[
     (
       Icons.widgets_outlined,
-      'Drag components in',
+      'Tap components in',
       'Pick from 300+ parts on the left.',
     ),
     (
