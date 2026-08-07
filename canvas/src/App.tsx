@@ -13,7 +13,7 @@ import ReactFlow, {
   Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Play, Download, Trash2, BookOpen, Upload, Menu, Undo, Redo, X, CheckCircle, AlertCircle, Zap, FlaskConical, Atom, Code2, Sun, Moon } from 'lucide-react';
+import { Play, Download, Trash2, BookOpen, Upload, Menu, Undo, Redo, X, CheckCircle, AlertCircle, Zap, FlaskConical, Atom, Code2, Sun, Moon, PartyPopper, XCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -332,7 +332,7 @@ function App() {
       const hint = await openaiService.getHint(experimentJSON, userMessage);
       return hint;
     } catch (error: any) {
-      return "Sorry, I'm having trouble thinking right now. Can you try asking again? 🤔";
+      return "Sorry, I'm having trouble thinking right now. Can you try asking again?";
     }
   };
 
@@ -564,7 +564,8 @@ function App() {
                       {analysisResult.success ? (
                         <div className="bg-zinc-50 dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-white/10">
                           <h3 className="mt-0 text-lg font-semibold text-emerald-600 dark:text-emerald-500 flex items-center gap-2">
-                            🎉 Congratulations!
+                            <PartyPopper size={19} />
+                            Congratulations!
                           </h3>
                           <div className="text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-wrap">
                             {analysisResult.explanation}
@@ -573,7 +574,8 @@ function App() {
                       ) : (
                         <div className="bg-red-50 dark:bg-red-500/10 p-6 rounded-2xl border border-red-200 dark:border-red-500/20">
                           <h3 className="mt-0 text-lg font-semibold text-red-600 dark:text-red-400 flex items-center gap-2">
-                            ❌ Experiment Failed
+                            <XCircle size={19} />
+                            Experiment Failed
                           </h3>
                           <div className="text-[15px] leading-relaxed text-red-800/90 dark:text-red-200/90">
                             <strong>Mistake:</strong> {analysisResult.mistake}
