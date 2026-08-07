@@ -2,91 +2,21 @@
 
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Code, Trophy, Zap, Target, BookOpen, LogOut, User } from "lucide-react";
-
-interface UserProfile {
-  id: string;
-  name: string;
-  age: number;
-  email: string | null;
-}
 
 export default function DashboardPage() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
-  const [showModal, setShowModal] = useState(false);
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
   }, [user, loading, router]);
 
-  useEffect(() => {
-    if (user) {
-      checkUserProfile();
-    }
-  }, [user]);
-
-  function checkUserProfile() {
-    if (!user) return;
-
-    if (user.isGuest) {
-      setUserProfile({
-        id: user.uid,
-        name: "Guest",
-        age: 0,
-        email: null,
-      });
-      setShowModal(false);
-      return;
-    }
-
-    const storageKey = `profile_${user.uid}`;
-    const storedProfile = localStorage.getItem(storageKey);
-
-    if (!storedProfile) {
-      setShowModal(true);
-      return;
-    }
-
-    try {
-      const parsedProfile: UserProfile = JSON.parse(storedProfile);
-      setUserProfile(parsedProfile);
-      setShowModal(false);
-    } catch (error) {
-      console.error("Invalid local profile data:", error);
-      localStorage.removeItem(storageKey);
-      setShowModal(true);
-    }
-  }
-
-  function saveProfile() {
-    if (!user || !name || !age) return;
-
-    setSaving(true);
-    try {
-      const profileData: UserProfile = {
-        id: user.uid,
-        name: name.trim(),
-        age: parseInt(age, 10),
-        email: user.email ?? null,
-      };
-
-      localStorage.setItem(`profile_${user.uid}`, JSON.stringify(profileData));
-      setUserProfile(profileData);
-      setShowModal(false);
-    } catch (error) {
-      console.error("Error saving local profile:", error);
-      alert("Failed to save profile locally. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const displayName = user?.isGuest
+    ? "Guest"
+    : user?.displayName || user?.email?.split("@")[0] || "User";
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -164,12 +94,10 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex items-center gap-4">
-              {userProfile && (
-                <div className="flex items-center gap-3 px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg">
-                  <User className="w-4 h-4 text-zinc-500" />
-                  <span className="font-sans text-sm text-zinc-900">{userProfile.name}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-3 px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg">
+                <User className="w-4 h-4 text-zinc-500" />
+                <span className="font-sans text-sm text-zinc-900">{displayName}</span>
+              </div>
               <button
                 onClick={logout}
                 className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-orange-500 transition-colors duration-300 font-sans text-sm"
@@ -228,64 +156,6 @@ export default function DashboardPage() {
           ))}
         </motion.div>
       </motion.div>
-
-      {/* Profile Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white border border-zinc-200 rounded-2xl p-8 max-w-md w-[90%] shadow-2xl"
-          >
-            <h2 className="font-serif text-3xl text-zinc-900 mb-2">
-              Complete Profile
-            </h2>
-            <p className="font-sans text-zinc-600 mb-8">
-              Please provide your information to continue
-            </p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="font-mono text-xs text-zinc-500 uppercase tracking-wider block mb-2">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter your name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-lg font-sans text-zinc-900 placeholder-zinc-400 focus:border-orange-500 focus:outline-none transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="font-mono text-xs text-zinc-500 uppercase tracking-wider block mb-2">
-                  Age
-                </label>
-                <input
-                  type="number"
-                  placeholder="Enter your age"
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-lg font-sans text-zinc-900 placeholder-zinc-400 focus:border-orange-500 focus:outline-none transition-colors"
-                />
-              </div>
-            </div>
-
-            <button
-              onClick={saveProfile}
-              disabled={!name || !age || saving}
-              className={`w-full px-6 py-3 mt-8 font-sans font-medium rounded-lg transition-all duration-300 ${
-                name && age
-                  ? 'bg-orange-500 text-white hover:bg-orange-600 cursor-pointer'
-                  : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-              }`}
-            >
-              {saving ? "Saving..." : "Save Profile"}
-            </button>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 }
