@@ -36,6 +36,43 @@ void main() {
       final resistors = searchComponents('resistor');
       expect(resistors, isNotEmpty);
     });
+
+    test('every variation resolves to a known family', () {
+      final familyIds = kComponentFamilies.map((f) => f.id).toSet();
+      final orphans = kComponentLibrary
+          .map((c) => c.id)
+          .where((id) => !familyIds.contains(familyIdOf(id)))
+          .toList();
+      expect(orphans, isEmpty, reason: 'component ids with no owning family');
+    });
+
+    test('family variations round-trip back to the flat library', () {
+      final totalViaFamilies = kComponentFamilies
+          .map((f) => familyVariations(f.id).length)
+          .fold<int>(0, (a, b) => a + b);
+      expect(totalViaFamilies, kComponentLibrary.length);
+
+      final resistorFamily = kComponentFamilies.firstWhere(
+        (f) => f.id == 'resistor',
+      );
+      final resistorVariations = familyVariations(resistorFamily.id);
+      expect(resistorVariations, isNotEmpty);
+      expect(
+        resistorVariations.every((c) => c.label.startsWith('Resistor ')),
+        isTrue,
+      );
+    });
+
+    test('searchFamilies falls through to variation labels', () {
+      // "220" only appears on one resistor variation, not on the family's
+      // own label/description, so this only passes if the fallback works.
+      final byVariation = searchFamilies('220');
+      expect(byVariation.any((f) => f.id == 'resistor'), isTrue);
+
+      final byCategory = searchFamilies('', categoryId: 'electronics');
+      expect(byCategory, isNotEmpty);
+      expect(byCategory.every((f) => f.category == 'electronics'), isTrue);
+    });
   });
 
   group('canvas controller', () {

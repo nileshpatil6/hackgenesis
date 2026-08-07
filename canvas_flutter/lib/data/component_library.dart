@@ -19,6 +19,13 @@ class _Variation {
   final Map<String, dynamic>? props;
 }
 
+/// One [ComponentFamily] per call to [_generate], in call order.
+///
+/// Populated as a side effect of building [kComponentLibrary] — every read
+/// of this list goes through [kComponentFamilies], which touches
+/// `kComponentLibrary` first to guarantee it has already been populated.
+final List<ComponentFamily> _familyOrder = <ComponentFamily>[];
+
 /// Dart port of the TS `generateComponents(base, variations)` helper.
 ///
 /// `id` becomes `<base.id>_<index>`, `label` becomes `<base.label> <suffix>`,
@@ -29,6 +36,14 @@ class _Variation {
 /// base declaring `0` ports/outputs falls back to `1`. That quirk is preserved
 /// here so the Dart library is byte-for-byte equivalent to the web one.
 List<ComponentData> _generate(ComponentData base, List<_Variation> variations) {
+  _familyOrder.add(
+    ComponentFamily(
+      id: base.id,
+      label: base.label,
+      category: base.category,
+      description: base.description,
+    ),
+  );
   return List<ComponentData>.generate(variations.length, (int index) {
     final _Variation v = variations[index];
     return ComponentData(
@@ -1076,6 +1091,50 @@ List<ComponentData> searchComponents(String query, {String? categoryId}) {
         c.description.toLowerCase().contains(q) ||
         c.category.toLowerCase().contains(q);
   }).toList();
+}
+
+/// One [ComponentFamily] per generated group (e.g. all ten resistor values
+/// collapse to a single `resistor` family), in library order.
+///
+/// Touches [kComponentLibrary] first so its lazy initializer — which
+/// populates [_familyOrder] as a side effect — has always run before this
+/// is read.
+List<ComponentFamily> get kComponentFamilies {
+  // ignore: unnecessary_statements
+  kComponentLibrary;
+  return List<ComponentFamily>.unmodifiable(_familyOrder);
+}
+
+final RegExp _familyIndexSuffix = RegExp(r'^(.+)_\d+$');
+
+/// [ComponentData.id] -> [ComponentFamily.id] it was generated from.
+String familyIdOf(String componentId) =>
+    _familyIndexSuffix.firstMatch(componentId)?.group(1) ?? componentId;
+
+/// Every variation belonging to family [familyId], in library order.
+List<ComponentData> familyVariations(String familyId) => kComponentLibrary
+    .where((ComponentData c) => familyIdOf(c.id) == familyId)
+    .toList(growable: false);
+
+/// Case-insensitive search over families, restricted to [categoryId] when
+/// given. A family matches when its own label/description matches, or when
+/// any of its variations do — so searching "220" still surfaces the
+/// Resistor family even though "220" only appears on one of its variations.
+///
+/// An empty (or whitespace-only) [query] matches every family.
+List<ComponentFamily> searchFamilies(String query, {String? categoryId}) {
+  final String q = query.trim().toLowerCase();
+  return kComponentFamilies.where((ComponentFamily family) {
+    if (categoryId != null && family.category != categoryId) return false;
+    if (q.isEmpty) return true;
+    if (family.label.toLowerCase().contains(q) ||
+        family.description.toLowerCase().contains(q)) {
+      return true;
+    }
+    return familyVariations(
+      family.id,
+    ).any((ComponentData c) => c.label.toLowerCase().contains(q));
+  }).toList(growable: false);
 }
 
 /// Looks up a component by [ComponentData.id], or `null` when there is none.

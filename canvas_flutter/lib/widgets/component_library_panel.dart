@@ -5,17 +5,19 @@ import '../data/component_library.dart';
 import '../models/component_data.dart';
 import '../theme/app_theme.dart';
 
-/// Browsable, searchable palette of every component the player can place.
+/// Browsable, searchable palette of every component family the player can
+/// place.
 ///
-/// Tiles are tappable, which adds the component straight to the middle of
-/// the visible viewport — this is the only way to place a component, so it
-/// works identically on touch, mouse and trackpad without a drag gesture
-/// competing with the list's own scrolling.
+/// Each row is one family (e.g. "Resistor") rather than every individual
+/// variation, so the list stays short enough to scan instead of burying
+/// every other family under ten resistor values. Tapping a family expands
+/// it in place to reveal its variations; tapping a variation adds it to the
+/// middle of the visible viewport.
 class ComponentLibraryPanel extends StatefulWidget {
   const ComponentLibraryPanel({super.key, required this.onQuickAdd});
 
-  /// Called when a tile is tapped — the host drops the component at the
-  /// centre of the visible canvas.
+  /// Called when a variation is tapped — the host drops the component at
+  /// the centre of the visible canvas.
   final ValueChanged<ComponentData> onQuickAdd;
 
   @override
@@ -26,6 +28,7 @@ class _ComponentLibraryPanelState extends State<ComponentLibraryPanel> {
   final _searchController = TextEditingController();
   String _query = '';
   String? _categoryId;
+  final Set<String> _expandedFamilyIds = <String>{};
 
   @override
   void dispose() {
@@ -33,12 +36,29 @@ class _ComponentLibraryPanelState extends State<ComponentLibraryPanel> {
     super.dispose();
   }
 
-  List<ComponentData> get _results =>
-      searchComponents(_query, categoryId: _categoryId);
+  List<ComponentFamily> get _families =>
+      searchFamilies(_query, categoryId: _categoryId);
+
+  /// Expands (or adds straight to canvas, for a single-variation family)
+  /// when tapped; collapses back when tapped again while expanded.
+  void _onFamilyTap(ComponentFamily family, List<ComponentData> variations) {
+    if (variations.length <= 1) {
+      if (variations.isNotEmpty) widget.onQuickAdd(variations.single);
+      return;
+    }
+    setState(() {
+      if (!_expandedFamilyIds.remove(family.id)) {
+        _expandedFamilyIds.add(family.id);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final results = _results;
+    final families = _families;
+    // Searching hunts for a specific variation, so every matching family
+    // auto-expands instead of making the user tap in twice.
+    final bool searching = _query.trim().isNotEmpty;
 
     return Container(
       decoration: const BoxDecoration(
@@ -48,22 +68,31 @@ class _ComponentLibraryPanelState extends State<ComponentLibraryPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(results.length),
+          _buildHeader(families.length),
           _buildCategoryChips(),
           const Divider(height: 1, color: AppColors.border),
           Expanded(
-            child: results.isEmpty
+            child: families.isEmpty
                 ? _buildEmptyState()
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 10,
                     ),
-                    itemCount: results.length,
-                    itemBuilder: (context, i) => _ComponentTile(
-                      component: results[i],
-                      onQuickAdd: () => widget.onQuickAdd(results[i]),
-                    ),
+                    itemCount: families.length,
+                    itemBuilder: (context, i) {
+                      final family = families[i];
+                      final variations = familyVariations(family.id);
+                      final expanded =
+                          searching || _expandedFamilyIds.contains(family.id);
+                      return _FamilyGroup(
+                        family: family,
+                        variations: variations,
+                        expanded: expanded,
+                        onFamilyTap: () => _onFamilyTap(family, variations),
+                        onVariationTap: widget.onQuickAdd,
+                      );
+                    },
                   ),
           ),
         ],
@@ -260,28 +289,76 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-class _ComponentTile extends StatelessWidget {
-  const _ComponentTile({required this.component, required this.onQuickAdd});
+/// One family header, plus its variations directly beneath when [expanded].
+class _FamilyGroup extends StatelessWidget {
+  const _FamilyGroup({
+    required this.family,
+    required this.variations,
+    required this.expanded,
+    required this.onFamilyTap,
+    required this.onVariationTap,
+  });
 
-  final ComponentData component;
-  final VoidCallback onQuickAdd;
+  final ComponentFamily family;
+  final List<ComponentData> variations;
+  final bool expanded;
+  final VoidCallback onFamilyTap;
+  final ValueChanged<ComponentData> onVariationTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = categoryColor(component.category);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _FamilyHeaderTile(
+          family: family,
+          variationCount: variations.length,
+          expanded: expanded,
+          onTap: onFamilyTap,
+        ),
+        if (expanded)
+          for (final component in variations)
+            _VariationTile(
+              component: component,
+              onTap: () => onVariationTap(component),
+            ),
+        const SizedBox(height: 6),
+      ],
+    );
+  }
+}
+
+class _FamilyHeaderTile extends StatelessWidget {
+  const _FamilyHeaderTile({
+    required this.family,
+    required this.variationCount,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  final ComponentFamily family;
+  final int variationCount;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = categoryColor(family.category);
+    final bool expandable = variationCount > 1;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
         color: AppColors.surfaceAlt,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
+        borderRadius: expanded
+            ? const BorderRadius.vertical(top: Radius.circular(10))
+            : BorderRadius.circular(10),
+        border: Border.all(color: expanded ? color : AppColors.border),
       ),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
-          onTap: onQuickAdd,
+          onTap: onTap,
           borderRadius: BorderRadius.circular(10),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
@@ -295,11 +372,7 @@ class _ComponentTile extends StatelessWidget {
                     color: color.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    categoryIcon(component.category),
-                    size: 16,
-                    color: color,
-                  ),
+                  child: Icon(categoryIcon(family.category), size: 16, color: color),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -308,7 +381,7 @@ class _ComponentTile extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        component.label,
+                        family.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -319,7 +392,7 @@ class _ComponentTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 1),
                       Text(
-                        component.description,
+                        family.description,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -330,9 +403,91 @@ class _ComponentTile extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (expandable) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '$variationCount',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  AnimatedRotation(
+                    turns: expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 150),
+                    child: const Icon(
+                      Icons.expand_more,
+                      size: 18,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ] else
+                  const Icon(
+                    Icons.add_circle_outline,
+                    size: 16,
+                    color: AppColors.textMuted,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One variation, indented under its expanded [_FamilyHeaderTile].
+class _VariationTile extends StatelessWidget {
+  const _VariationTile({required this.component, required this.onTap});
+
+  final ComponentData component;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = categoryColor(component.category);
+
+    return Container(
+      margin: const EdgeInsets.only(left: 14, top: 2),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border(left: BorderSide(color: color.withValues(alpha: 0.35), width: 2)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    component.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
                 const Icon(
                   Icons.add_circle_outline,
-                  size: 16,
+                  size: 14,
                   color: AppColors.textMuted,
                 ),
               ],
