@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { COMPONENT_LIBRARY, CATEGORIES } from '../data/componentLibrary';
 import { PartIcon } from '../data/iconRegistry';
 import { ComponentData } from '../types';
 
 interface ComponentLibraryProps {
   onDragStart: (component: ComponentData) => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
-export const ComponentLibrary = ({ onDragStart }: ComponentLibraryProps) => {
+export const ComponentLibrary = ({ onDragStart, collapsed, onToggleCollapse }: ComponentLibraryProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -25,11 +27,48 @@ export const ComponentLibrary = ({ onDragStart }: ComponentLibraryProps) => {
     onDragStart(component);
   };
 
+  if (collapsed) {
+    return (
+      <div className="w-14 h-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-white/10 flex flex-col items-center py-4 gap-3 transition-colors duration-300">
+        <button
+          onClick={onToggleCollapse}
+          title="Expand component library"
+          className="w-9 h-9 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white transition-colors"
+        >
+          <ChevronsRight size={17} />
+        </button>
+        <div className="w-full h-px bg-zinc-200 dark:bg-white/10" />
+        {CATEGORIES.slice(0, 8).map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => {
+              onToggleCollapse();
+              setSelectedCategory(cat.id);
+            }}
+            title={cat.label}
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white transition-colors"
+          >
+            <PartIcon iconKey={cat.icon} size={16} />
+          </button>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="w-[300px] h-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-white/10 flex flex-col overflow-hidden transition-colors duration-300">
       {/* Header */}
       <div className="p-5 border-b border-zinc-200 dark:border-white/10">
-        <h2 className="font-serif text-xl text-zinc-900 dark:text-white mb-4">Component Library</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-serif text-xl text-zinc-900 dark:text-white">Component Library</h2>
+          <button
+            onClick={onToggleCollapse}
+            title="Collapse component library"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 dark:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white transition-colors"
+          >
+            <ChevronsLeft size={16} />
+          </button>
+        </div>
 
         {/* Search */}
         <div className="relative">

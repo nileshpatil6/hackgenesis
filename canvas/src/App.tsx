@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, DragEvent, useEffect } from 'react';
+import { useState, useCallback, useRef, DragEvent, useEffect, useMemo } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -9,27 +9,31 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   NodeTypes,
-  Panel,
   Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Play, Download, Trash2, BookOpen, Upload, Menu, Undo, Redo, X, CheckCircle, AlertCircle, Zap, FlaskConical, Atom, Code2, Sun, Moon, PartyPopper, XCircle } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Zap, FlaskConical, Atom, Code2, PartyPopper, XCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
+import { Navbar } from './components/Navbar';
 import { ComponentLibrary } from './components/ComponentLibrary';
 import { CustomNode } from './components/CustomNode';
-import { DrawingToolbar } from './components/DrawingToolbar';
+import { RightSidebar } from './components/RightSidebar';
 import { DrawingCanvas } from './components/DrawingCanvas';
 import { RobotAssistant } from './components/RobotAssistant';
+import { PromptDialog, PromptDialogState } from './components/PromptDialog';
+import { ToastStack } from './components/ToastStack';
 import { ComponentData, AnalysisResult } from './types';
 import { DrawingTool, DrawnShape } from './types/drawing';
 import { generateExperimentJSON, downloadJSON } from './utils/jsonGenerator';
 import { openaiService } from './utils/openaiService';
 import { EXAMPLE_EXPERIMENTS, EXAMPLE_LIST } from './data/exampleExperiments';
 import { shapeRecognizer } from './utils/shapeRecognition';
+import { CATEGORIES } from './data/componentLibrary';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useTheme } from './hooks/useTheme';
+import { useToasts } from './hooks/useToasts';
 
 const nodeTypes: NodeTypes = {
   custom: CustomNode,
@@ -40,6 +44,23 @@ function App() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { takeSnapshot, undo, redo, canUndo, canRedo } = useUndoRedo();
   const { isDark, toggleTheme } = useTheme();
+  const { toasts, showToast, dismissToast } = useToasts();
+  const [promptState, setPromptState] = useState<PromptDialogState | null>(null);
+
+  const showPrompt = useCallback((title: string, defaultValue: string, onConfirm: (value: string) => void) => {
+    setPromptState({ title, defaultValue, onConfirm });
+  }, []);
+
+  const showConfirm = useCallback((title: string, message: string, onConfirm: () => void, danger = false) => {
+    setPromptState({
+      title,
+      message,
+      showInput: false,
+      danger,
+      confirmLabel: danger ? 'Delete' : 'Confirm',
+      onConfirm: () => onConfirm(),
+    });
+  }, []);
 
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -51,7 +72,25 @@ function App() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [currentDrawingTool, setCurrentDrawingTool] = useState<DrawingTool | null>(null);
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+
+  const selectedNode = useMemo(
+    () => nodes.find((n) => n.id === selectedNodeId) || null,
+    [nodes, selectedNodeId]
+  );
+
+  const categoryStats = useMemo(() => {
+    const counts = new Map<string, number>();
+    nodes.forEach((n) => {
+      const category = n.data.component?.category;
+      if (category) counts.set(category, (counts.get(category) || 0) + 1);
+    });
+    return CATEGORIES
+      .filter((cat) => counts.has(cat.id))
+      .map((cat) => ({ id: cat.icon, label: cat.label, count: counts.get(cat.id) || 0, color: cat.color }));
+  }, [nodes]);
 
   // Check if user has visited before
   useEffect(() => {
@@ -86,20 +125,64 @@ function App() {
 
   const onEdgeClick = useCallback(
     (_event: React.MouseEvent, edge: Edge) => {
-      const label = prompt('Enter a label for this connection (e.g., condition, value):', edge.label as string || '');
-      if (label !== null) {
-        takeSnapshot(nodes, edges);
-        setEdges((eds) =>
-          eds.map((e) => (e.id === edge.id ? { ...e, label } : e))
-        );
-      }
+      showPrompt(
+        'Label this connection',
+        (edge.label as string) || '',
+        (label) => {
+          takeSnapshot(nodes, edges);
+          setEdges((eds) =>
+            eds.map((e) => (e.id === edge.id ? { ...e, label } : e))
+          );
+        }
+      );
     },
-    [setEdges, takeSnapshot, nodes, edges]
+    [setEdges, takeSnapshot, nodes, edges, showPrompt]
   );
 
   const onNodeDragStart = useCallback(() => {
     takeSnapshot(nodes, edges);
   }, [takeSnapshot, nodes, edges]);
+
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    setSelectedNodeId(node.id);
+  }, []);
+
+  const onPaneClick = useCallback(() => {
+    setSelectedNodeId(null);
+  }, []);
+
+  useEffect(() => {
+    if (selectedNodeId && !nodes.some((n) => n.id === selectedNodeId)) {
+      setSelectedNodeId(null);
+    }
+  }, [nodes, selectedNodeId]);
+
+  const updateNodeLabel = useCallback((nodeId: string, label: string) => {
+    setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, customText: label } } : n)));
+  }, [setNodes]);
+
+  const updateNodeProperty = useCallback((nodeId: string, key: string, value: any) => {
+    setNodes((nds) => nds.map((n) => {
+      if (n.id !== nodeId) return n;
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          component: {
+            ...n.data.component,
+            properties: { ...n.data.component.properties, [key]: value },
+          },
+        },
+      };
+    }));
+  }, [setNodes]);
+
+  const deleteNode = useCallback((nodeId: string) => {
+    takeSnapshot(nodes, edges);
+    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    setSelectedNodeId(null);
+  }, [nodes, edges, takeSnapshot, setNodes, setEdges]);
 
   const onDragOver = useCallback((event: DragEvent) => {
     event.preventDefault();
@@ -141,7 +224,7 @@ function App() {
   const handleRunExperiment = async () => {
 
     if (nodes.length === 0) {
-      alert('Please add components to your experiment first!');
+      showToast('Please add components to your experiment first!', 'error');
       return;
     }
 
@@ -177,7 +260,7 @@ function App() {
 
   const handleDownloadJSON = () => {
     if (nodes.length === 0) {
-      alert('Please add components to your experiment first!');
+      showToast('Please add components to your experiment first!', 'error');
       return;
     }
     const experimentJSON = generateExperimentJSON(nodes, edges);
@@ -185,13 +268,19 @@ function App() {
   };
 
   const handleClearCanvas = () => {
-    if (nodes.length > 0 && confirm('Are you sure you want to clear the canvas?')) {
-      takeSnapshot(nodes, edges);
-      setNodes([]);
-      setEdges([]);
-      setAnalysisResult(null);
-      setShowResults(false);
-    }
+    if (nodes.length === 0) return;
+    showConfirm(
+      'Clear the canvas?',
+      'This removes every component and connection you\'ve added. This can\'t be undone.',
+      () => {
+        takeSnapshot(nodes, edges);
+        setNodes([]);
+        setEdges([]);
+        setAnalysisResult(null);
+        setShowResults(false);
+      },
+      true
+    );
   };
 
   const handleLoadExample = (exampleId: string) => {
@@ -219,18 +308,17 @@ function App() {
       return;
     }
 
+    if (tool === 'freehand') {
+      // Only freehand requires drawing on the canvas
+      setCurrentDrawingTool(tool);
+      return;
+    }
+
     // Get canvas center position
     const canvasCenter = {
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
     };
-
-    // Prompt for label
-    const label = prompt(`Enter a label for this ${tool}:`, tool.charAt(0).toUpperCase() + tool.slice(1));
-
-    if (!label || !label.trim()) {
-      return;
-    }
 
     // Create shape directly at center
     const size = 100;
@@ -277,25 +365,25 @@ function App() {
           { x: bounds.x + size, y: canvasCenter.y },
         ];
         break;
-      case 'freehand':
-        // Only freehand requires drawing
-        setCurrentDrawingTool(tool);
-        return;
     }
 
-    const shape: DrawnShape = {
-      id: `shape_${Date.now()}`,
-      type: tool as any,
-      points,
-      bounds,
-      label: label.trim(),
-      recognized: true,
-    };
+    showPrompt(`Label this ${tool}`, tool.charAt(0).toUpperCase() + tool.slice(1), (label) => {
+      if (!label.trim()) return;
 
-    const newNode = shapeRecognizer.convertShapeToNode(shape, shape.label);
-    takeSnapshot(nodes, edges);
-    setNodes((nds) => nds.concat(newNode as Node));
-  }, [setNodes, takeSnapshot, nodes, edges]);
+      const shape: DrawnShape = {
+        id: `shape_${Date.now()}`,
+        type: tool as any,
+        points,
+        bounds,
+        label: label.trim(),
+        recognized: true,
+      };
+
+      const newNode = shapeRecognizer.convertShapeToNode(shape, shape.label);
+      takeSnapshot(nodes, edges);
+      setNodes((nds) => nds.concat(newNode as Node));
+    });
+  }, [setNodes, takeSnapshot, nodes, edges, showPrompt]);
 
   const handleImportJSON = () => {
     const input = document.createElement('input');
@@ -312,12 +400,12 @@ function App() {
               takeSnapshot(nodes, edges);
               setNodes(json.nodes);
               setEdges(json.edges);
-              alert('Experiment loaded successfully!');
+              showToast('Experiment loaded successfully!', 'success');
             } else {
-              alert('Invalid experiment file format!');
+              showToast('Invalid experiment file format!', 'error');
             }
           } catch (error) {
-            alert('Error reading file. Please make sure it\'s a valid JSON file.');
+            showToast('Error reading file. Please make sure it\'s a valid JSON file.', 'error');
           }
         };
         reader.readAsText(file);
@@ -337,171 +425,87 @@ function App() {
   };
 
   return (
-    <div className="flex w-screen h-screen font-sans bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-300">
-      {/* Component Library Sidebar */}
-      <ComponentLibrary onDragStart={() => { }} />
+    <div className="flex flex-col w-screen h-screen font-sans bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-300">
+      <Navbar
+        isAnalyzing={isAnalyzing}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        isDark={isDark}
+        nodeCount={nodes.length}
+        edgeCount={edges.length}
+        onUndo={() => undo(nodes, edges, setNodes, setEdges)}
+        onRedo={() => redo(nodes, edges, setNodes, setEdges)}
+        onRunExperiment={handleRunExperiment}
+        onShowExamples={() => setShowExamplesModal(true)}
+        onToggleTheme={toggleTheme}
+        onDownloadJSON={handleDownloadJSON}
+        onImportJSON={handleImportJSON}
+        onClearCanvas={handleClearCanvas}
+      />
 
-      {/* Main Canvas */}
-      <div ref={reactFlowWrapper} className="flex-1 relative">
-        <DrawingToolbar
+      <div className="flex flex-1 min-h-0">
+        {/* Component Library Sidebar */}
+        <ComponentLibrary
+          onDragStart={() => { }}
+          collapsed={leftSidebarCollapsed}
+          onToggleCollapse={() => setLeftSidebarCollapsed((v) => !v)}
+        />
+
+        {/* Main Canvas */}
+        <div ref={reactFlowWrapper} className="flex-1 relative">
+          <DrawingCanvas
+            currentTool={currentDrawingTool}
+            onShapeComplete={handleShapeComplete}
+            onRequestLabel={showPrompt}
+            onUnrecognizedShape={() => showToast('Shape not recognized. Try drawing more clearly: rectangle, circle, triangle, or line.', 'error')}
+          />
+
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onEdgeClick={onEdgeClick}
+            onNodeClick={onNodeClick}
+            onPaneClick={onPaneClick}
+            onInit={setReactFlowInstance}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onNodeDragStart={onNodeDragStart}
+            nodeTypes={nodeTypes}
+            fitView
+            deleteKeyCode="Delete"
+          >
+            <Background
+              color={isDark ? '#27272a' : '#e4e4e7'}
+              gap={22}
+              size={1}
+              style={{ backgroundColor: isDark ? '#09090b' : '#ffffff' }}
+            />
+            <Controls />
+            <MiniMap
+              style={{ backgroundColor: isDark ? '#18181b' : '#f4f4f5' }}
+              maskColor={isDark ? 'rgba(9, 9, 11, 0.7)' : 'rgba(244, 244, 245, 0.7)'}
+              nodeColor={isDark ? '#3f3f46' : '#d4d4d8'}
+            />
+          </ReactFlow>
+        </div>
+
+        {/* Tools + Inspector Sidebar */}
+        <RightSidebar
+          collapsed={rightSidebarCollapsed}
+          onToggleCollapse={() => setRightSidebarCollapsed((v) => !v)}
           selectedTool={currentDrawingTool}
           onToolSelect={handleToolSelect}
+          selectedNode={selectedNode}
+          onUpdateLabel={updateNodeLabel}
+          onUpdateProperty={updateNodeProperty}
+          onDeleteNode={deleteNode}
+          nodeCount={nodes.length}
+          edgeCount={edges.length}
+          categoryStats={categoryStats}
         />
-
-        <DrawingCanvas
-          currentTool={currentDrawingTool}
-          onShapeComplete={handleShapeComplete}
-        />
-
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onEdgeClick={onEdgeClick}
-          onInit={setReactFlowInstance}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          onNodeDragStart={onNodeDragStart}
-          nodeTypes={nodeTypes}
-          fitView
-          deleteKeyCode="Delete"
-        >
-          <Background
-            color={isDark ? '#27272a' : '#e4e4e7'}
-            gap={22}
-            size={1}
-            style={{ backgroundColor: isDark ? '#09090b' : '#ffffff' }}
-          />
-          <Controls />
-          <MiniMap
-            style={{ backgroundColor: isDark ? '#18181b' : '#f4f4f5' }}
-            maskColor={isDark ? 'rgba(9, 9, 11, 0.7)' : 'rgba(244, 244, 245, 0.7)'}
-            nodeColor={isDark ? '#3f3f46' : '#d4d4d8'}
-          />
-
-          {/* Top Control Panel */}
-          <Panel position="top-right" style={{ margin: '14px' }}>
-            <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-white/10 p-2.5 rounded-2xl shadow-[0_8px_28px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_28px_rgba(0,0,0,0.5)] flex gap-2 flex-wrap items-center">
-              <div className="flex gap-1 mr-1.5 border-r border-zinc-200 dark:border-white/10 pr-2">
-                <button
-                  onClick={() => undo(nodes, edges, setNodes, setEdges)}
-                  disabled={!canUndo}
-                  title="Undo"
-                  className={`flex items-center justify-center p-2 rounded-lg transition-colors ${
-                    canUndo ? 'text-zinc-500 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white' : 'text-zinc-300 dark:text-zinc-700 cursor-not-allowed'
-                  }`}
-                >
-                  <Undo size={17} />
-                </button>
-                <button
-                  onClick={() => redo(nodes, edges, setNodes, setEdges)}
-                  disabled={!canRedo}
-                  title="Redo"
-                  className={`flex items-center justify-center p-2 rounded-lg transition-colors ${
-                    canRedo ? 'text-zinc-500 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white' : 'text-zinc-300 dark:text-zinc-700 cursor-not-allowed'
-                  }`}
-                >
-                  <Redo size={17} />
-                </button>
-              </div>
-
-              <button
-                onClick={handleRunExperiment}
-                disabled={isAnalyzing}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  isAnalyzing
-                    ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-400 cursor-not-allowed'
-                    : 'bg-orange-500 text-white hover:bg-orange-600 shadow-[0_4px_16px_rgba(255,79,0,0.35)]'
-                }`}
-              >
-                <Play size={16} />
-                {isAnalyzing ? 'Analyzing...' : 'Run Experiment'}
-              </button>
-
-              <button
-                onClick={() => setShowExamplesModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-zinc-100 dark:bg-white/5 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors"
-              >
-                <BookOpen size={16} />
-                Examples
-              </button>
-
-              <button
-                onClick={toggleTheme}
-                title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                className="flex items-center justify-center p-2.5 rounded-xl bg-zinc-100 dark:bg-white/5 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors"
-              >
-                {isDark ? <Sun size={16} /> : <Moon size={16} />}
-              </button>
-
-              <div className="relative">
-                <button
-                  onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-zinc-100 dark:bg-white/5 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors"
-                >
-                  <Menu size={16} />
-                </button>
-
-                <AnimatePresence>
-                  {showSettingsMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute top-full right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.5)] min-w-[170px] z-[1000] overflow-hidden"
-                    >
-                      <button
-                        onClick={() => {
-                          handleDownloadJSON();
-                          setShowSettingsMenu(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-white transition-colors text-left"
-                      >
-                        <Download size={15} />
-                        Export JSON
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleImportJSON();
-                          setShowSettingsMenu(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-white transition-colors text-left"
-                      >
-                        <Upload size={15} />
-                        Import JSON
-                      </button>
-                      <div className="h-px bg-zinc-200 dark:bg-white/10 my-1" />
-                      <button
-                        onClick={() => {
-                          handleClearCanvas();
-                          setShowSettingsMenu(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-left"
-                      >
-                        <Trash2 size={15} />
-                        Clear Canvas
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </Panel>
-
-          {/* Info Panel */}
-          <Panel position="top-left" style={{ margin: '14px' }}>
-            <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-white/10 px-4 py-2.5 rounded-2xl shadow-[0_8px_28px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_28px_rgba(0,0,0,0.5)]">
-              <div className="text-xs text-zinc-600 dark:text-zinc-300">
-                <span className="text-orange-500 font-semibold">{nodes.length}</span> components
-                <span className="text-zinc-400 dark:text-zinc-600 mx-1.5">•</span>
-                <span className="text-orange-500 font-semibold">{edges.length}</span> connections
-              </div>
-            </div>
-          </Panel>
-        </ReactFlow>
       </div>
 
       {/* Results Modal */}
@@ -788,9 +792,9 @@ function App() {
                     if (apiKey) {
                       localStorage.setItem('aiexp-api-key', apiKey);
                       setShowApiKeyModal(false);
-                      alert('API key saved successfully!');
+                      showToast('API key saved successfully!', 'success');
                     } else {
-                      alert('Please enter an API key');
+                      showToast('Please enter an API key', 'error');
                     }
                   }}
                   className="px-5 py-2.5 rounded-full bg-orange-500 text-white hover:bg-orange-600 text-sm font-medium shadow-[0_4px_16px_rgba(255,79,0,0.35)] transition-colors"
@@ -808,6 +812,9 @@ function App() {
         experimentJSON={generateExperimentJSON(nodes, edges)}
         onRequestHint={handleRequestHint}
       />
+
+      <PromptDialog state={promptState} onClose={() => setPromptState(null)} />
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
