@@ -8,6 +8,7 @@ import '../../../utils/app_theme.dart';
 import '../../calendar/calendar_screen.dart';
 import '../../playlists/playlists_screen.dart';
 import '../../subjects/subject_detail_screen.dart';
+import '../home_screen.dart' show kNavBarClearance;
 
 class DashboardTab extends StatelessWidget {
   final void Function(int index)? onNavigateToTab;
@@ -16,27 +17,27 @@ class DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(context),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               _buildStreakCard(context),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
               _buildQuickActions(context),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
               _buildRecentSubjects(context),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
               _buildDailyGoal(context),
-              const SizedBox(height: 100), // Bottom padding for nav bar
+              // Derived from the nav bar's own height rather than a guess, so
+              // the last card always clears it.
+              const SizedBox(height: kNavBarClearance),
             ],
           ),
         ),
@@ -54,30 +55,41 @@ class DashboardTab extends StatelessWidget {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  greeting,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
-                    fontWeight: FontWeight.w500,
+            // Expanded + ellipsis: a long display name used to push the
+            // avatar off the right edge of the row.
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    greeting,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  user?.name ?? 'User',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                    letterSpacing: -0.5,
+                  const SizedBox(height: 2),
+                  Text(
+                    user?.name ?? 'User',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+            const SizedBox(width: 12),
             Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Theme Toggle
                 GestureDetector(
@@ -146,7 +158,7 @@ class DashboardTab extends StatelessWidget {
         return Stack(
           children: [
             Container(
-              height: 220,
+              height: 186,
               width: double.infinity,
               decoration: BoxDecoration(
                 // User Requested: Blue -> Purple -> Cream (Low accent, pastel)
@@ -187,7 +199,7 @@ class DashboardTab extends StatelessWidget {
                     ),
                     
                     Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -231,7 +243,7 @@ class DashboardTab extends StatelessWidget {
                               Text(
                                 '$currentStreak',
                                 style: TextStyle(
-                                  fontSize: 64,
+                                  fontSize: 52,
                                   fontWeight: FontWeight.w900,
                                   color: isDark ? Colors.white : const Color(0xFF2D3436),
                                   height: 1,
@@ -282,7 +294,7 @@ class DashboardTab extends StatelessWidget {
                 blendMode: BlendMode.srcIn,
                 child: const Icon(
                   Icons.local_fire_department_rounded,
-                  size: 180,
+                  size: 146,
                   color: Colors.white, // Color is ignored due to ShaderMask
                 ),
               ),
@@ -301,19 +313,21 @@ class DashboardTab extends StatelessWidget {
         Text(
           'Quick Actions',
           style: TextStyle(
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 16,
-          childAspectRatio: 1.1,
+          mainAxisSpacing: 14,
+          crossAxisSpacing: 14,
+          // Slightly taller than wide. At 1.1 the cell was 3.5px shorter than
+          // the card's content, which overflowed on every build.
+          childAspectRatio: 1.02,
           children: [
             _buildActionCard(
               context,
@@ -388,59 +402,77 @@ class DashboardTab extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+
+    return Material(
+      color: Theme.of(context).cardTheme.color,
+      borderRadius: BorderRadius.circular(22),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        splashColor: color.withOpacity(0.12),
+        highlightColor: color.withOpacity(0.06),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.06)
+                  : Colors.black.withOpacity(0.04),
+            ),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isDark ? Colors.black.withOpacity(0.2) : Colors.grey.withOpacity(0.1),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(16),
+          padding: const EdgeInsets.all(16),
+          // Every child is either fixed-height or free to shrink, so the card
+          // cannot overflow when the grid cell is short or the user has a
+          // larger system font size.
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: color, size: 22),
               ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                  ),
+              const SizedBox(height: 10),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        height: 1.15,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        height: 1.2,
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.color
+                            ?.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -462,7 +494,7 @@ class DashboardTab extends StatelessWidget {
                 Text(
                   'Recent Subjects',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
@@ -475,16 +507,18 @@ class DashboardTab extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             SizedBox(
-              height: 160,
+              height: 150,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.zero,
+                clipBehavior: Clip.none,
                 itemCount: subjects.length,
                 itemBuilder: (context, index) {
                   final subject = subjects[index];
                   return Container(
-                    width: 140,
-                    margin: const EdgeInsets.only(right: 16),
-                    padding: const EdgeInsets.all(16),
+                    width: 138,
+                    margin: const EdgeInsets.only(right: 12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardTheme.color,
                       borderRadius: BorderRadius.circular(24),
@@ -498,38 +532,68 @@ class DashboardTab extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(9),
                           decoration: BoxDecoration(
                             color: Color(int.parse('0xFF${subject.color.replaceAll('#', '')}')).withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            Icons.book_rounded,
+                            Icons.auto_stories_rounded,
+                            size: 20,
                             color: Color(int.parse('0xFF${subject.color.replaceAll('#', '')}')),
                           ),
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              subject.name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                        const SizedBox(height: 10),
+                        // Flexible so a two-line subject name can shrink
+                        // instead of pushing the progress bar out of the card.
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  subject.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    height: 1.2,
+                                  ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            LinearProgressIndicator(
-                              value: subject.progressPercentage / 100,
-                              backgroundColor: Colors.grey.withOpacity(0.1),
-                              valueColor: AlwaysStoppedAnimation(
-                                Color(int.parse('0xFF${subject.color.replaceAll('#', '')}')),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: LinearProgressIndicator(
+                                      value: subject.progressPercentage / 100,
+                                      minHeight: 5,
+                                      backgroundColor: Colors.grey.withOpacity(0.15),
+                                      valueColor: AlwaysStoppedAnimation(
+                                        Color(int.parse('0xFF${subject.color.replaceAll('#', '')}')),
+                                      ),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${subject.progressPercentage.round()}%',
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.color
+                                          ?.withOpacity(0.6),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),

@@ -72,6 +72,9 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
       final quizzes = await _dbService.getQuizzesForSubject(widget.subject.id);
       final flashcards =
           await _dbService.getFlashcardsForSubject(widget.subject.id);
+      // These awaits can outlive the screen (a slow or failing network call
+      // while the user navigates back), so the widget may already be gone.
+      if (!mounted) return;
       setState(() {
         _notes = notes;
         _quizzes = quizzes;
@@ -81,7 +84,8 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
         _isLoadingData = false;
       });
     } catch (e) {
-      print('Error loading subject data: $e');
+      debugPrint('Error loading subject data: $e');
+      if (!mounted) return;
       setState(() => _isLoadingData = false);
     }
   }
