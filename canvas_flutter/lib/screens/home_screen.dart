@@ -1,0 +1,554 @@
+import 'dart:convert';
+
+import 'package:confetti/confetti.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../canvas/canvas_view.dart';
+import '../data/example_experiments.dart';
+import '../game/achievements.dart';
+import '../game/game_state.dart';
+import '../models/component_data.dart';
+import '../models/experiment.dart';
+import '../services/openai_service.dart';
+import '../services/settings_store.dart';
+import '../theme/app_theme.dart';
+import '../widgets/assistant_panel.dart';
+import '../widgets/celebration_overlay.dart';
+import '../widgets/component_library_panel.dart';
+import '../widgets/dialogs.dart';
+import '../widgets/result_sheet.dart';
+import '../widgets/xp_bar.dart';
+
+/// The single screen of the app: component palette, canvas, and assistant.
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  static const _wideBreakpoint = 1000.0;
+
+  final _controller = CanvasController();
+  final _confetti = ConfettiController(duration: const Duration(seconds: 2));
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _canvasKey = GlobalKey();
+
+  /// Node ids already credited to the player, so undo/redo and example loads
+  /// do not re-award XP for the same work.
+  final _creditedNodeIds = <String>{};
+  final _creditedEdgeIds = <String>{};
+
+  final _chat = <ChatMessage>[
+    ChatMessage(
+      isUser: false,
+      content:
+          "👋 Hi! I'm your lab assistant! I can help you with hints about "
+          'your experiment. What would you like to know?',
+      timestamp: DateTime.now(),
+    ),
+  ];
+
+  bool _assistantOpen = false;
+  bool _assistantLoading = false;
+  bool _isAnalyzing = false;
+  AnalysisResult? _result;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onCanvasChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowWelcome());
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onCanvasChanged);
+    _controller.dispose();
+    _confetti.dispose();
+    super.dispose();
+  }
+
+  // ---------------------------------------------------------------- lifecycle
+
+  Future<void> _maybeShowWelcome() async {
+    final settings = context.read<SettingsStore>();
+    if (settings.hasSeenWelcome) return;
+    await WelcomeDialog.show(context);
+    await settings.markWelcomeSeen();
+  }
+
+  /// Credits XP for genuinely new nodes and edges.
+  void _onCanvasChanged() {
+    final game = context.read<GameState>();
+
+    final nodeIds = _controller.nodes.map((n) => n.id).toSet();
+    final newNodes = _controller.nodes
+        .where((n) => !_creditedNodeIds.contains(n.id))
+        .toList();
+    final edgeIds = _controller.edges.map((e) => e.id).toSet();
+    final newEdges = _controller.edges
+        .where((e) => !_creditedEdgeIds.contains(e.id))
+        .length;
+
+    _creditedNodeIds
+      ..retainAll(nodeIds)
+      ..addAll(nodeIds);
+    _creditedEdgeIds
+      ..retainAll(edgeIds)
+      ..addAll(edgeIds);
+
+    // Only reward incremental building, not bulk example loads.
+    if (newNodes.length == 1) {
+      _award(() => game.recordComponentPlaced(newNodes.first.component));
+    }
+    if (newEdges == 1) {
+      _award(game.recordEdgeConnected);
+    }
+  }
+
+  /// Runs a [GameState] event and surfaces any unlocks it produced.
+  Future<void> _award(Future<List<Achievement>> Function() event) async {
+    final unlocked = await event();
+    if (!mounted) return;
+
+    final game = context.read<GameState>();
+    final levelUp = game.takePendingLevelUp();
+    if (levelUp != null) {
+      _confetti.play();
+      await showGameToast(
+        context,
+        LevelUpToast(level: levelUp, rankTitle: game.rankTitle),
+      );
+    }
+    for (final a in unlocked) {
+      if (!mounted) return;
+      await showGameToast(context, AchievementToast(achievement: a));
+    }
+  }
+
+  // ------------------------------------------------------------------ actions
+
+  /// Ensures a key is present, prompting for one when it is not.
+  Future<bool> _ensureApiKey() async {
+    final settings = context.read<SettingsStore>();
+    if (settings.hasApiKey) return true;
+    final saved = await ApiKeyDialog.show(context, settings);
+    return saved == true;
+  }
+
+  void _toast(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Drops a component in the middle of the visible canvas.
+  void _quickAdd(ComponentData component) {
+    final box = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
+    final center = box == null
+        ? const Offset(200, 200)
+        : _controller.screenToWorld(
+            Offset(box.size.width / 2, box.size.height / 2),
+          );
+    // Nudge each drop so stacked quick-adds stay readable.
+    final jitter = Offset(
+      (_controller.nodes.length % 5) * 26.0 - 52,
+      (_controller.nodes.length % 3) * 26.0 - 26,
+    );
+    _controller.addComponent(component, center + jitter);
+  }
+
+  Future<void> _runExperiment() async {
+    if (_controller.isEmpty) {
+      _toast('Add some components to your experiment first!');
+      return;
+    }
+    if (!await _ensureApiKey()) return;
+    if (!mounted) return;
+
+    setState(() {
+      _isAnalyzing = true;
+      _result = null;
+    });
+    _showResultSheet();
+
+    final service = context.read<OpenAiService>();
+    final experiment = _controller.toExperiment();
+    final result = await service.analyzeExperiment(experiment);
+
+    if (!mounted) return;
+    setState(() {
+      _isAnalyzing = false;
+      _result = result;
+    });
+
+    if (result.success) _confetti.play();
+
+    await _award(
+      () => context.read<GameState>().recordExperimentRun(
+        success: result.success,
+        nodeCount: experiment.nodes.length,
+        edgeCount: experiment.edges.length,
+      ),
+    );
+  }
+
+  void _showResultSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      isDismissible: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, _) => ResultSheet(
+          isAnalyzing: _isAnalyzing,
+          result: _result,
+          onClose: () => Navigator.of(sheetContext).pop(),
+          onRetry: () {
+            Navigator.of(sheetContext).pop();
+            _runExperiment();
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _sendHint(String question) async {
+    if (!await _ensureApiKey()) return;
+    if (!mounted) return;
+
+    setState(() {
+      _chat.add(
+        ChatMessage(isUser: true, content: question, timestamp: DateTime.now()),
+      );
+      _assistantLoading = true;
+    });
+
+    final service = context.read<OpenAiService>();
+    String reply;
+    try {
+      reply = await service.getHint(_controller.toExperiment(), question);
+    } on OpenAiException catch (e) {
+      reply = '⚠️ ${e.message}';
+    } catch (e) {
+      reply = '⚠️ Something went wrong reaching the assistant.';
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _chat.add(
+        ChatMessage(isUser: false, content: reply, timestamp: DateTime.now()),
+      );
+      _assistantLoading = false;
+    });
+
+    await _award(context.read<GameState>().recordHintAsked);
+  }
+
+  Future<void> _loadExample() async {
+    final id = await ExamplesDialog.show(context);
+    if (id == null || !mounted) return;
+    final experiment = buildExample(id);
+    if (experiment == null) return;
+
+    _controller.loadExperiment(experiment);
+    // Bulk loads are not player-built, so credit them without XP per node.
+    _creditedNodeIds.addAll(_controller.nodes.map((n) => n.id));
+    _creditedEdgeIds.addAll(_controller.edges.map((e) => e.id));
+
+    await _award(context.read<GameState>().recordExampleLoaded);
+  }
+
+  Future<void> _exportJson() async {
+    if (_controller.isEmpty) {
+      _toast('Nothing to export yet — build something first!');
+      return;
+    }
+    final encoded = const JsonEncoder.withIndent(
+      '  ',
+    ).convert(_controller.toExperiment().toJson());
+    await Clipboard.setData(ClipboardData(text: encoded));
+    if (!mounted) return;
+    _toast('Experiment JSON copied to clipboard 📋');
+    await _award(context.read<GameState>().recordExported);
+  }
+
+  Future<void> _clearCanvas() async {
+    if (_controller.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear the canvas?'),
+        content: const Text(
+          'This removes every component and connection. You can still undo it.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep building'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) _controller.clear();
+  }
+
+  // -------------------------------------------------------------------- build
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= _wideBreakpoint;
+        return Scaffold(
+          key: _scaffoldKey,
+          appBar: _buildAppBar(isWide),
+          drawer: isWide
+              ? null
+              : Drawer(
+                  width: 300,
+                  backgroundColor: AppColors.surface,
+                  child: SafeArea(child: _buildLibrary()),
+                ),
+          endDrawer: isWide
+              ? null
+              : Drawer(
+                  width: 340,
+                  backgroundColor: AppColors.surface,
+                  child: SafeArea(child: _buildAssistant()),
+                ),
+          body: CelebrationOverlay(
+            controller: _confetti,
+            child: Row(
+              children: [
+                if (isWide) SizedBox(width: 280, child: _buildLibrary()),
+                Expanded(child: _buildCanvasArea()),
+                if (isWide && _assistantOpen)
+                  SizedBox(width: 340, child: _buildAssistant()),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(bool isWide) {
+    final game = context.watch<GameState>();
+
+    return AppBar(
+      titleSpacing: isWide ? 20 : 0,
+      title: Row(
+        children: [
+          if (isWide) ...[
+            const Icon(
+              Icons.science_outlined,
+              size: 20,
+              color: AppColors.primary,
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'AI Experiment Lab',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(width: 20),
+          ],
+          Flexible(
+            child: InkWell(
+              onTap: () => ProgressSheet.show(context, game),
+              borderRadius: BorderRadius.circular(12),
+              child: XpBar(
+                level: game.level,
+                rankTitle: game.rankTitle,
+                progress: game.levelProgress,
+                xpIntoLevel: game.xpIntoLevel,
+                xpForNextLevel: game.xpForNextLevel,
+                dayStreak: game.dayStreak,
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          tooltip: 'Load an example',
+          icon: const Icon(Icons.auto_stories_outlined),
+          onPressed: _loadExample,
+        ),
+        IconButton(
+          tooltip: 'Copy experiment JSON',
+          icon: const Icon(Icons.ios_share),
+          onPressed: _exportJson,
+        ),
+        IconButton(
+          tooltip: 'API key',
+          icon: Icon(
+            Icons.key,
+            color: context.watch<SettingsStore>().hasApiKey
+                ? AppColors.success
+                : AppColors.warning,
+          ),
+          onPressed: () =>
+              ApiKeyDialog.show(context, context.read<SettingsStore>()),
+        ),
+        IconButton(
+          tooltip: 'Lab assistant',
+          icon: const Icon(Icons.smart_toy_outlined, size: 20),
+          onPressed: () {
+            if (MediaQuery.of(context).size.width >= _wideBreakpoint) {
+              setState(() => _assistantOpen = !_assistantOpen);
+            } else {
+              _scaffoldKey.currentState?.openEndDrawer();
+            }
+          },
+        ),
+        const SizedBox(width: 6),
+        Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: FilledButton.icon(
+            onPressed: _isAnalyzing ? null : _runExperiment,
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+            icon: const Icon(Icons.play_arrow_rounded, size: 19),
+            label: const Text('Run'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLibrary() {
+    return ComponentLibraryPanel(
+      onQuickAdd: (component) {
+        _quickAdd(component);
+        if (MediaQuery.of(context).size.width < _wideBreakpoint) {
+          Navigator.of(context).maybePop();
+        }
+      },
+    );
+  }
+
+  Widget _buildAssistant() {
+    return AssistantPanel(
+      messages: _chat,
+      isLoading: _assistantLoading,
+      onSend: _sendHint,
+      onClose: () {
+        if (MediaQuery.of(context).size.width >= _wideBreakpoint) {
+          setState(() => _assistantOpen = false);
+        } else {
+          Navigator.of(context).maybePop();
+        }
+      },
+    );
+  }
+
+  Widget _buildCanvasArea() {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: CanvasView(
+            key: _canvasKey,
+            controller: _controller,
+            onRequestEdgeLabel: (current) =>
+                showEdgeLabelDialog(context, current),
+          ),
+        ),
+        Positioned(left: 12, bottom: 12, child: _buildCanvasToolbar()),
+      ],
+    );
+  }
+
+  Widget _buildCanvasToolbar() {
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.surface.withValues(alpha: 0.94),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _toolbarButton(
+                icon: Icons.undo,
+                tooltip: 'Undo',
+                onPressed: _controller.canUndo ? _controller.undo : null,
+              ),
+              _toolbarButton(
+                icon: Icons.redo,
+                tooltip: 'Redo',
+                onPressed: _controller.canRedo ? _controller.redo : null,
+              ),
+              _divider(),
+              _toolbarButton(
+                icon: Icons.zoom_out,
+                tooltip: 'Zoom out',
+                onPressed: _controller.zoomOut,
+              ),
+              _toolbarButton(
+                icon: Icons.center_focus_strong,
+                tooltip: 'Fit to content',
+                onPressed: () {
+                  final box =
+                      _canvasKey.currentContext?.findRenderObject()
+                          as RenderBox?;
+                  if (box != null) _controller.fitToContent(box.size);
+                },
+              ),
+              _toolbarButton(
+                icon: Icons.zoom_in,
+                tooltip: 'Zoom in',
+                onPressed: _controller.zoomIn,
+              ),
+              _divider(),
+              _toolbarButton(
+                icon: Icons.delete_outline,
+                tooltip: 'Clear canvas',
+                color: AppColors.danger,
+                onPressed: _controller.isEmpty ? null : _clearCanvas,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _divider() => Container(
+    width: 1,
+    height: 20,
+    margin: const EdgeInsets.symmetric(horizontal: 4),
+    color: AppColors.border,
+  );
+
+  Widget _toolbarButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback? onPressed,
+    Color? color,
+  }) {
+    return IconButton(
+      icon: Icon(icon, size: 18),
+      tooltip: tooltip,
+      color: color ?? AppColors.textSecondary,
+      disabledColor: AppColors.textMuted.withValues(alpha: 0.35),
+      visualDensity: VisualDensity.compact,
+      onPressed: onPressed,
+    );
+  }
+}
