@@ -334,6 +334,8 @@ function App_Challenge() {
           onDragStart={() => {
             // Handle drag start if needed
           }}
+          collapsed={false}
+          onToggleCollapse={() => {}}
         />
 
         <DrawingToolbar
