@@ -488,14 +488,29 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(width: 6),
         Padding(
           padding: const EdgeInsets.only(right: 12),
-          child: FilledButton.icon(
-            onPressed: _runExperiment,
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            ),
-            icon: const Icon(Icons.play_arrow_rounded, size: 19),
-            label: const Text('Run'),
-          ),
+          child: compactActions
+              ? Tooltip(
+                  message: 'Run experiment',
+                  child: FilledButton(
+                    onPressed: _runExperiment,
+                    style: FilledButton.styleFrom(
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(10),
+                    ),
+                    child: const Icon(Icons.play_arrow_rounded, size: 19),
+                  ),
+                )
+              : FilledButton.icon(
+                  onPressed: _runExperiment,
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                  ),
+                  icon: const Icon(Icons.play_arrow_rounded, size: 19),
+                  label: const Text('Run'),
+                ),
         ),
       ],
     );

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:canvas_lab/data/component_library.dart';
@@ -5,8 +6,44 @@ import 'package:canvas_lab/game/achievements.dart';
 import 'package:canvas_lab/game/game_state.dart';
 import 'package:canvas_lab/models/component_data.dart';
 import 'package:canvas_lab/canvas/canvas_controller.dart';
+import 'package:canvas_lab/widgets/xp_bar.dart';
 
 void main() {
+  group('XpBar', () {
+    Future<void> pumpAt(WidgetTester tester, double width) {
+      return tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: width,
+                child: const XpBar(
+                  level: 7,
+                  rankTitle: 'Apprentice Tinkerer',
+                  progress: 0.42,
+                  xpIntoLevel: 84,
+                  xpForNextLevel: 200,
+                  dayStreak: 5,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Regression coverage for two overflow crashes: the fixed-width level
+    // badge alone (38px) not fitting, and the XP text rendering at its
+    // natural width instead of ellipsizing within whatever room is left.
+    for (final width in [20.0, 40.0, 90.0, 150.0, 420.0, 800.0]) {
+      testWidgets('does not overflow at ${width}px wide', (tester) async {
+        await pumpAt(tester, width);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  });
+
   group('component library', () {
     test('is populated and every component has a known category', () {
       expect(kComponentLibrary, isNotEmpty);
