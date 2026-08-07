@@ -1,0 +1,53 @@
+/// API Configuration Template
+///
+/// Copy this file to api_config.dart and fill in your actual API keys
+///
+/// cp lib/config/api_config.dart.template lib/config/api_config.dart
+///
+/// IMPORTANT: Never commit api_config.dart with actual keys to version control!
+
+class ApiConfig {
+  // Gemini API Key
+  // Get your key from: https://makersuite.google.com/app/apikey
+  static const String geminiApiKey = 'YOUR_GEMINI_API_KEY_HERE';
+
+  // DeepGram API Key (for Text-to-Speech and Speech-to-Text)
+  // Get your key from: https://console.deepgram.com/
+  static const String deepgramApiKey = 'YOUR_DEEPGRAM_API_KEY_HERE';
+
+  // API Endpoints (These are correct, no need to change)
+  static const String geminiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+  static const String deepgramBaseUrl = 'https://api.deepgram.com/v1';
+
+  // Free Tier Limits (for reference)
+  static const Map<String, String> freeTierLimits = {
+    'gemini': '60 requests per minute, 1,500 requests per day (free tier)',
+    'deepgram': '45,000 minutes of audio per month (free tier)',
+    'fileSearch': '1GB storage (free tier), 10GB (Tier 1), 100GB (Tier 2)',
+  };
+
+  // Validate API keys before using
+  static bool get isConfigured {
+    return geminiApiKey != 'YOUR_GEMINI_API_KEY_HERE' &&
+        deepgramApiKey != 'YOUR_DEEPGRAM_API_KEY_HERE' &&
+        geminiApiKey.isNotEmpty &&
+        deepgramApiKey.isNotEmpty;
+  }
+
+  // Get error message if not configured
+  static String get configurationError {
+    if (!isConfigured) {
+      return '''
+API keys are not configured properly!
+
+Please update lib/config/api_config.dart with your actual API keys:
+
+1. Gemini API Key: https://makersuite.google.com/app/apikey
+2. DeepGram API Key: https://console.deepgram.com/
+
+IMPORTANT: Never commit your API keys to version control!
+''';
+    }
+    return '';
+  }
+}
