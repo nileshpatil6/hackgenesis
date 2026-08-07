@@ -328,6 +328,11 @@ function App_Challenge() {
             setNodes((nds) => nds.concat(newNode));
             setSelectedTool(null);
           }}
+          onRequestLabel={(_title, defaultValue, onConfirm) => {
+            const label = window.prompt(_title, defaultValue);
+            if (label !== null) onConfirm(label);
+          }}
+          onUnrecognizedShape={() => {}}
         />
 
         <ComponentLibrary

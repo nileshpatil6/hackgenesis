@@ -5,9 +5,11 @@ import { shapeRecognizer } from '../utils/shapeRecognition';
 interface DrawingCanvasProps {
   onShapeComplete: (shape: DrawnShape) => void;
   currentTool: DrawingTool | null;
+  onRequestLabel: (title: string, defaultValue: string, onConfirm: (label: string) => void) => void;
+  onUnrecognizedShape: () => void;
 }
 
-export function DrawingCanvas({ onShapeComplete, currentTool }: DrawingCanvasProps) {
+export function DrawingCanvas({ onShapeComplete, currentTool, onRequestLabel, onUnrecognizedShape }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -164,10 +166,8 @@ export function DrawingCanvas({ onShapeComplete, currentTool }: DrawingCanvasPro
       setTimeout(() => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Prompt for label
-        const label = prompt(`Enter a label for this ${analysis.type}:`, analysis.type.charAt(0).toUpperCase() + analysis.type.slice(1));
-        
-        if (label && label.trim()) {
+        onRequestLabel(`Enter a label for this ${analysis.type}:`, analysis.type.charAt(0).toUpperCase() + analysis.type.slice(1), (label) => {
+          if (!label.trim()) return;
           const shape: DrawnShape = {
             id: `shape_${Date.now()}`,
             type: analysis.type as any,
@@ -178,17 +178,17 @@ export function DrawingCanvas({ onShapeComplete, currentTool }: DrawingCanvasPro
           };
 
           onShapeComplete(shape);
-        }
+        });
       }, 500);
     } else {
       // Clear canvas if shape not recognized
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      alert('Shape not recognized. Please try drawing more clearly: rectangle, circle, triangle, or line.');
+
+      onUnrecognizedShape();
     }
 
     setRawPoints([]);
-  }, [isDrawing, currentTool, rawPoints, drawPerfectShape, onShapeComplete]);
+  }, [isDrawing, currentTool, rawPoints, drawPerfectShape, onShapeComplete, onRequestLabel, onUnrecognizedShape]);
 
   if (!currentTool) {
     return null;

@@ -22,6 +22,8 @@ import { CustomNode } from './components/CustomNode';
 import { RightSidebar } from './components/RightSidebar';
 import { DrawingCanvas } from './components/DrawingCanvas';
 import { RobotAssistant } from './components/RobotAssistant';
+import { PromptDialog, PromptDialogState } from './components/PromptDialog';
+import { ToastStack } from './components/ToastStack';
 import { ComponentData, AnalysisResult } from './types';
 import { DrawingTool, DrawnShape } from './types/drawing';
 import { generateExperimentJSON, downloadJSON } from './utils/jsonGenerator';
@@ -31,6 +33,7 @@ import { shapeRecognizer } from './utils/shapeRecognition';
 import { CATEGORIES } from './data/componentLibrary';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useTheme } from './hooks/useTheme';
+import { useToasts } from './hooks/useToasts';
 
 const nodeTypes: NodeTypes = {
   custom: CustomNode,
@@ -41,6 +44,23 @@ function App() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { takeSnapshot, undo, redo, canUndo, canRedo } = useUndoRedo();
   const { isDark, toggleTheme } = useTheme();
+  const { toasts, showToast, dismissToast } = useToasts();
+  const [promptState, setPromptState] = useState<PromptDialogState | null>(null);
+
+  const showPrompt = useCallback((title: string, defaultValue: string, onConfirm: (value: string) => void) => {
+    setPromptState({ title, defaultValue, onConfirm });
+  }, []);
+
+  const showConfirm = useCallback((title: string, message: string, onConfirm: () => void, danger = false) => {
+    setPromptState({
+      title,
+      message,
+      showInput: false,
+      danger,
+      confirmLabel: danger ? 'Delete' : 'Confirm',
+      onConfirm: () => onConfirm(),
+    });
+  }, []);
 
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -105,15 +125,18 @@ function App() {
 
   const onEdgeClick = useCallback(
     (_event: React.MouseEvent, edge: Edge) => {
-      const label = prompt('Enter a label for this connection (e.g., condition, value):', edge.label as string || '');
-      if (label !== null) {
-        takeSnapshot(nodes, edges);
-        setEdges((eds) =>
-          eds.map((e) => (e.id === edge.id ? { ...e, label } : e))
-        );
-      }
+      showPrompt(
+        'Label this connection',
+        (edge.label as string) || '',
+        (label) => {
+          takeSnapshot(nodes, edges);
+          setEdges((eds) =>
+            eds.map((e) => (e.id === edge.id ? { ...e, label } : e))
+          );
+        }
+      );
     },
-    [setEdges, takeSnapshot, nodes, edges]
+    [setEdges, takeSnapshot, nodes, edges, showPrompt]
   );
 
   const onNodeDragStart = useCallback(() => {
@@ -201,7 +224,7 @@ function App() {
   const handleRunExperiment = async () => {
 
     if (nodes.length === 0) {
-      alert('Please add components to your experiment first!');
+      showToast('Please add components to your experiment first!', 'error');
       return;
     }
 
@@ -237,7 +260,7 @@ function App() {
 
   const handleDownloadJSON = () => {
     if (nodes.length === 0) {
-      alert('Please add components to your experiment first!');
+      showToast('Please add components to your experiment first!', 'error');
       return;
     }
     const experimentJSON = generateExperimentJSON(nodes, edges);
@@ -245,13 +268,19 @@ function App() {
   };
 
   const handleClearCanvas = () => {
-    if (nodes.length > 0 && confirm('Are you sure you want to clear the canvas?')) {
-      takeSnapshot(nodes, edges);
-      setNodes([]);
-      setEdges([]);
-      setAnalysisResult(null);
-      setShowResults(false);
-    }
+    if (nodes.length === 0) return;
+    showConfirm(
+      'Clear the canvas?',
+      'This removes every component and connection you\'ve added. This can\'t be undone.',
+      () => {
+        takeSnapshot(nodes, edges);
+        setNodes([]);
+        setEdges([]);
+        setAnalysisResult(null);
+        setShowResults(false);
+      },
+      true
+    );
   };
 
   const handleLoadExample = (exampleId: string) => {
@@ -279,18 +308,17 @@ function App() {
       return;
     }
 
+    if (tool === 'freehand') {
+      // Only freehand requires drawing on the canvas
+      setCurrentDrawingTool(tool);
+      return;
+    }
+
     // Get canvas center position
     const canvasCenter = {
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
     };
-
-    // Prompt for label
-    const label = prompt(`Enter a label for this ${tool}:`, tool.charAt(0).toUpperCase() + tool.slice(1));
-
-    if (!label || !label.trim()) {
-      return;
-    }
 
     // Create shape directly at center
     const size = 100;
@@ -337,25 +365,25 @@ function App() {
           { x: bounds.x + size, y: canvasCenter.y },
         ];
         break;
-      case 'freehand':
-        // Only freehand requires drawing
-        setCurrentDrawingTool(tool);
-        return;
     }
 
-    const shape: DrawnShape = {
-      id: `shape_${Date.now()}`,
-      type: tool as any,
-      points,
-      bounds,
-      label: label.trim(),
-      recognized: true,
-    };
+    showPrompt(`Label this ${tool}`, tool.charAt(0).toUpperCase() + tool.slice(1), (label) => {
+      if (!label.trim()) return;
 
-    const newNode = shapeRecognizer.convertShapeToNode(shape, shape.label);
-    takeSnapshot(nodes, edges);
-    setNodes((nds) => nds.concat(newNode as Node));
-  }, [setNodes, takeSnapshot, nodes, edges]);
+      const shape: DrawnShape = {
+        id: `shape_${Date.now()}`,
+        type: tool as any,
+        points,
+        bounds,
+        label: label.trim(),
+        recognized: true,
+      };
+
+      const newNode = shapeRecognizer.convertShapeToNode(shape, shape.label);
+      takeSnapshot(nodes, edges);
+      setNodes((nds) => nds.concat(newNode as Node));
+    });
+  }, [setNodes, takeSnapshot, nodes, edges, showPrompt]);
 
   const handleImportJSON = () => {
     const input = document.createElement('input');
@@ -372,12 +400,12 @@ function App() {
               takeSnapshot(nodes, edges);
               setNodes(json.nodes);
               setEdges(json.edges);
-              alert('Experiment loaded successfully!');
+              showToast('Experiment loaded successfully!', 'success');
             } else {
-              alert('Invalid experiment file format!');
+              showToast('Invalid experiment file format!', 'error');
             }
           } catch (error) {
-            alert('Error reading file. Please make sure it\'s a valid JSON file.');
+            showToast('Error reading file. Please make sure it\'s a valid JSON file.', 'error');
           }
         };
         reader.readAsText(file);
@@ -428,6 +456,8 @@ function App() {
           <DrawingCanvas
             currentTool={currentDrawingTool}
             onShapeComplete={handleShapeComplete}
+            onRequestLabel={showPrompt}
+            onUnrecognizedShape={() => showToast('Shape not recognized. Try drawing more clearly: rectangle, circle, triangle, or line.', 'error')}
           />
 
           <ReactFlow
@@ -762,9 +792,9 @@ function App() {
                     if (apiKey) {
                       localStorage.setItem('aiexp-api-key', apiKey);
                       setShowApiKeyModal(false);
-                      alert('API key saved successfully!');
+                      showToast('API key saved successfully!', 'success');
                     } else {
-                      alert('Please enter an API key');
+                      showToast('Please enter an API key', 'error');
                     }
                   }}
                   className="px-5 py-2.5 rounded-full bg-orange-500 text-white hover:bg-orange-600 text-sm font-medium shadow-[0_4px_16px_rgba(255,79,0,0.35)] transition-colors"
@@ -782,6 +812,9 @@ function App() {
         experimentJSON={generateExperimentJSON(nodes, edges)}
         onRequestHint={handleRequestHint}
       />
+
+      <PromptDialog state={promptState} onClose={() => setPromptState(null)} />
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
