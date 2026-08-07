@@ -33,8 +33,8 @@ export const CustomNode = memo(({ data, selected }: NodeProps<CustomNodeData>) =
     <div
       className={`custom-node min-w-[170px] rounded-2xl border-2 px-6 py-4 backdrop-blur-md transition-all duration-200 cursor-grab active:cursor-grabbing ${
         selected
-          ? 'border-orange-500 bg-zinc-900/95 shadow-[0_8px_28px_rgba(255,79,0,0.35)]'
-          : 'border-white/10 bg-zinc-900/90 shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:border-white/20'
+          ? 'border-orange-500 bg-white/95 dark:bg-zinc-900/95 shadow-[0_8px_28px_rgba(255,79,0,0.3)]'
+          : 'border-zinc-200 dark:border-white/10 bg-white/95 dark:bg-zinc-900/90 shadow-[0_4px_16px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:border-zinc-300 dark:hover:border-white/20'
       }`}
       onDoubleClick={handleDoubleClick}
     >
@@ -47,7 +47,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<CustomNodeData>) =
             background: '#3b82f6',
             width: 12,
             height: 12,
-            border: '2px solid #09090b',
+            border: '2px solid transparent',
             boxShadow: '0 0 0 2px rgba(59,130,246,0.3)',
           }}
         />
@@ -64,15 +64,15 @@ export const CustomNode = memo(({ data, selected }: NodeProps<CustomNodeData>) =
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             autoFocus
-            className="w-full px-1.5 py-1 bg-zinc-800 border border-orange-500 rounded text-xs text-white outline-none text-center"
+            className="w-full px-1.5 py-1 bg-zinc-100 dark:bg-zinc-800 border border-orange-500 rounded text-xs text-zinc-900 dark:text-white outline-none text-center"
           />
         ) : (
-          <div className="text-sm font-semibold text-center text-zinc-100 break-words leading-snug tracking-tight">
+          <div className="text-sm font-semibold text-center text-zinc-900 dark:text-zinc-100 break-words leading-snug tracking-tight">
             {text}
           </div>
         )}
 
-        <div className="text-[10px] bg-white/5 text-zinc-400 px-2 py-1 rounded-md text-center uppercase tracking-wider font-semibold">
+        <div className="text-[10px] bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-zinc-400 px-2 py-1 rounded-md text-center uppercase tracking-wider font-semibold">
           {data.component.category}
         </div>
       </div>
@@ -86,7 +86,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<CustomNodeData>) =
             background: '#ff4f00',
             width: 12,
             height: 12,
-            border: '2px solid #09090b',
+            border: '2px solid transparent',
             boxShadow: '0 0 0 2px rgba(255,79,0,0.3)',
           }}
         />

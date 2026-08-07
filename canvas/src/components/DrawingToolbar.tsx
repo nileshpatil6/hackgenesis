@@ -17,8 +17,8 @@ export function DrawingToolbar({ selectedTool, onToolSelect }: DrawingToolbarPro
   ];
 
   return (
-    <div className="fixed top-1/2 right-5 -translate-y-1/2 z-[100] bg-zinc-900/95 backdrop-blur-md border border-white/10 p-2 rounded-2xl shadow-[0_8px_28px_rgba(0,0,0,0.5)] flex flex-col gap-1.5">
-      <div className="text-[11px] font-semibold text-zinc-500 px-2 pb-2 mb-0.5 border-b border-white/10 text-center uppercase tracking-wider">
+    <div className="fixed top-1/2 right-5 -translate-y-1/2 z-[100] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-white/10 p-2 rounded-2xl shadow-[0_8px_28px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_28px_rgba(0,0,0,0.5)] flex flex-col gap-1.5">
+      <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 px-2 pb-2 mb-0.5 border-b border-zinc-200 dark:border-white/10 text-center uppercase tracking-wider">
         Draw
       </div>
       {tools.map((tool) => (
@@ -29,7 +29,7 @@ export function DrawingToolbar({ selectedTool, onToolSelect }: DrawingToolbarPro
           className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
             selectedTool === tool.id
               ? 'bg-orange-500 text-white shadow-[0_4px_14px_rgba(255,79,0,0.4)]'
-              : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5'
+              : 'bg-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5'
           }`}
         >
           {tool.icon}

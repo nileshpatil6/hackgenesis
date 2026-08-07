@@ -13,7 +13,7 @@ import ReactFlow, {
   Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Play, Download, Trash2, BookOpen, Upload, Menu, Undo, Redo, X, CheckCircle, AlertCircle, Zap, FlaskConical, Atom, Code2 } from 'lucide-react';
+import { Play, Download, Trash2, BookOpen, Upload, Menu, Undo, Redo, X, CheckCircle, AlertCircle, Zap, FlaskConical, Atom, Code2, Sun, Moon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -29,6 +29,7 @@ import { openaiService } from './utils/openaiService';
 import { EXAMPLE_EXPERIMENTS, EXAMPLE_LIST } from './data/exampleExperiments';
 import { shapeRecognizer } from './utils/shapeRecognition';
 import { useUndoRedo } from './hooks/useUndoRedo';
+import { useTheme } from './hooks/useTheme';
 
 const nodeTypes: NodeTypes = {
   custom: CustomNode,
@@ -38,6 +39,7 @@ function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { takeSnapshot, undo, redo, canUndo, canRedo } = useUndoRedo();
+  const { isDark, toggleTheme } = useTheme();
 
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -335,7 +337,7 @@ function App() {
   };
 
   return (
-    <div className="flex w-screen h-screen font-sans bg-zinc-950 text-zinc-100">
+    <div className="flex w-screen h-screen font-sans bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-300">
       {/* Component Library Sidebar */}
       <ComponentLibrary onDragStart={() => { }} />
 
@@ -367,28 +369,28 @@ function App() {
           deleteKeyCode="Delete"
         >
           <Background
-            color="#27272a"
+            color={isDark ? '#27272a' : '#e4e4e7'}
             gap={22}
             size={1}
-            style={{ backgroundColor: '#09090b' }}
+            style={{ backgroundColor: isDark ? '#09090b' : '#ffffff' }}
           />
           <Controls />
           <MiniMap
-            style={{ backgroundColor: '#18181b' }}
-            maskColor="rgba(9, 9, 11, 0.7)"
-            nodeColor="#3f3f46"
+            style={{ backgroundColor: isDark ? '#18181b' : '#f4f4f5' }}
+            maskColor={isDark ? 'rgba(9, 9, 11, 0.7)' : 'rgba(244, 244, 245, 0.7)'}
+            nodeColor={isDark ? '#3f3f46' : '#d4d4d8'}
           />
 
           {/* Top Control Panel */}
           <Panel position="top-right" style={{ margin: '14px' }}>
-            <div className="bg-zinc-900/95 backdrop-blur-md border border-white/10 p-2.5 rounded-2xl shadow-[0_8px_28px_rgba(0,0,0,0.5)] flex gap-2 flex-wrap items-center">
-              <div className="flex gap-1 mr-1.5 border-r border-white/10 pr-2">
+            <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-white/10 p-2.5 rounded-2xl shadow-[0_8px_28px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_28px_rgba(0,0,0,0.5)] flex gap-2 flex-wrap items-center">
+              <div className="flex gap-1 mr-1.5 border-r border-zinc-200 dark:border-white/10 pr-2">
                 <button
                   onClick={() => undo(nodes, edges, setNodes, setEdges)}
                   disabled={!canUndo}
                   title="Undo"
                   className={`flex items-center justify-center p-2 rounded-lg transition-colors ${
-                    canUndo ? 'text-zinc-300 hover:bg-white/10 hover:text-white' : 'text-zinc-700 cursor-not-allowed'
+                    canUndo ? 'text-zinc-500 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white' : 'text-zinc-300 dark:text-zinc-700 cursor-not-allowed'
                   }`}
                 >
                   <Undo size={17} />
@@ -398,7 +400,7 @@ function App() {
                   disabled={!canRedo}
                   title="Redo"
                   className={`flex items-center justify-center p-2 rounded-lg transition-colors ${
-                    canRedo ? 'text-zinc-300 hover:bg-white/10 hover:text-white' : 'text-zinc-700 cursor-not-allowed'
+                    canRedo ? 'text-zinc-500 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white' : 'text-zinc-300 dark:text-zinc-700 cursor-not-allowed'
                   }`}
                 >
                   <Redo size={17} />
@@ -410,7 +412,7 @@ function App() {
                 disabled={isAnalyzing}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   isAnalyzing
-                    ? 'bg-zinc-700 text-zinc-400 cursor-not-allowed'
+                    ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-400 cursor-not-allowed'
                     : 'bg-orange-500 text-white hover:bg-orange-600 shadow-[0_4px_16px_rgba(255,79,0,0.35)]'
                 }`}
               >
@@ -420,16 +422,24 @@ function App() {
 
               <button
                 onClick={() => setShowExamplesModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-zinc-200 hover:bg-white/10 transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-zinc-100 dark:bg-white/5 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors"
               >
                 <BookOpen size={16} />
                 Examples
               </button>
 
+              <button
+                onClick={toggleTheme}
+                title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                className="flex items-center justify-center p-2.5 rounded-xl bg-zinc-100 dark:bg-white/5 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors"
+              >
+                {isDark ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+
               <div className="relative">
                 <button
                   onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-zinc-200 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-zinc-100 dark:bg-white/5 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors"
                 >
                   <Menu size={16} />
                 </button>
@@ -441,14 +451,14 @@ function App() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.97 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute top-full right-0 mt-2 bg-zinc-900 border border-white/10 rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.5)] min-w-[170px] z-[1000] overflow-hidden"
+                      className="absolute top-full right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.5)] min-w-[170px] z-[1000] overflow-hidden"
                     >
                       <button
                         onClick={() => {
                           handleDownloadJSON();
                           setShowSettingsMenu(false);
                         }}
-                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors text-left"
+                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-white transition-colors text-left"
                       >
                         <Download size={15} />
                         Export JSON
@@ -458,18 +468,18 @@ function App() {
                           handleImportJSON();
                           setShowSettingsMenu(false);
                         }}
-                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors text-left"
+                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-white transition-colors text-left"
                       >
                         <Upload size={15} />
                         Import JSON
                       </button>
-                      <div className="h-px bg-white/10 my-1" />
+                      <div className="h-px bg-zinc-200 dark:bg-white/10 my-1" />
                       <button
                         onClick={() => {
                           handleClearCanvas();
                           setShowSettingsMenu(false);
                         }}
-                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left"
+                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-left"
                       >
                         <Trash2 size={15} />
                         Clear Canvas
@@ -483,10 +493,10 @@ function App() {
 
           {/* Info Panel */}
           <Panel position="top-left" style={{ margin: '14px' }}>
-            <div className="bg-zinc-900/95 backdrop-blur-md border border-white/10 px-4 py-2.5 rounded-2xl shadow-[0_8px_28px_rgba(0,0,0,0.5)]">
-              <div className="text-xs text-zinc-300">
+            <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-white/10 px-4 py-2.5 rounded-2xl shadow-[0_8px_28px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_28px_rgba(0,0,0,0.5)]">
+              <div className="text-xs text-zinc-600 dark:text-zinc-300">
                 <span className="text-orange-500 font-semibold">{nodes.length}</span> components
-                <span className="text-zinc-600 mx-1.5">•</span>
+                <span className="text-zinc-400 dark:text-zinc-600 mx-1.5">•</span>
                 <span className="text-orange-500 font-semibold">{edges.length}</span> connections
               </div>
             </div>
@@ -508,12 +518,12 @@ function App() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.97 }}
               transition={{ duration: 0.2 }}
-              className="bg-zinc-950 border border-white/10 w-[90%] h-[90%] rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden relative"
+              className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 w-[90%] h-[90%] rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden relative"
             >
               {/* Header */}
               <div
-                className={`px-8 py-5 border-b border-white/10 flex justify-between items-center ${
-                  analysisResult?.success ? 'bg-emerald-500/10' : analysisResult ? 'bg-red-500/10' : 'bg-zinc-900'
+                className={`px-8 py-5 border-b border-zinc-200 dark:border-white/10 flex justify-between items-center ${
+                  analysisResult?.success ? 'bg-emerald-50 dark:bg-emerald-500/10' : analysisResult ? 'bg-red-50 dark:bg-red-500/10' : 'bg-zinc-50 dark:bg-zinc-900'
                 }`}
               >
                 <div className="flex items-center gap-3.5">
@@ -524,14 +534,14 @@ function App() {
                       <AlertCircle size={30} className="text-red-500" />
                     )
                   ) : (
-                    <div className="w-6 h-6 border-[3px] border-white/10 border-t-orange-500 rounded-full animate-spin" />
+                    <div className="w-6 h-6 border-[3px] border-zinc-200 dark:border-white/10 border-t-orange-500 rounded-full animate-spin" />
                   )}
                   <div>
-                    <h2 className="font-serif text-2xl text-white m-0">
+                    <h2 className="font-serif text-2xl text-zinc-900 dark:text-white m-0">
                       {analysisResult ? analysisResult.title : 'Analyzing Experiment...'}
                     </h2>
                     {analysisResult && (
-                      <p className="mt-1 text-sm text-zinc-400">
+                      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                         {analysisResult.message}
                       </p>
                     )}
@@ -539,36 +549,36 @@ function App() {
                 </div>
                 <button
                   onClick={() => setShowResults(false)}
-                  className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                  className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors"
                 >
                   <X size={20} />
                 </button>
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto p-8 flex gap-8 bg-zinc-950">
+              <div className="flex-1 overflow-y-auto p-8 flex gap-8 bg-white dark:bg-zinc-950">
                 {analysisResult ? (
                   <>
                     {/* Left Column: Explanation / Mistake */}
                     <div className="flex-1 flex flex-col gap-5">
                       {analysisResult.success ? (
-                        <div className="bg-zinc-900 p-6 rounded-2xl border border-white/10">
-                          <h3 className="mt-0 text-lg font-semibold text-emerald-500 flex items-center gap-2">
+                        <div className="bg-zinc-50 dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-white/10">
+                          <h3 className="mt-0 text-lg font-semibold text-emerald-600 dark:text-emerald-500 flex items-center gap-2">
                             🎉 Congratulations!
                           </h3>
-                          <div className="text-[15px] leading-relaxed text-zinc-300 whitespace-pre-wrap">
+                          <div className="text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-wrap">
                             {analysisResult.explanation}
                           </div>
                         </div>
                       ) : (
-                        <div className="bg-red-500/10 p-6 rounded-2xl border border-red-500/20">
-                          <h3 className="mt-0 text-lg font-semibold text-red-400 flex items-center gap-2">
+                        <div className="bg-red-50 dark:bg-red-500/10 p-6 rounded-2xl border border-red-200 dark:border-red-500/20">
+                          <h3 className="mt-0 text-lg font-semibold text-red-600 dark:text-red-400 flex items-center gap-2">
                             ❌ Experiment Failed
                           </h3>
-                          <div className="text-[15px] leading-relaxed text-red-200/90">
+                          <div className="text-[15px] leading-relaxed text-red-800/90 dark:text-red-200/90">
                             <strong>Mistake:</strong> {analysisResult.mistake}
                           </div>
-                          <div className="mt-4 text-sm text-red-300/70 italic">
+                          <div className="mt-4 text-sm text-red-600/70 dark:text-red-300/70 italic">
                             Review your connections and component properties to fix the issue.
                           </div>
                         </div>
@@ -578,12 +588,12 @@ function App() {
                     {/* Right Column: Visualization */}
                     {analysisResult.success && analysisResult.svg && (
                       <div className="flex-1 flex flex-col gap-3">
-                        <div className="bg-zinc-900 p-6 rounded-2xl border border-white/10 h-full flex flex-col">
-                          <h3 className="mt-0 mb-4 text-lg font-semibold text-zinc-200">
+                        <div className="bg-zinc-50 dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-white/10 h-full flex flex-col">
+                          <h3 className="mt-0 mb-4 text-lg font-semibold text-zinc-700 dark:text-zinc-200">
                             Visual Output
                           </h3>
                           <div
-                            className="flex-1 flex items-center justify-center bg-zinc-950 rounded-xl overflow-hidden"
+                            className="flex-1 flex items-center justify-center bg-white dark:bg-zinc-950 rounded-xl overflow-hidden"
                             dangerouslySetInnerHTML={{ __html: analysisResult.svg }}
                           />
                         </div>
@@ -592,8 +602,8 @@ function App() {
                   </>
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-5">
-                    <div className="w-14 h-14 border-[6px] border-white/10 border-t-orange-500 rounded-full animate-spin" />
-                    <div className="text-lg text-zinc-400 font-medium">Processing your experiment...</div>
+                    <div className="w-14 h-14 border-[6px] border-zinc-200 dark:border-white/10 border-t-orange-500 rounded-full animate-spin" />
+                    <div className="text-lg text-zinc-500 dark:text-zinc-400 font-medium">Processing your experiment...</div>
                   </div>
                 )}
               </div>
@@ -616,30 +626,30 @@ function App() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.97 }}
               transition={{ duration: 0.2 }}
-              className="bg-zinc-950 border border-white/10 p-8 rounded-3xl w-full max-w-[600px] max-h-[85vh] overflow-y-auto shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+              className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 p-8 rounded-3xl w-full max-w-[600px] max-h-[85vh] overflow-y-auto shadow-[0_20px_60px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
             >
-              <h2 className="font-serif text-3xl text-white mb-3">
+              <h2 className="font-serif text-3xl text-zinc-900 dark:text-white mb-3">
                 Welcome to <span className="text-orange-500">AI Experiment Lab</span>
               </h2>
-              <p className="mb-6 text-[15px] text-zinc-400 leading-relaxed">
+              <p className="mb-6 text-[15px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
                 Build and simulate complex experiments using a visual canvas powered by AI.
               </p>
 
               <div className="mb-6">
-                <h3 className="text-base font-semibold text-zinc-200 mb-3">How to use</h3>
-                <ol className="m-0 pl-5 text-sm text-zinc-400 leading-loose list-decimal">
-                  <li>Browse the <strong className="text-zinc-200">1000+ components</strong> in the left sidebar</li>
-                  <li><strong className="text-zinc-200">Drag components</strong> onto the canvas</li>
-                  <li><strong className="text-zinc-200">Connect components</strong> by dragging from output (orange) to input (blue)</li>
-                  <li><strong className="text-zinc-200">Double-click nodes</strong> to edit their labels</li>
-                  <li><strong className="text-zinc-200">Click connections</strong> to add labels/conditions</li>
-                  <li>Click <strong className="text-zinc-200">"Run Experiment"</strong> to analyze with AI</li>
-                  <li><strong className="text-zinc-200">Export/Import</strong> your experiments as JSON</li>
+                <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-200 mb-3">How to use</h3>
+                <ol className="m-0 pl-5 text-sm text-zinc-500 dark:text-zinc-400 leading-loose list-decimal">
+                  <li>Browse the <strong className="text-zinc-800 dark:text-zinc-200">1000+ components</strong> in the left sidebar</li>
+                  <li><strong className="text-zinc-800 dark:text-zinc-200">Drag components</strong> onto the canvas</li>
+                  <li><strong className="text-zinc-800 dark:text-zinc-200">Connect components</strong> by dragging from output (orange) to input (blue)</li>
+                  <li><strong className="text-zinc-800 dark:text-zinc-200">Double-click nodes</strong> to edit their labels</li>
+                  <li><strong className="text-zinc-800 dark:text-zinc-200">Click connections</strong> to add labels/conditions</li>
+                  <li>Click <strong className="text-zinc-800 dark:text-zinc-200">"Run Experiment"</strong> to analyze with AI</li>
+                  <li><strong className="text-zinc-800 dark:text-zinc-200">Export/Import</strong> your experiments as JSON</li>
                 </ol>
               </div>
 
-              <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl mb-6">
-                <p className="m-0 text-[13px] text-orange-200/90">
+              <div className="p-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-2xl mb-6">
+                <p className="m-0 text-[13px] text-orange-800/90 dark:text-orange-200/90">
                   <strong>Important:</strong> AI-powered experiment analysis runs on our hosted OpenAI-compatible backend.
                   No additional API key setup is needed.
                 </p>
@@ -647,14 +657,14 @@ function App() {
 
               <div className="grid grid-cols-2 gap-3 mb-6">
                 {[
-                  { icon: <Zap size={22} />, label: 'Electronics', count: '300+ components', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-                  { icon: <FlaskConical size={22} />, label: 'Chemistry', count: '200+ components', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-                  { icon: <Atom size={22} />, label: 'Physics', count: '250+ components', color: 'text-violet-400', bg: 'bg-violet-500/10' },
-                  { icon: <Code2 size={22} />, label: 'Coding', count: '200+ components', color: 'text-orange-400', bg: 'bg-orange-500/10' },
+                  { icon: <Zap size={22} />, label: 'Electronics', count: '300+ components', color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10' },
+                  { icon: <FlaskConical size={22} />, label: 'Chemistry', count: '200+ components', color: 'text-emerald-500 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+                  { icon: <Atom size={22} />, label: 'Physics', count: '250+ components', color: 'text-violet-500 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-500/10' },
+                  { icon: <Code2 size={22} />, label: 'Coding', count: '200+ components', color: 'text-orange-500 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-500/10' },
                 ].map((cat) => (
-                  <div key={cat.label} className={`p-3.5 rounded-2xl ${cat.bg} border border-white/5`}>
+                  <div key={cat.label} className={`p-3.5 rounded-2xl ${cat.bg} border border-zinc-200/60 dark:border-white/5`}>
                     <div className={`mb-2 ${cat.color}`}>{cat.icon}</div>
-                    <div className="text-[13px] font-semibold text-zinc-100">{cat.label}</div>
+                    <div className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">{cat.label}</div>
                     <div className="text-[11px] text-zinc-500">{cat.count}</div>
                   </div>
                 ))}
@@ -666,7 +676,7 @@ function App() {
                     handleCloseWelcome();
                     setShowExamplesModal(true);
                   }}
-                  className="px-5 py-2.5 rounded-full bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white text-sm font-medium transition-colors"
+                  className="px-5 py-2.5 rounded-full bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white text-sm font-medium transition-colors"
                 >
                   View Examples
                 </button>
@@ -696,12 +706,12 @@ function App() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.97 }}
               transition={{ duration: 0.2 }}
-              className="bg-zinc-950 border border-white/10 p-7 rounded-3xl w-full max-w-[500px] shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+              className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 p-7 rounded-3xl w-full max-w-[500px] shadow-[0_20px_60px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
             >
-              <h2 className="font-serif text-2xl text-white mb-2">
+              <h2 className="font-serif text-2xl text-zinc-900 dark:text-white mb-2">
                 Example Experiments
               </h2>
-              <p className="mb-5 text-sm text-zinc-400">
+              <p className="mb-5 text-sm text-zinc-500 dark:text-zinc-400">
                 Load a pre-built experiment to get started quickly
               </p>
 
@@ -710,9 +720,9 @@ function App() {
                   <button
                     key={example.id}
                     onClick={() => handleLoadExample(example.id)}
-                    className="p-4 bg-zinc-900 border border-white/10 rounded-2xl text-left transition-colors hover:border-orange-500/50 hover:bg-zinc-800/80"
+                    className="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-2xl text-left transition-colors hover:border-orange-500/50 hover:bg-orange-50/60 dark:hover:bg-zinc-800/80"
                   >
-                    <div className="text-sm font-semibold text-zinc-100 mb-1">
+                    <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
                       {example.name}
                     </div>
                     <div className="text-xs text-zinc-500">
@@ -725,7 +735,7 @@ function App() {
               <div className="flex justify-end">
                 <button
                   onClick={() => setShowExamplesModal(false)}
-                  className="px-5 py-2.5 rounded-full bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white text-sm font-medium transition-colors"
+                  className="px-5 py-2.5 rounded-full bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white text-sm font-medium transition-colors"
                 >
                   Close
                 </button>
@@ -749,12 +759,12 @@ function App() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.97 }}
               transition={{ duration: 0.2 }}
-              className="bg-zinc-950 border border-white/10 p-7 rounded-3xl w-full max-w-[500px] shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+              className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 p-7 rounded-3xl w-full max-w-[500px] shadow-[0_20px_60px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
             >
-              <h2 className="font-serif text-2xl text-white mb-2">
+              <h2 className="font-serif text-2xl text-zinc-900 dark:text-white mb-2">
                 Configure API Key
               </h2>
-              <p className="mb-4 text-sm text-zinc-400">
+              <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
                 AI-powered experiment analysis runs on our hosted backend. No additional configuration is needed.
               </p>
               <input
@@ -762,12 +772,12 @@ function App() {
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="Enter your API key..."
-                className="w-full px-3.5 py-3 bg-zinc-900 border border-white/10 rounded-xl text-sm text-zinc-100 mb-4 outline-none focus:border-orange-500/60 transition-colors box-border"
+                className="w-full px-3.5 py-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl text-sm text-zinc-900 dark:text-zinc-100 mb-4 outline-none focus:border-orange-500/60 transition-colors box-border"
               />
               <div className="flex gap-2.5 justify-end">
                 <button
                   onClick={() => setShowApiKeyModal(false)}
-                  className="px-5 py-2.5 rounded-full bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white text-sm font-medium transition-colors"
+                  className="px-5 py-2.5 rounded-full bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white text-sm font-medium transition-colors"
                 >
                   Cancel
                 </button>

@@ -103,22 +103,22 @@ export function RobotAssistant({ onRequestHint }: RobotAssistantProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed bottom-8 right-8 w-[380px] h-[580px] bg-zinc-950/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] flex flex-col z-[1000] overflow-hidden border border-white/10"
+            className="fixed bottom-8 right-8 w-[380px] h-[580px] bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.6)] flex flex-col z-[1000] overflow-hidden border border-zinc-200 dark:border-white/10"
           >
             {/* Header */}
-            <div className="p-5 bg-zinc-900 flex items-center justify-between border-b border-white/10">
+            <div className="p-5 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-between border-b border-zinc-200 dark:border-white/10">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-orange-500/15 flex items-center justify-center text-orange-500">
                   <Sparkles size={18} />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-white">Lab Assistant</div>
+                  <div className="text-sm font-semibold text-zinc-900 dark:text-white">Lab Assistant</div>
                   <div className="text-xs text-zinc-500">Here to help with hints</div>
                 </div>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
               >
                 <X size={16} />
               </button>
@@ -137,7 +137,7 @@ export function RobotAssistant({ onRequestHint }: RobotAssistantProps) {
                     className={`max-w-[80%] px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
                       message.role === 'user'
                         ? 'bg-orange-500 text-white rounded-2xl rounded-br-md'
-                        : 'bg-zinc-800 text-zinc-100 rounded-2xl rounded-bl-md'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-2xl rounded-bl-md'
                     }`}
                   >
                     {message.content}
@@ -146,7 +146,7 @@ export function RobotAssistant({ onRequestHint }: RobotAssistantProps) {
               ))}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-zinc-800 flex gap-1.5">
+                  <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-zinc-100 dark:bg-zinc-800 flex gap-1.5">
                     {[0, 1, 2].map((i) => (
                       <span
                         key={i}
@@ -161,7 +161,7 @@ export function RobotAssistant({ onRequestHint }: RobotAssistantProps) {
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-white/10 bg-zinc-950 flex gap-3 items-end">
+            <div className="p-4 border-t border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-950 flex gap-3 items-end">
               <textarea
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
@@ -169,7 +169,7 @@ export function RobotAssistant({ onRequestHint }: RobotAssistantProps) {
                 placeholder="Ask for a hint..."
                 disabled={isLoading}
                 rows={1}
-                className="flex-1 px-3.5 py-2.5 rounded-2xl bg-zinc-900 border border-white/10 text-sm text-zinc-100 placeholder:text-zinc-500 resize-none outline-none focus:border-orange-500/60 transition-colors min-h-[42px] max-h-[120px]"
+                className="flex-1 px-3.5 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none outline-none focus:border-orange-500/60 transition-colors min-h-[42px] max-h-[120px]"
               />
               <button
                 onClick={handleSendMessage}
@@ -177,10 +177,10 @@ export function RobotAssistant({ onRequestHint }: RobotAssistantProps) {
                 className={`w-[42px] h-[42px] rounded-2xl flex items-center justify-center transition-colors ${
                   inputValue.trim() && !isLoading
                     ? 'bg-orange-500 hover:bg-orange-600 cursor-pointer'
-                    : 'bg-zinc-800 cursor-not-allowed'
+                    : 'bg-zinc-200 dark:bg-zinc-800 cursor-not-allowed'
                 }`}
               >
-                <Send size={18} color={inputValue.trim() && !isLoading ? 'white' : '#71717a'} />
+                <Send size={18} color={inputValue.trim() && !isLoading ? 'white' : '#a1a1aa'} />
               </button>
             </div>
           </motion.div>
