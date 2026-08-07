@@ -8,7 +8,7 @@ import '../../../utils/app_theme.dart';
 import '../../calendar/calendar_screen.dart';
 import '../../playlists/playlists_screen.dart';
 import '../../subjects/subject_detail_screen.dart';
-import '../home_screen.dart' show kNavBarClearance;
+import '../../../widgets/app_nav_bar.dart' show kNavBarClearance;
 
 class DashboardTab extends StatelessWidget {
   final void Function(int index)? onNavigateToTab;
