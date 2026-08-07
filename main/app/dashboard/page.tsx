@@ -47,7 +47,7 @@ export default function DashboardPage() {
       title: "Learning Platform",
       description: "Structured courses and guided modules to build mastery in AI and computational thinking.",
       icon: BookOpen,
-      path: "http://localhost:3001",
+      path: "http://localhost:3001/dashboard",
       external: true
     },
     {
