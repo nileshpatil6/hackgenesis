@@ -66,7 +66,14 @@ class XpBar extends StatelessWidget {
         final showRank =
             constraints.maxWidth.isFinite &&
             constraints.maxWidth >= compactBreakpoint;
-        final showStreak = dayStreak > 1;
+        // The badge is a fixed 38px; below that (plus its spacing) there is
+        // no way to show it without overflowing, so it drops out entirely
+        // rather than forcing the row past the space it was given.
+        final showBadge =
+            !constraints.maxWidth.isFinite || constraints.maxWidth >= 48;
+        final showStreak =
+            dayStreak > 1 &&
+            (!constraints.maxWidth.isFinite || constraints.maxWidth >= 150);
 
         return Container(
           height: height,
@@ -78,8 +85,10 @@ class XpBar extends StatelessWidget {
           ),
           child: Row(
             children: <Widget>[
-              _LevelBadge(level: level),
-              const SizedBox(width: 10),
+              if (showBadge) ...[
+                _LevelBadge(level: level),
+                const SizedBox(width: 10),
+              ],
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

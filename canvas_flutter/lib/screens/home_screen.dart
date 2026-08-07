@@ -33,6 +33,12 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   static const _wideBreakpoint = 1000.0;
 
+  /// Below this width the app bar's leading drawer button leaves too little
+  /// room for the XP bar alongside four separate action icons, so the two
+  /// least-used ones (load example, export JSON) collapse into an overflow
+  /// menu instead of overflowing the title row.
+  static const _compactActionsBreakpoint = 640.0;
+
   final _controller = CanvasController();
   final _confetti = ConfettiController(duration: const Duration(seconds: 2));
   final _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -348,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final isWide = constraints.maxWidth >= _wideBreakpoint;
         return Scaffold(
           key: _scaffoldKey,
-          appBar: _buildAppBar(isWide),
+          appBar: _buildAppBar(isWide, constraints.maxWidth),
           drawer: isWide
               ? null
               : Drawer(
@@ -379,8 +385,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(bool isWide) {
+  PreferredSizeWidget _buildAppBar(bool isWide, double width) {
     final game = context.watch<GameState>();
+    final bool compactActions = width < _compactActionsBreakpoint;
 
     return AppBar(
       titleSpacing: isWide ? 20 : 0,
@@ -416,16 +423,46 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       actions: [
-        IconButton(
-          tooltip: 'Load an example',
-          icon: const Icon(Icons.auto_stories_outlined),
-          onPressed: _loadExample,
-        ),
-        IconButton(
-          tooltip: 'Copy experiment JSON',
-          icon: const Icon(Icons.ios_share),
-          onPressed: _exportJson,
-        ),
+        if (compactActions)
+          PopupMenuButton<VoidCallback>(
+            tooltip: 'More',
+            icon: const Icon(Icons.more_vert),
+            onSelected: (action) => action(),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: _loadExample,
+                child: const Row(
+                  children: [
+                    Icon(Icons.auto_stories_outlined, size: 18),
+                    SizedBox(width: 10),
+                    Text('Load an example'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: _exportJson,
+                child: const Row(
+                  children: [
+                    Icon(Icons.ios_share, size: 18),
+                    SizedBox(width: 10),
+                    Text('Copy experiment JSON'),
+                  ],
+                ),
+              ),
+            ],
+          )
+        else ...[
+          IconButton(
+            tooltip: 'Load an example',
+            icon: const Icon(Icons.auto_stories_outlined),
+            onPressed: _loadExample,
+          ),
+          IconButton(
+            tooltip: 'Copy experiment JSON',
+            icon: const Icon(Icons.ios_share),
+            onPressed: _exportJson,
+          ),
+        ],
         IconButton(
           tooltip: 'API key',
           icon: Icon(
