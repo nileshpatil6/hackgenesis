@@ -333,6 +333,7 @@ function App_Challenge() {
             if (label !== null) onConfirm(label);
           }}
           onUnrecognizedShape={() => {}}
+          onCancel={() => setSelectedTool(null)}
         />
 
         <ComponentLibrary

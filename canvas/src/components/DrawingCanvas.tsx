@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { Point, DrawnShape, DrawingTool } from '../types/drawing';
 import { shapeRecognizer } from '../utils/shapeRecognition';
 
@@ -7,9 +8,10 @@ interface DrawingCanvasProps {
   currentTool: DrawingTool | null;
   onRequestLabel: (title: string, defaultValue: string, onConfirm: (label: string) => void) => void;
   onUnrecognizedShape: () => void;
+  onCancel: () => void;
 }
 
-export function DrawingCanvas({ onShapeComplete, currentTool, onRequestLabel, onUnrecognizedShape }: DrawingCanvasProps) {
+export function DrawingCanvas({ onShapeComplete, currentTool, onRequestLabel, onUnrecognizedShape, onCancel }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -88,6 +90,20 @@ export function DrawingCanvas({ onShapeComplete, currentTool, onRequestLabel, on
 
     return () => window.removeEventListener('resize', updateSize);
   }, [rawPoints, drawPoints]);
+
+  // Escape always gets you out of draw mode, even mid-stroke.
+  useEffect(() => {
+    if (!currentTool) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsDrawing(false);
+        setRawPoints([]);
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentTool, onCancel]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!currentTool) return;
@@ -235,9 +251,20 @@ export function DrawingCanvas({ onShapeComplete, currentTool, onRequestLabel, on
             {currentTool === 'freehand' ? 'Freehand Drawing' : `Drawing ${currentTool.charAt(0).toUpperCase() + currentTool.slice(1)}`}
           </div>
           <div className="text-xs text-zinc-500 dark:text-zinc-400">
-            Draw on the whiteboard • Release to finish
+            Draw on the whiteboard • Esc to cancel
           </div>
         </div>
+        <button
+          onClick={() => {
+            setIsDrawing(false);
+            setRawPoints([]);
+            onCancel();
+          }}
+          title="Cancel drawing"
+          className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-white/10 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-white/20 hover:text-zinc-900 dark:hover:text-white transition-colors"
+        >
+          <X size={14} />
+        </button>
       </div>
     </div>
   );
