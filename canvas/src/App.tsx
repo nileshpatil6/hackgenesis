@@ -309,8 +309,9 @@ function App() {
     }
 
     if (tool === 'freehand') {
-      // Only freehand requires drawing on the canvas
-      setCurrentDrawingTool(tool);
+      // Only freehand requires drawing on the canvas.
+      // Clicking it again while active toggles draw mode back off.
+      setCurrentDrawingTool((current) => (current === 'freehand' ? null : tool));
       return;
     }
 
@@ -458,6 +459,7 @@ function App() {
             onShapeComplete={handleShapeComplete}
             onRequestLabel={showPrompt}
             onUnrecognizedShape={() => showToast('Shape not recognized. Try drawing more clearly: rectangle, circle, triangle, or line.', 'error')}
+            onCancel={() => setCurrentDrawingTool(null)}
           />
 
           <ReactFlow
