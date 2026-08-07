@@ -97,7 +97,7 @@ export class OpenAIService {
     const componentLabels = experimentJSON.nodes.map(n => n.data.label).join(', ');
 
     const prompt = `
-You are a friendly lab assistant robot 🤖 helping a student with their experiment.
+You are a friendly lab assistant helping a student with their experiment.
 
 CURRENT EXPERIMENT CONTEXT:
 - Total Components: ${nodeCount}
@@ -126,7 +126,7 @@ DO:
 - Reference specific components they've added by name
 - Help them think critically about what's missing or incorrect
 
-Keep your response conversational, encouraging, friendly, and under 120 words. Use emojis occasionally! 🔬✨
+Keep your response conversational, encouraging, friendly, and under 120 words. Do not use emojis.
 `;
 
     try {

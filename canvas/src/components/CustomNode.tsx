@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
+import { PartIcon } from '../data/iconRegistry';
 import { ComponentData } from '../types';
 
 interface CustomNodeData {
@@ -54,7 +55,9 @@ export const CustomNode = memo(({ data, selected }: NodeProps<CustomNodeData>) =
       )}
 
       <div className="flex flex-col gap-1.5">
-        <div className="text-3xl text-center mb-1 drop-shadow">{data.component.icon}</div>
+        <div className="flex items-center justify-center mb-1 text-orange-500 dark:text-orange-400">
+          <PartIcon iconKey={data.component.icon} size={28} />
+        </div>
 
         {isEditing ? (
           <input

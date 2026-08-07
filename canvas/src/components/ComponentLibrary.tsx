@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { COMPONENT_LIBRARY, CATEGORIES } from '../data/componentLibrary';
+import { PartIcon } from '../data/iconRegistry';
 import { ComponentData } from '../types';
 
 interface ComponentLibraryProps {
@@ -73,7 +74,10 @@ export const ComponentLibrary = ({ onDragStart }: ComponentLibraryProps) => {
                 : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800'
             }`}
           >
-            {cat.icon} {cat.label}
+            <span className="inline-flex items-center gap-1.5">
+              <PartIcon iconKey={cat.icon} size={13} />
+              {cat.label}
+            </span>
           </button>
         ))}
       </div>
@@ -93,7 +97,9 @@ export const ComponentLibrary = ({ onDragStart }: ComponentLibraryProps) => {
               className="group p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl cursor-grab active:cursor-grabbing transition-all hover:border-orange-500/50 hover:bg-orange-50/60 dark:hover:bg-zinc-800/80 hover:shadow-[0_4px_16px_rgba(255,79,0,0.15)]"
             >
               <div className="flex items-center gap-3">
-                <div className="text-2xl leading-none">{component.icon}</div>
+                <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 shrink-0">
+                  <PartIcon iconKey={component.icon} size={19} />
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 truncate">
                     {component.label}
