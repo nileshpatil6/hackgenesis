@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -17,8 +18,14 @@ const String _modelFast = 'gpt-5.6-luna';
 const String _modelBalanced = 'gpt-5.6-terra';
 const String _modelReasoning = 'gpt-5.6-sol';
 
+/// Model that renders the result illustration.
+const String _modelImage = 'gpt-image-2';
+
 /// Wall-clock budget for a single Responses API call.
 const Duration _requestTimeout = Duration(seconds: 90);
+
+/// Image rendering is slower than text, so it gets its own, longer budget.
+const Duration _imageTimeout = Duration(seconds: 180);
 
 /// Maximum number of characters of an HTTP error body kept in a message.
 const int _maxErrorBodyChars = 300;
@@ -34,7 +41,7 @@ const Map<String, Object?> _analysisResultSchema = <String, Object?>{
       'type': <String>['string', 'null'],
     },
     'explanation': <String, Object?>{'type': 'string'},
-    'svg': <String, Object?>{
+    'imagePrompt': <String, Object?>{
       'type': <String>['string', 'null'],
     },
   },
@@ -44,7 +51,7 @@ const Map<String, Object?> _analysisResultSchema = <String, Object?>{
     'message',
     'mistake',
     'explanation',
-    'svg',
+    'imagePrompt',
   ],
   'additionalProperties': false,
 };
@@ -188,7 +195,11 @@ Analyze this experiment and determine:
 - A concise 1-2 sentence summary message
 - If failed, a clear description of the mistake WITHOUT giving away the solution (null if success)
 - A detailed explanation of what happened and why
-- If success, a colorful, modern, self-contained SVG string (starting with <svg... and ending with </svg>) visualizing the output (a graph, chemical reaction, circuit diagram, or similar). Null if failed.
+- If success, an "imagePrompt": a vivid one-paragraph description of a single
+  illustration that shows the outcome of THIS experiment (the apparatus, the
+  reaction, the measured result). Describe subject, composition, labels and
+  style — a clean modern scientific diagram on a white background. Do not
+  mention SVG, code, or file formats. Null if failed.
 ''';
 
     try {
@@ -221,6 +232,84 @@ Analyze this experiment and determine:
         'Error details: $e',
       );
     }
+  }
+
+  /// Renders [prompt] into a PNG using the image model.
+  ///
+  /// Returns the raw image bytes, ready for `Image.memory`. Throws
+  /// [OpenAiException] when no key is set or the request fails.
+  Future<Uint8List> generateImage(String prompt) async {
+    final String key = _requireApiKey();
+
+    final http.Response response;
+    try {
+      response = await _client
+          .post(
+            Uri.parse('$_openAiBaseUrl/images/generations'),
+            headers: <String, String>{
+              'Authorization': 'Bearer $key',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(<String, Object?>{
+              'model': _modelImage,
+              'prompt': prompt,
+              'size': '1024x1024',
+              'n': 1,
+            }),
+          )
+          .timeout(_imageTimeout);
+    } on TimeoutException {
+      throw OpenAiException(
+        'The image took longer than ${_imageTimeout.inSeconds}s to render.',
+      );
+    } catch (e) {
+      throw OpenAiException('Could not reach the image service: $e');
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw OpenAiException(
+        'Image generation failed: ${_truncate(response.body)}',
+        statusCode: response.statusCode,
+      );
+    }
+
+    final Object? decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    if (decoded is! Map) {
+      throw OpenAiException('The image service returned an unexpected shape.');
+    }
+    final Object? data = decoded['data'];
+    if (data is! List || data.isEmpty || data.first is! Map) {
+      throw OpenAiException('The image service returned no image.');
+    }
+
+    final Map<Object?, Object?> first = data.first as Map<Object?, Object?>;
+    final Object? b64 = first['b64_json'];
+    if (b64 is String && b64.isNotEmpty) {
+      try {
+        return base64Decode(b64);
+      } on FormatException {
+        throw OpenAiException('The generated image could not be decoded.');
+      }
+    }
+
+    // Some deployments hand back a URL instead of inline base64.
+    final Object? url = first['url'];
+    if (url is String && url.isNotEmpty) {
+      try {
+        final http.Response image = await _client
+            .get(Uri.parse(url))
+            .timeout(_imageTimeout);
+        if (image.statusCode == 200) return image.bodyBytes;
+        throw OpenAiException(
+          'Could not download the generated image.',
+          statusCode: image.statusCode,
+        );
+      } on TimeoutException {
+        throw OpenAiException('Downloading the generated image timed out.');
+      }
+    }
+
+    throw OpenAiException('The image service returned no image data.');
   }
 
   /// Generates runnable Python/matplotlib code visualising the experiment.

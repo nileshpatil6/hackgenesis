@@ -38,7 +38,6 @@ dependencies:
   shared_preferences: ^2.5.5
   provider: ^6.1.5+1
   confetti: ^0.8.0
-  flutter_svg: ^2.3.0
   uuid: ^4.6.0
   path_provider: ^2.1.5
 

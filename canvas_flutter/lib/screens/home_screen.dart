@@ -55,8 +55,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _assistantOpen = false;
   bool _assistantLoading = false;
-  bool _isAnalyzing = false;
-  AnalysisResult? _result;
+
+  /// Live state of the current experiment run.
+  ///
+  /// The result sheet is a separate modal route, so a `setState` here would
+  /// never reach it — it listens to this notifier instead.
+  final _run = ValueNotifier<ExperimentRun>(const ExperimentRun());
 
   @override
   void initState() {
@@ -70,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _controller.removeListener(_onCanvasChanged);
     _controller.dispose();
     _confetti.dispose();
+    _run.dispose();
     super.dispose();
   }
 
@@ -171,10 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!await _ensureApiKey()) return;
     if (!mounted) return;
 
-    setState(() {
-      _isAnalyzing = true;
-      _result = null;
-    });
+    _run.value = const ExperimentRun(isAnalyzing: true);
     _showResultSheet();
 
     final service = context.read<OpenAiService>();
@@ -182,13 +184,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await service.analyzeExperiment(experiment);
 
     if (!mounted) return;
-    setState(() {
-      _isAnalyzing = false;
-      _result = result;
-    });
+
+    // Only a successful run earns an illustration, and only when the model
+    // actually described one.
+    final wantsImage = result.success && result.imagePrompt != null;
+    _run.value = ExperimentRun(result: result, isRenderingImage: wantsImage);
 
     if (result.success) _confetti.play();
 
+    // Award XP straight away — the picture is cosmetic and must never gate
+    // progression or block the result the player already earned.
     await _award(
       () => context.read<GameState>().recordExperimentRun(
         success: result.success,
@@ -196,6 +201,32 @@ class _HomeScreenState extends State<HomeScreen> {
         edgeCount: experiment.edges.length,
       ),
     );
+
+    if (!wantsImage) return;
+    await _renderResultImage(service, result);
+  }
+
+  /// Renders the outcome illustration and folds it into the live run state.
+  Future<void> _renderResultImage(
+    OpenAiService service,
+    AnalysisResult result,
+  ) async {
+    try {
+      final bytes = await service.generateImage(result.imagePrompt!);
+      if (!mounted) return;
+      // Guard against a newer run having replaced this one mid-flight.
+      if (!identical(_run.value.result, result)) return;
+      _run.value = ExperimentRun(result: result, imageBytes: bytes);
+    } on OpenAiException catch (e) {
+      if (!mounted || !identical(_run.value.result, result)) return;
+      _run.value = ExperimentRun(result: result, imageError: e.message);
+    } catch (_) {
+      if (!mounted || !identical(_run.value.result, result)) return;
+      _run.value = ExperimentRun(
+        result: result,
+        imageError: 'The illustration could not be rendered.',
+      );
+    }
   }
 
   void _showResultSheet() {
@@ -204,16 +235,13 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       isDismissible: true,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, _) => ResultSheet(
-          isAnalyzing: _isAnalyzing,
-          result: _result,
-          onClose: () => Navigator.of(sheetContext).pop(),
-          onRetry: () {
-            Navigator.of(sheetContext).pop();
-            _runExperiment();
-          },
-        ),
+      builder: (sheetContext) => ResultSheet(
+        run: _run,
+        onClose: () => Navigator.of(sheetContext).pop(),
+        onRetry: () {
+          Navigator.of(sheetContext).pop();
+          _runExperiment();
+        },
       ),
     );
   }
@@ -416,7 +444,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Padding(
           padding: const EdgeInsets.only(right: 12),
           child: FilledButton.icon(
-            onPressed: _isAnalyzing ? null : _runExperiment,
+            onPressed: _runExperiment,
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),

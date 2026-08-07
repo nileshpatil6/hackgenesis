@@ -186,7 +186,7 @@ class AnalysisResult {
     required this.message,
     required this.explanation,
     this.mistake,
-    this.svg,
+    this.imagePrompt,
   });
 
   final bool success;
@@ -197,8 +197,11 @@ class AnalysisResult {
   /// Present when [success] is false — describes the error without solving it.
   final String? mistake;
 
-  /// Optional self-contained SVG visualising a successful outcome.
-  final String? svg;
+  /// A prompt describing the picture to render for a successful outcome.
+  ///
+  /// The analysis model writes this; a separate image model turns it into the
+  /// actual picture. Null when the experiment failed.
+  final String? imagePrompt;
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
     String? nullIfBlank(Object? v) {
@@ -214,7 +217,7 @@ class AnalysisResult {
       message: json['message'] as String? ?? '',
       explanation: json['explanation'] as String? ?? '',
       mistake: nullIfBlank(json['mistake']),
-      svg: nullIfBlank(json['svg']),
+      imagePrompt: nullIfBlank(json['imagePrompt']),
     );
   }
 
