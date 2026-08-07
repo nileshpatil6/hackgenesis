@@ -78,7 +78,8 @@ class OpenAIRagService {
 
       // Look for an existing store for this subject
       final listUrl = Uri.parse('$_baseUrl/vector_stores?limit=100');
-      final listResponse = await http.get(listUrl, headers: _vectorStoreHeaders);
+      final listResponse =
+          await http.get(listUrl, headers: _vectorStoreHeaders);
 
       if (listResponse.statusCode == 200) {
         final listData = json.decode(listResponse.body);
@@ -104,7 +105,8 @@ class OpenAIRagService {
         body: json.encode({'name': displayName}),
       );
 
-      if (createResponse.statusCode == 200 || createResponse.statusCode == 201) {
+      if (createResponse.statusCode == 200 ||
+          createResponse.statusCode == 201) {
         final data = json.decode(createResponse.body);
         final storeId = data['id'] as String;
         _subjectStores[subjectId] = storeId;
@@ -155,7 +157,8 @@ class OpenAIRagService {
       final streamedResponse = await request.send();
       final uploadResponse = await http.Response.fromStream(streamedResponse);
 
-      if (uploadResponse.statusCode != 200 && uploadResponse.statusCode != 201) {
+      if (uploadResponse.statusCode != 200 &&
+          uploadResponse.statusCode != 201) {
         lastError = _extractError(uploadResponse);
         return false;
       }
@@ -170,7 +173,8 @@ class OpenAIRagService {
         body: json.encode({'file_id': fileId}),
       );
 
-      if (attachResponse.statusCode != 200 && attachResponse.statusCode != 201) {
+      if (attachResponse.statusCode != 200 &&
+          attachResponse.statusCode != 201) {
         lastError = _extractError(attachResponse);
         return false;
       }
@@ -216,7 +220,8 @@ class OpenAIRagService {
     for (var i = 0; i < maxPolls; i++) {
       await Future.delayed(const Duration(seconds: 3));
 
-      final statusUrl = Uri.parse('$_baseUrl/vector_stores/$storeId/files/$fileId');
+      final statusUrl =
+          Uri.parse('$_baseUrl/vector_stores/$storeId/files/$fileId');
       final response = await http.get(statusUrl, headers: _vectorStoreHeaders);
 
       if (response.statusCode == 200) {
@@ -261,7 +266,8 @@ class OpenAIRagService {
     try {
       final displayName = 'eduai-$subjectId';
       final listUrl = Uri.parse('$_baseUrl/vector_stores?limit=100');
-      final listResponse = await http.get(listUrl, headers: _vectorStoreHeaders);
+      final listResponse =
+          await http.get(listUrl, headers: _vectorStoreHeaders);
 
       if (listResponse.statusCode == 200) {
         final listData = json.decode(listResponse.body);

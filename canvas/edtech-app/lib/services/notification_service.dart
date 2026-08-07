@@ -7,7 +7,8 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   static Future<void> init() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -162,7 +163,8 @@ class NotificationService {
     await showNotification(
       id: 1000,
       title: '🔥 Keep your streak alive!',
-      body: 'You\'re on a $currentStreak-day streak. Learn something today to keep it going!',
+      body:
+          'You\'re on a $currentStreak-day streak. Learn something today to keep it going!',
     );
   }
 
@@ -177,7 +179,11 @@ class NotificationService {
 
   // Quiz completion
   static Future<void> notifyQuizCompleted(String quizTitle, int score) async {
-    String emoji = score >= 90 ? '🎉' : score >= 70 ? '👏' : '📚';
+    String emoji = score >= 90
+        ? '🎉'
+        : score >= 70
+            ? '👏'
+            : '📚';
     await showNotification(
       id: quizTitle.hashCode,
       title: '$emoji Quiz Completed!',
@@ -186,7 +192,8 @@ class NotificationService {
   }
 
   // Lesson reminder
-  static Future<void> sendLessonReminder(String lessonTitle, DateTime when) async {
+  static Future<void> sendLessonReminder(
+      String lessonTitle, DateTime when) async {
     await scheduleStudyReminder(
       id: lessonTitle.hashCode,
       title: '📖 Time to learn!',

@@ -122,7 +122,8 @@ class YouTubeService {
 
         if (videoDetailItems.isNotEmpty) {
           final videoDetail = videoDetailItems[0];
-          final duration = _parseDuration(videoDetail['contentDetails']['duration']);
+          final duration =
+              _parseDuration(videoDetail['contentDetails']['duration']);
           final channelName = videoDetail['snippet']['channelTitle'];
 
           totalDuration += duration;

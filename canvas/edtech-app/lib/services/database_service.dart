@@ -124,6 +124,13 @@ class DatabaseService {
   Future<List<Subject>> getSubjects(String userId) async {
     try {
       final subjects = await SupabaseService.getSubjects(userId);
+      // A null result means the remote was unreachable, which is not the
+      // same as it having no rows. Returning the empty list here would
+      // wipe locally-saved subjects from the UI while offline.
+      if (subjects == null) {
+        final box = Hive.box<Subject>(subjectsBox);
+        return box.values.toList();
+      }
       final box = Hive.box<Subject>(subjectsBox);
 
       // Update local cache
@@ -181,6 +188,13 @@ class DatabaseService {
     // Fetch from Supabase first
     try {
       final notes = await SupabaseService.getNotesForSubject(subjectId);
+      // A null result means the remote was unreachable, which is not the
+      // same as it having no rows. Returning the empty list here would
+      // wipe locally-saved notes from the UI while offline.
+      if (notes == null) {
+        final box = Hive.box<Note>(notesBox);
+        return box.values.where((note) => note.subjectId == subjectId).toList();
+      }
       final box = Hive.box<Note>(notesBox);
 
       // Update local cache
@@ -282,6 +296,15 @@ class DatabaseService {
     // Fetch from Supabase first
     try {
       final lessons = await SupabaseService.getLessonsForSubject(subjectId);
+      // A null result means the remote was unreachable, which is not the
+      // same as it having no rows. Returning the empty list here would
+      // wipe locally-saved lessons from the UI while offline.
+      if (lessons == null) {
+        final box = Hive.box<Lesson>(lessonsBox);
+        return box.values
+            .where((lesson) => lesson.subjectId == subjectId)
+            .toList();
+      }
       final box = Hive.box<Lesson>(lessonsBox);
 
       // Update local cache
@@ -327,6 +350,13 @@ class DatabaseService {
     // Fetch from Supabase first
     try {
       final quizzes = await SupabaseService.getQuizzesForSubject(subjectId);
+      // A null result means the remote was unreachable, which is not the
+      // same as it having no rows. Returning the empty list here would
+      // wipe locally-saved quizzes from the UI while offline.
+      if (quizzes == null) {
+        final box = Hive.box<Quiz>(quizzesBox);
+        return box.values.where((quiz) => quiz.subjectId == subjectId).toList();
+      }
       final box = Hive.box<Quiz>(quizzesBox);
 
       // Update local cache
@@ -371,6 +401,13 @@ class DatabaseService {
     try {
       final decks =
           await SupabaseService.getFlashcardDecksForSubject(subjectId);
+      // A null result means the remote was unreachable, which is not the
+      // same as it having no rows. Returning the empty list here would
+      // wipe locally-saved decks from the UI while offline.
+      if (decks == null) {
+        final box = Hive.box<FlashcardDeck>(flashcardsBox);
+        return box.values.where((deck) => deck.subjectId == subjectId).toList();
+      }
       final box = Hive.box<FlashcardDeck>(flashcardsBox);
 
       // Update local cache
@@ -594,6 +631,14 @@ class DatabaseService {
       // Fetch from Supabase first
       final messages =
           await SupabaseService.getChatMessagesForSubject(subjectId);
+      // A null result means the remote was unreachable, which is not the
+      // same as it having no rows. Returning the empty list here would
+      // wipe locally-saved messages from the UI while offline.
+      if (messages == null) {
+        final box = Hive.box<ChatMessage>(chatMessagesBox);
+        return box.values.where((msg) => msg.subjectId == subjectId).toList()
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      }
       final box = Hive.box<ChatMessage>(chatMessagesBox);
 
       // Update local cache

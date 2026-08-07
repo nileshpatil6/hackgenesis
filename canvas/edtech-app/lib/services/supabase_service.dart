@@ -355,51 +355,51 @@ class SupabaseService {
     }
   }
 
-  static Future<List<Subject>> getSubjects(String userId) async {
+  static Future<List<Subject>?> getSubjects(String userId) async {
     try {
       final response =
           await client.from(subjectsTable).select().eq('user_id', userId);
       return (response as List).map((json) => Subject.fromJson(json)).toList();
     } catch (e) {
       print('Error getting subjects from Supabase: $e');
-      return [];
+      return null;
     }
   }
 
-  static Future<List<Note>> getNotesForSubject(String subjectId) async {
+  static Future<List<Note>?> getNotesForSubject(String subjectId) async {
     try {
       final response =
           await client.from(notesTable).select().eq('subject_id', subjectId);
       return (response as List).map((json) => Note.fromJson(json)).toList();
     } catch (e) {
       print('Error getting notes from Supabase: $e');
-      return [];
+      return null;
     }
   }
 
-  static Future<List<Lesson>> getLessonsForSubject(String subjectId) async {
+  static Future<List<Lesson>?> getLessonsForSubject(String subjectId) async {
     try {
       final response =
           await client.from(lessonsTable).select().eq('subject_id', subjectId);
       return (response as List).map((json) => Lesson.fromJson(json)).toList();
     } catch (e) {
       print('Error getting lessons from Supabase: $e');
-      return [];
+      return null;
     }
   }
 
-  static Future<List<Quiz>> getQuizzesForSubject(String subjectId) async {
+  static Future<List<Quiz>?> getQuizzesForSubject(String subjectId) async {
     try {
       final response =
           await client.from(quizzesTable).select().eq('subject_id', subjectId);
       return (response as List).map((json) => Quiz.fromJson(json)).toList();
     } catch (e) {
       print('Error getting quizzes from Supabase: $e');
-      return [];
+      return null;
     }
   }
 
-  static Future<List<FlashcardDeck>> getFlashcardDecksForSubject(
+  static Future<List<FlashcardDeck>?> getFlashcardDecksForSubject(
       String subjectId) async {
     try {
       final response = await client
@@ -411,11 +411,11 @@ class SupabaseService {
           .toList();
     } catch (e) {
       print('Error getting flashcard decks from Supabase: $e');
-      return [];
+      return null;
     }
   }
 
-  static Future<List<Achievement>> getAchievements() async {
+  static Future<List<Achievement>?> getAchievements() async {
     try {
       final response = await client.from(achievementsTable).select();
       return (response as List)
@@ -423,11 +423,11 @@ class SupabaseService {
           .toList();
     } catch (e) {
       print('Error getting achievements from Supabase: $e');
-      return [];
+      return null;
     }
   }
 
-  static Future<List<StudyPlan>> getStudyPlansForSubject(
+  static Future<List<StudyPlan>?> getStudyPlansForSubject(
       String subjectId) async {
     try {
       final response = await client
@@ -439,11 +439,11 @@ class SupabaseService {
           .toList();
     } catch (e) {
       print('Error getting study plans from Supabase: $e');
-      return [];
+      return null;
     }
   }
 
-  static Future<List<StudyPlaylist>> getPlaylistsForSubject(
+  static Future<List<StudyPlaylist>?> getPlaylistsForSubject(
       String subjectId) async {
     try {
       final response = await client
@@ -455,11 +455,11 @@ class SupabaseService {
           .toList();
     } catch (e) {
       print('Error getting playlists from Supabase: $e');
-      return [];
+      return null;
     }
   }
 
-  static Future<List<CalendarEvent>> getCalendarEvents() async {
+  static Future<List<CalendarEvent>?> getCalendarEvents() async {
     try {
       final response = await client.from(calendarEventsTable).select();
       return (response as List)
@@ -467,12 +467,12 @@ class SupabaseService {
           .toList();
     } catch (e) {
       print('Error getting calendar events from Supabase: $e');
-      return [];
+      return null;
     }
   }
 // ============= CHAT MESSAGES =============
 
-  static Future<List<ChatMessage>> getChatMessagesForSubject(
+  static Future<List<ChatMessage>?> getChatMessagesForSubject(
       String subjectId) async {
     try {
       final response = await client
@@ -485,7 +485,7 @@ class SupabaseService {
           .toList();
     } catch (e) {
       print('Error getting chat messages from Supabase: $e');
-      return [];
+      return null;
     }
   }
 

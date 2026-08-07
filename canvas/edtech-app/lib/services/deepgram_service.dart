@@ -35,7 +35,8 @@ class DeepgramService {
         await audioDir.create(recursive: true);
       }
 
-      final filePath = '${audioDir.path}/${fileName ?? DateTime.now().millisecondsSinceEpoch}.mp3';
+      final filePath =
+          '${audioDir.path}/${fileName ?? DateTime.now().millisecondsSinceEpoch}.mp3';
       final file = File(filePath);
       await file.writeAsBytes(response.bodyBytes);
 
@@ -46,7 +47,8 @@ class DeepgramService {
   }
 
   /// Generate audio for multiple slides
-  Future<List<String>> generateSlideAudios(List<Map<String, String>> slides) async {
+  Future<List<String>> generateSlideAudios(
+      List<Map<String, String>> slides) async {
     final audioPaths = <String>[];
 
     for (var i = 0; i < slides.length; i++) {
@@ -69,7 +71,11 @@ ${slide['content']}
 
   /// Available voice models
   static const List<Map<String, String>> voiceModels = [
-    {'id': 'aura-asteria-en', 'name': 'Asteria (Female)', 'language': 'English'},
+    {
+      'id': 'aura-asteria-en',
+      'name': 'Asteria (Female)',
+      'language': 'English'
+    },
     {'id': 'aura-luna-en', 'name': 'Luna (Female)', 'language': 'English'},
     {'id': 'aura-stella-en', 'name': 'Stella (Female)', 'language': 'English'},
     {'id': 'aura-athena-en', 'name': 'Athena (Female)', 'language': 'English'},
@@ -123,7 +129,8 @@ ${slide['content']}
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final transcript = data['results']['channels'][0]['alternatives'][0]['transcript'];
+      final transcript =
+          data['results']['channels'][0]['alternatives'][0]['transcript'];
       return transcript;
     } else {
       throw Exception('Failed to transcribe audio: ${response.body}');
