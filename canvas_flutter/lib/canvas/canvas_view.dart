@@ -5,7 +5,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../models/component_data.dart';
 import '../models/experiment.dart';
 import '../theme/app_theme.dart';
 import 'canvas_controller.dart';
@@ -18,7 +17,7 @@ const double kGridSpacing = 26;
 /// The interactive node-graph surface.
 ///
 /// Composes the dotted background, the edge layer, the node layer and every
-/// gesture (pan, zoom, drop, node drag, connection drag, selection, delete) on
+/// gesture (pan, zoom, node drag, connection drag, selection, delete) on
 /// top of a [CanvasController]. The widget keeps no graph state of its own.
 class CanvasView extends StatefulWidget {
   /// Creates a canvas bound to [controller].
@@ -69,12 +68,6 @@ class _CanvasViewState extends State<CanvasView>
   // ---------------------------------------------------------------------
   // Coordinate helpers
   // ---------------------------------------------------------------------
-
-  Offset? _toLocal(Offset globalPosition) {
-    final RenderObject? object = context.findRenderObject();
-    if (object is! RenderBox || !object.hasSize) return null;
-    return object.globalToLocal(globalPosition);
-  }
 
   ExperimentNode? _nodeAtWorld(Offset worldPoint) {
     final List<ExperimentNode> nodes = _controller.nodes;
@@ -164,17 +157,6 @@ class _CanvasViewState extends State<CanvasView>
     widget.onEmptyTap?.call();
   }
 
-  void _onAcceptDrop(DragTargetDetails<ComponentData> details) {
-    final Offset? local = _toLocal(details.offset);
-    if (local == null) return;
-    final Offset world = _controller.screenToWorld(local);
-    _controller.addComponent(
-      details.data,
-      world - const Offset(kNodeWidth / 2, kNodeHeight / 2),
-    );
-    _focusNode.requestFocus();
-  }
-
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     final bool isDelete =
@@ -197,31 +179,20 @@ class _CanvasViewState extends State<CanvasView>
     return Focus(
       focusNode: _focusNode,
       onKeyEvent: _onKeyEvent,
-      child: DragTarget<ComponentData>(
-        onAcceptWithDetails: _onAcceptDrop,
-        builder:
-            (
-              BuildContext context,
-              List<ComponentData?> candidate,
-              List<dynamic> rejected,
-            ) {
-              return Listener(
-                onPointerSignal: _onPointerSignal,
-                onPointerMove: _onPointerMove,
-                onPointerUp: _onPointerUp,
-                onPointerCancel: _onPointerCancel,
-                child: AnimatedBuilder(
-                  animation: Listenable.merge(<Listenable>[_controller, _flow]),
-                  builder: (BuildContext context, Widget? child) =>
-                      _buildLayers(isDropTarget: candidate.isNotEmpty),
-                ),
-              );
-            },
+      child: Listener(
+        onPointerSignal: _onPointerSignal,
+        onPointerMove: _onPointerMove,
+        onPointerUp: _onPointerUp,
+        onPointerCancel: _onPointerCancel,
+        child: AnimatedBuilder(
+          animation: Listenable.merge(<Listenable>[_controller, _flow]),
+          builder: (BuildContext context, Widget? child) => _buildLayers(),
+        ),
       ),
     );
   }
 
-  Widget _buildLayers({required bool isDropTarget}) {
+  Widget _buildLayers() {
     final List<ExperimentNode> nodes = _controller.nodes;
     final double scale = _controller.scale;
     final Offset pan = _controller.panOffset;
@@ -240,11 +211,7 @@ class _CanvasViewState extends State<CanvasView>
             onScaleUpdate: _onScaleUpdate,
             child: RepaintBoundary(
               child: CustomPaint(
-                painter: _GridPainter(
-                  scale: scale,
-                  panOffset: pan,
-                  highlight: isDropTarget,
-                ),
+                painter: _GridPainter(scale: scale, panOffset: pan),
               ),
             ),
           ),
@@ -340,7 +307,11 @@ class _EmptyHint extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.border),
             ),
-            child: const Text('🧪', style: TextStyle(fontSize: 32)),
+            child: const Icon(
+              Icons.science_outlined,
+              size: 32,
+              color: AppColors.textMuted,
+            ),
           ),
           const SizedBox(height: 18),
           const Text(
@@ -355,7 +326,7 @@ class _EmptyHint extends StatelessWidget {
           const SizedBox(
             width: 280,
             child: Text(
-              'Drag a component from the library onto the canvas, '
+              'Tap a component in the library to add it to the canvas, '
               'then link the green output port to another block.',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -373,15 +344,10 @@ class _EmptyHint extends StatelessWidget {
 
 /// Paints the infinite dotted background, honouring pan and zoom.
 class _GridPainter extends CustomPainter {
-  const _GridPainter({
-    required this.scale,
-    required this.panOffset,
-    required this.highlight,
-  });
+  const _GridPainter({required this.scale, required this.panOffset});
 
   final double scale;
   final Offset panOffset;
-  final bool highlight;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -409,22 +375,13 @@ class _GridPainter extends CustomPainter {
       ui.PointMode.points,
       dots,
       Paint()
-        ..color = AppColors.grid.withValues(alpha: highlight ? 0.95 : 0.7)
+        ..color = AppColors.grid.withValues(alpha: 0.7)
         ..strokeCap = StrokeCap.round
         ..strokeWidth = radius * 2,
     );
-
-    if (highlight) {
-      canvas.drawRect(
-        Offset.zero & size,
-        Paint()..color = AppColors.primary.withValues(alpha: 0.05),
-      );
-    }
   }
 
   @override
   bool shouldRepaint(covariant _GridPainter oldDelegate) =>
-      oldDelegate.scale != scale ||
-      oldDelegate.panOffset != panOffset ||
-      oldDelegate.highlight != highlight;
+      oldDelegate.scale != scale || oldDelegate.panOffset != panOffset;
 }

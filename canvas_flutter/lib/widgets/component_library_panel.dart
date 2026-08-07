@@ -1,28 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../canvas/node_card.dart' show categoryColor;
+import '../canvas/node_card.dart' show categoryColor, categoryIcon;
 import '../data/component_library.dart';
 import '../models/component_data.dart';
 import '../theme/app_theme.dart';
 
 /// Browsable, searchable palette of every component the player can place.
 ///
-/// Tiles are [Draggable] (drop onto the canvas) and also tappable, which adds
-/// the component straight to the middle of the viewport — essential on touch
-/// devices where dragging across a small screen is awkward.
+/// Tiles are tappable, which adds the component straight to the middle of
+/// the visible viewport — this is the only way to place a component, so it
+/// works identically on touch, mouse and trackpad without a drag gesture
+/// competing with the list's own scrolling.
 class ComponentLibraryPanel extends StatefulWidget {
-  const ComponentLibraryPanel({
-    super.key,
-    required this.onQuickAdd,
-    this.onDragStarted,
-    this.onDragEnded,
-  });
+  const ComponentLibraryPanel({super.key, required this.onQuickAdd});
 
   /// Called when a tile is tapped — the host drops the component at the
   /// centre of the visible canvas.
   final ValueChanged<ComponentData> onQuickAdd;
-  final VoidCallback? onDragStarted;
-  final VoidCallback? onDragEnded;
 
   @override
   State<ComponentLibraryPanel> createState() => _ComponentLibraryPanelState();
@@ -69,8 +63,6 @@ class _ComponentLibraryPanelState extends State<ComponentLibraryPanel> {
                     itemBuilder: (context, i) => _ComponentTile(
                       component: results[i],
                       onQuickAdd: () => widget.onQuickAdd(results[i]),
-                      onDragStarted: widget.onDragStarted,
-                      onDragEnded: widget.onDragEnded,
                     ),
                   ),
           ),
@@ -159,7 +151,7 @@ class _ComponentLibraryPanelState extends State<ComponentLibraryPanel> {
         children: [
           _CategoryChip(
             label: 'All',
-            icon: '✨',
+            icon: Icons.auto_awesome,
             color: AppColors.primary,
             selected: _categoryId == null,
             onTap: () => setState(() => _categoryId = null),
@@ -167,7 +159,7 @@ class _ComponentLibraryPanelState extends State<ComponentLibraryPanel> {
           for (final c in kCategories)
             _CategoryChip(
               label: c.label,
-              icon: c.icon,
+              icon: categoryIcon(c.id),
               color: c.color,
               selected: _categoryId == c.id,
               onTap: () => setState(
@@ -218,7 +210,7 @@ class _CategoryChip extends StatelessWidget {
   });
 
   final String label;
-  final String icon;
+  final IconData icon;
   final Color color;
   final bool selected;
   final VoidCallback onTap;
@@ -248,7 +240,7 @@ class _CategoryChip extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(icon, style: const TextStyle(fontSize: 12)),
+                  Icon(icon, size: 13, color: selected ? color : AppColors.textSecondary),
                   const SizedBox(width: 5),
                   Text(
                     label,
@@ -269,23 +261,16 @@ class _CategoryChip extends StatelessWidget {
 }
 
 class _ComponentTile extends StatelessWidget {
-  const _ComponentTile({
-    required this.component,
-    required this.onQuickAdd,
-    this.onDragStarted,
-    this.onDragEnded,
-  });
+  const _ComponentTile({required this.component, required this.onQuickAdd});
 
   final ComponentData component;
   final VoidCallback onQuickAdd;
-  final VoidCallback? onDragStarted;
-  final VoidCallback? onDragEnded;
 
   @override
   Widget build(BuildContext context) {
     final color = categoryColor(component.category);
 
-    final tile = Container(
+    return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
         color: AppColors.surfaceAlt,
@@ -310,9 +295,10 @@ class _ComponentTile extends StatelessWidget {
                     color: color.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    component.icon,
-                    style: const TextStyle(fontSize: 15),
+                  child: Icon(
+                    categoryIcon(component.category),
+                    size: 16,
+                    color: color,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -351,68 +337,6 @@ class _ComponentTile extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-
-    return Draggable<ComponentData>(
-      data: component,
-      onDragStarted: onDragStarted,
-      onDragEnd: (_) => onDragEnded?.call(),
-      onDraggableCanceled: (_, _) => onDragEnded?.call(),
-      dragAnchorStrategy: pointerDragAnchorStrategy,
-      feedback: _DragGhost(component: component, color: color),
-      childWhenDragging: Opacity(opacity: 0.35, child: tile),
-      child: tile,
-    );
-  }
-}
-
-class _DragGhost extends StatelessWidget {
-  const _DragGhost({required this.component, required this.color});
-
-  final ComponentData component;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.translate(
-      offset: const Offset(-70, -26),
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          width: 140,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color, width: 1.5),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x26000000),
-                blurRadius: 14,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Text(component.icon, style: const TextStyle(fontSize: 16)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  component.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       ),
