@@ -9,11 +9,11 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const handleStartBuilding = () => {
-    window.location.href = "http://localhost:5000/";
+    window.location.href = "http://localhost:3000/login";
   };
 
   const handleOpenPlatform = () => {
-    window.location.href = "http://localhost:5000/";
+    window.location.href = "http://localhost:3000/login";
   };
 
   useEffect(() => {
@@ -78,12 +78,6 @@ export const Navbar = () => {
                   {item}
                 </a>
               ))}
-              <a
-                href="http://localhost:3000/login"
-                className="px-5 py-2 text-sm text-orange-500 dark:text-orange-400 hover:text-orange-600 dark:hover:text-orange-300 transition-colors font-medium rounded-full hover:bg-orange-50/50 dark:hover:bg-orange-900/20"
-              >
-                Features
-              </a>
             </div>
 
             {/* Actions */}
@@ -94,10 +88,10 @@ export const Navbar = () => {
               >
                 {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
-              <a href="http://localhost:5000/" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-500 transition-colors">
+              <a href="http://localhost:3000/login" className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-500 transition-colors">
                 Experiment Lab
               </a>
-              <a href="http://localhost:5000/" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-500 transition-colors">
+              <a href="http://localhost:3000/login" className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-500 transition-colors">
                 Learning Platform
               </a>
 
@@ -151,16 +145,6 @@ export const Navbar = () => {
                   {item}
                 </motion.a>
               ))}
-              <motion.a
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                href="http://localhost:3000/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-4xl font-serif text-orange-500 hover:text-orange-600 transition-colors"
-              >
-                Features
-              </motion.a>
             </div>
             <div className="mt-auto">
               <Button
