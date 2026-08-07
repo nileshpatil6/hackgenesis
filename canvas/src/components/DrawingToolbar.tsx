@@ -8,74 +8,29 @@ interface DrawingToolbarProps {
 
 export function DrawingToolbar({ selectedTool, onToolSelect }: DrawingToolbarProps) {
   const tools: Array<{ id: DrawingTool; icon: React.ReactNode; label: string }> = [
-    { id: 'freehand', icon: <Hand size={18} />, label: 'Freehand' },
-    { id: 'rectangle', icon: <Square size={18} />, label: 'Rectangle' },
-    { id: 'circle', icon: <Circle size={18} />, label: 'Circle' },
-    { id: 'triangle', icon: <Triangle size={18} />, label: 'Triangle' },
-    { id: 'line', icon: <Minus size={18} />, label: 'Line' },
-    { id: 'arrow', icon: <MoveUpRight size={18} />, label: 'Arrow' },
+    { id: 'freehand', icon: <Hand size={17} />, label: 'Freehand' },
+    { id: 'rectangle', icon: <Square size={17} />, label: 'Rectangle' },
+    { id: 'circle', icon: <Circle size={17} />, label: 'Circle' },
+    { id: 'triangle', icon: <Triangle size={17} />, label: 'Triangle' },
+    { id: 'line', icon: <Minus size={17} />, label: 'Line' },
+    { id: 'arrow', icon: <MoveUpRight size={17} />, label: 'Arrow' },
   ];
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: '50%',
-      right: '20px',
-      transform: 'translateY(-50%)',
-      backgroundColor: 'white',
-      padding: '8px',
-      borderRadius: '12px',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'stretch',
-      gap: '6px',
-      zIndex: 100,
-    }}>
-      <div style={{
-        fontSize: '12px',
-        fontWeight: 600,
-        color: '#6b7280',
-        padding: '8px',
-        borderBottom: '1px solid #e5e7eb',
-        marginBottom: '2px',
-        textAlign: 'center',
-      }}>
-        Drawing Tools
+    <div className="fixed top-1/2 right-5 -translate-y-1/2 z-[100] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-white/10 p-2 rounded-2xl shadow-[0_8px_28px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_28px_rgba(0,0,0,0.5)] flex flex-col gap-1.5">
+      <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 px-2 pb-2 mb-0.5 border-b border-zinc-200 dark:border-white/10 text-center uppercase tracking-wider">
+        Draw
       </div>
       {tools.map((tool) => (
         <button
           key={tool.id}
           onClick={() => onToolSelect(tool.id)}
           title={tool.label}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 12px',
-            backgroundColor: selectedTool === tool.id ? '#3b82f6' : '#f9fafb',
-            color: selectedTool === tool.id ? 'white' : '#374151',
-            border: selectedTool === tool.id ? '2px solid #2563eb' : '1px solid #e5e7eb',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: 500,
-            transition: 'all 0.2s',
-            whiteSpace: 'nowrap',
-            justifyContent: 'center',
-          }}
-          onMouseEnter={(e) => {
-            if (selectedTool !== tool.id) {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-              e.currentTarget.style.borderColor = '#d1d5db';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (selectedTool !== tool.id) {
-              e.currentTarget.style.backgroundColor = '#f9fafb';
-              e.currentTarget.style.borderColor = '#e5e7eb';
-            }
-          }}
+          className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+            selectedTool === tool.id
+              ? 'bg-orange-500 text-white shadow-[0_4px_14px_rgba(255,79,0,0.4)]'
+              : 'bg-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5'
+          }`}
         >
           {tool.icon}
         </button>

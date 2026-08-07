@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, DragEvent, useEffect } from 'react';
+import { useState, useCallback, useRef, DragEvent, useEffect, useMemo } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -9,25 +9,31 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   NodeTypes,
-  Panel,
   Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Play, Download, Trash2, BookOpen, Upload, Menu, Undo, Redo, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Zap, FlaskConical, Atom, Code2, PartyPopper, XCircle } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
+import { Navbar } from './components/Navbar';
 import { ComponentLibrary } from './components/ComponentLibrary';
 import { CustomNode } from './components/CustomNode';
-import { DrawingToolbar } from './components/DrawingToolbar';
+import { RightSidebar } from './components/RightSidebar';
 import { DrawingCanvas } from './components/DrawingCanvas';
 import { RobotAssistant } from './components/RobotAssistant';
+import { PromptDialog, PromptDialogState } from './components/PromptDialog';
+import { ToastStack } from './components/ToastStack';
 import { ComponentData, AnalysisResult } from './types';
 import { DrawingTool, DrawnShape } from './types/drawing';
 import { generateExperimentJSON, downloadJSON } from './utils/jsonGenerator';
-import { openaiService } from './utils/openaiService';
+import { openaiService, buildExperimentImagePrompt } from './utils/openaiService';
 import { EXAMPLE_EXPERIMENTS, EXAMPLE_LIST } from './data/exampleExperiments';
 import { shapeRecognizer } from './utils/shapeRecognition';
+import { CATEGORIES } from './data/componentLibrary';
 import { useUndoRedo } from './hooks/useUndoRedo';
+import { useTheme } from './hooks/useTheme';
+import { useToasts } from './hooks/useToasts';
 
 const nodeTypes: NodeTypes = {
   custom: CustomNode,
@@ -37,6 +43,24 @@ function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { takeSnapshot, undo, redo, canUndo, canRedo } = useUndoRedo();
+  const { isDark, toggleTheme } = useTheme();
+  const { toasts, showToast, dismissToast } = useToasts();
+  const [promptState, setPromptState] = useState<PromptDialogState | null>(null);
+
+  const showPrompt = useCallback((title: string, defaultValue: string, onConfirm: (value: string) => void) => {
+    setPromptState({ title, defaultValue, onConfirm });
+  }, []);
+
+  const showConfirm = useCallback((title: string, message: string, onConfirm: () => void, danger = false) => {
+    setPromptState({
+      title,
+      message,
+      showInput: false,
+      danger,
+      confirmLabel: danger ? 'Delete' : 'Confirm',
+      onConfirm: () => onConfirm(),
+    });
+  }, []);
 
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -45,10 +69,30 @@ function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [isRenderingImage, setIsRenderingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [currentDrawingTool, setCurrentDrawingTool] = useState<DrawingTool | null>(null);
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+
+  const selectedNode = useMemo(
+    () => nodes.find((n) => n.id === selectedNodeId) || null,
+    [nodes, selectedNodeId]
+  );
+
+  const categoryStats = useMemo(() => {
+    const counts = new Map<string, number>();
+    nodes.forEach((n) => {
+      const category = n.data.component?.category;
+      if (category) counts.set(category, (counts.get(category) || 0) + 1);
+    });
+    return CATEGORIES
+      .filter((cat) => counts.has(cat.id))
+      .map((cat) => ({ id: cat.icon, label: cat.label, count: counts.get(cat.id) || 0, color: cat.color }));
+  }, [nodes]);
 
   // Check if user has visited before
   useEffect(() => {
@@ -83,20 +127,64 @@ function App() {
 
   const onEdgeClick = useCallback(
     (_event: React.MouseEvent, edge: Edge) => {
-      const label = prompt('Enter a label for this connection (e.g., condition, value):', edge.label as string || '');
-      if (label !== null) {
-        takeSnapshot(nodes, edges);
-        setEdges((eds) =>
-          eds.map((e) => (e.id === edge.id ? { ...e, label } : e))
-        );
-      }
+      showPrompt(
+        'Label this connection',
+        (edge.label as string) || '',
+        (label) => {
+          takeSnapshot(nodes, edges);
+          setEdges((eds) =>
+            eds.map((e) => (e.id === edge.id ? { ...e, label } : e))
+          );
+        }
+      );
     },
-    [setEdges, takeSnapshot, nodes, edges]
+    [setEdges, takeSnapshot, nodes, edges, showPrompt]
   );
 
   const onNodeDragStart = useCallback(() => {
     takeSnapshot(nodes, edges);
   }, [takeSnapshot, nodes, edges]);
+
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    setSelectedNodeId(node.id);
+  }, []);
+
+  const onPaneClick = useCallback(() => {
+    setSelectedNodeId(null);
+  }, []);
+
+  useEffect(() => {
+    if (selectedNodeId && !nodes.some((n) => n.id === selectedNodeId)) {
+      setSelectedNodeId(null);
+    }
+  }, [nodes, selectedNodeId]);
+
+  const updateNodeLabel = useCallback((nodeId: string, label: string) => {
+    setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, customText: label } } : n)));
+  }, [setNodes]);
+
+  const updateNodeProperty = useCallback((nodeId: string, key: string, value: any) => {
+    setNodes((nds) => nds.map((n) => {
+      if (n.id !== nodeId) return n;
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          component: {
+            ...n.data.component,
+            properties: { ...n.data.component.properties, [key]: value },
+          },
+        },
+      };
+    }));
+  }, [setNodes]);
+
+  const deleteNode = useCallback((nodeId: string) => {
+    takeSnapshot(nodes, edges);
+    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    setSelectedNodeId(null);
+  }, [nodes, edges, takeSnapshot, setNodes, setEdges]);
 
   const onDragOver = useCallback((event: DragEvent) => {
     event.preventDefault();
@@ -138,17 +226,31 @@ function App() {
   const handleRunExperiment = async () => {
 
     if (nodes.length === 0) {
-      alert('Please add components to your experiment first!');
+      showToast('Please add components to your experiment first!', 'error');
       return;
     }
 
     setIsAnalyzing(true);
     setShowResults(true);
     setAnalysisResult(null);
+    setIsRenderingImage(false);
+    setImageError(null);
 
     try {
       const experimentJSON = generateExperimentJSON(nodes, edges);
+
+      // Both requests go out together. The illustration is prompted from the
+      // graph itself, so it does not wait on the verdict - total time is the
+      // slower of the two, not the sum. The .catch is attached immediately so
+      // this promise can sit in flight without an unhandled rejection.
+      setIsRenderingImage(true);
+      const imagePromise = openaiService
+        .generateImage(buildExperimentImagePrompt(experimentJSON))
+        .then((url) => ({ url, error: null as string | null }))
+        .catch(() => ({ url: null, error: 'The illustration could not be rendered.' }));
+
       const result = await openaiService.analyzeExperiment(experimentJSON);
+      // Show the verdict the moment it lands, picture still rendering.
       setAnalysisResult(result);
 
       if (result.success) {
@@ -158,6 +260,14 @@ function App() {
           origin: { y: 0.6 },
           colors: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899']
         });
+      }
+
+      const image = await imagePromise;
+      setIsRenderingImage(false);
+      if (image.url) {
+        setAnalysisResult((prev) => (prev === result ? { ...prev, imageUrl: image.url! } : prev));
+      } else {
+        setImageError(image.error);
       }
     } catch (error: any) {
       setAnalysisResult({
@@ -169,12 +279,13 @@ function App() {
       });
     } finally {
       setIsAnalyzing(false);
+      setIsRenderingImage(false);
     }
   };
 
   const handleDownloadJSON = () => {
     if (nodes.length === 0) {
-      alert('Please add components to your experiment first!');
+      showToast('Please add components to your experiment first!', 'error');
       return;
     }
     const experimentJSON = generateExperimentJSON(nodes, edges);
@@ -182,13 +293,19 @@ function App() {
   };
 
   const handleClearCanvas = () => {
-    if (nodes.length > 0 && confirm('Are you sure you want to clear the canvas?')) {
-      takeSnapshot(nodes, edges);
-      setNodes([]);
-      setEdges([]);
-      setAnalysisResult(null);
-      setShowResults(false);
-    }
+    if (nodes.length === 0) return;
+    showConfirm(
+      'Clear the canvas?',
+      'This removes every component and connection you\'ve added. This can\'t be undone.',
+      () => {
+        takeSnapshot(nodes, edges);
+        setNodes([]);
+        setEdges([]);
+        setAnalysisResult(null);
+        setShowResults(false);
+      },
+      true
+    );
   };
 
   const handleLoadExample = (exampleId: string) => {
@@ -216,18 +333,18 @@ function App() {
       return;
     }
 
+    if (tool === 'freehand') {
+      // Only freehand requires drawing on the canvas.
+      // Clicking it again while active toggles draw mode back off.
+      setCurrentDrawingTool((current) => (current === 'freehand' ? null : tool));
+      return;
+    }
+
     // Get canvas center position
     const canvasCenter = {
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
     };
-
-    // Prompt for label
-    const label = prompt(`Enter a label for this ${tool}:`, tool.charAt(0).toUpperCase() + tool.slice(1));
-
-    if (!label || !label.trim()) {
-      return;
-    }
 
     // Create shape directly at center
     const size = 100;
@@ -274,25 +391,25 @@ function App() {
           { x: bounds.x + size, y: canvasCenter.y },
         ];
         break;
-      case 'freehand':
-        // Only freehand requires drawing
-        setCurrentDrawingTool(tool);
-        return;
     }
 
-    const shape: DrawnShape = {
-      id: `shape_${Date.now()}`,
-      type: tool as any,
-      points,
-      bounds,
-      label: label.trim(),
-      recognized: true,
-    };
+    showPrompt(`Label this ${tool}`, tool.charAt(0).toUpperCase() + tool.slice(1), (label) => {
+      if (!label.trim()) return;
 
-    const newNode = shapeRecognizer.convertShapeToNode(shape, shape.label);
-    takeSnapshot(nodes, edges);
-    setNodes((nds) => nds.concat(newNode as Node));
-  }, [setNodes, takeSnapshot, nodes, edges]);
+      const shape: DrawnShape = {
+        id: `shape_${Date.now()}`,
+        type: tool as any,
+        points,
+        bounds,
+        label: label.trim(),
+        recognized: true,
+      };
+
+      const newNode = shapeRecognizer.convertShapeToNode(shape, shape.label);
+      takeSnapshot(nodes, edges);
+      setNodes((nds) => nds.concat(newNode as Node));
+    });
+  }, [setNodes, takeSnapshot, nodes, edges, showPrompt]);
 
   const handleImportJSON = () => {
     const input = document.createElement('input');
@@ -309,12 +426,12 @@ function App() {
               takeSnapshot(nodes, edges);
               setNodes(json.nodes);
               setEdges(json.edges);
-              alert('Experiment loaded successfully!');
+              showToast('Experiment loaded successfully!', 'success');
             } else {
-              alert('Invalid experiment file format!');
+              showToast('Invalid experiment file format!', 'error');
             }
           } catch (error) {
-            alert('Error reading file. Please make sure it\'s a valid JSON file.');
+            showToast('Error reading file. Please make sure it\'s a valid JSON file.', 'error');
           }
         };
         reader.readAsText(file);
@@ -329,793 +446,415 @@ function App() {
       const hint = await openaiService.getHint(experimentJSON, userMessage);
       return hint;
     } catch (error: any) {
-      return "Sorry, I'm having trouble thinking right now. Can you try asking again? 🤔";
+      return "Sorry, I'm having trouble thinking right now. Can you try asking again?";
     }
   };
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', fontFamily: 'system-ui, sans-serif' }}>
-      {/* Component Library Sidebar */}
-      <ComponentLibrary onDragStart={() => { }} />
+    <div className="flex flex-col w-screen h-screen font-sans bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-300">
+      <Navbar
+        isAnalyzing={isAnalyzing}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        isDark={isDark}
+        nodeCount={nodes.length}
+        edgeCount={edges.length}
+        onUndo={() => undo(nodes, edges, setNodes, setEdges)}
+        onRedo={() => redo(nodes, edges, setNodes, setEdges)}
+        onRunExperiment={handleRunExperiment}
+        onShowExamples={() => setShowExamplesModal(true)}
+        onToggleTheme={toggleTheme}
+        onDownloadJSON={handleDownloadJSON}
+        onImportJSON={handleImportJSON}
+        onClearCanvas={handleClearCanvas}
+      />
 
-      {/* Main Canvas */}
-      <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }}>
-        <DrawingToolbar
+      <div className="flex flex-1 min-h-0">
+        {/* Component Library Sidebar */}
+        <ComponentLibrary
+          onDragStart={() => { }}
+          collapsed={leftSidebarCollapsed}
+          onToggleCollapse={() => setLeftSidebarCollapsed((v) => !v)}
+        />
+
+        {/* Main Canvas */}
+        <div ref={reactFlowWrapper} className="flex-1 relative">
+          <DrawingCanvas
+            currentTool={currentDrawingTool}
+            onShapeComplete={handleShapeComplete}
+            onRequestLabel={showPrompt}
+            onUnrecognizedShape={() => showToast('Shape not recognized. Try drawing more clearly: rectangle, circle, triangle, or line.', 'error')}
+            onCancel={() => setCurrentDrawingTool(null)}
+          />
+
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onEdgeClick={onEdgeClick}
+            onNodeClick={onNodeClick}
+            onPaneClick={onPaneClick}
+            onInit={setReactFlowInstance}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onNodeDragStart={onNodeDragStart}
+            nodeTypes={nodeTypes}
+            fitView
+            deleteKeyCode="Delete"
+          >
+            <Background
+              color={isDark ? '#27272a' : '#e4e4e7'}
+              gap={22}
+              size={1}
+              style={{ backgroundColor: isDark ? '#09090b' : '#ffffff' }}
+            />
+            <Controls />
+            <MiniMap
+              style={{ backgroundColor: isDark ? '#18181b' : '#f4f4f5' }}
+              maskColor={isDark ? 'rgba(9, 9, 11, 0.7)' : 'rgba(244, 244, 245, 0.7)'}
+              nodeColor={isDark ? '#3f3f46' : '#d4d4d8'}
+            />
+          </ReactFlow>
+        </div>
+
+        {/* Tools + Inspector Sidebar */}
+        <RightSidebar
+          collapsed={rightSidebarCollapsed}
+          onToggleCollapse={() => setRightSidebarCollapsed((v) => !v)}
           selectedTool={currentDrawingTool}
           onToolSelect={handleToolSelect}
+          selectedNode={selectedNode}
+          onUpdateLabel={updateNodeLabel}
+          onUpdateProperty={updateNodeProperty}
+          onDeleteNode={deleteNode}
+          nodeCount={nodes.length}
+          edgeCount={edges.length}
+          categoryStats={categoryStats}
         />
-
-        <DrawingCanvas
-          currentTool={currentDrawingTool}
-          onShapeComplete={handleShapeComplete}
-        />
-
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onEdgeClick={onEdgeClick}
-          onInit={setReactFlowInstance}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          onNodeDragStart={onNodeDragStart}
-          nodeTypes={nodeTypes}
-          fitView
-          deleteKeyCode="Delete"
-        >
-          <Background
-            color="#e5e7eb"
-            gap={20}
-            size={1}
-            style={{ backgroundColor: '#f9fafb' }}
-          />
-          <Controls />
-          <MiniMap />
-
-          {/* Top Control Panel */}
-          <Panel position="top-right" style={{ margin: '10px' }}>
-            <div style={{
-              backgroundColor: 'white',
-              padding: '12px',
-              borderRadius: '8px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              display: 'flex',
-              gap: '8px',
-              flexWrap: 'wrap',
-            }}>
-              <div style={{ display: 'flex', gap: '4px', marginRight: '8px', borderRight: '1px solid #e5e7eb', paddingRight: '8px' }}>
-                <button
-                  onClick={() => undo(nodes, edges, setNodes, setEdges)}
-                  disabled={!canUndo}
-                  title="Undo"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '8px',
-                    backgroundColor: 'transparent',
-                    color: canUndo ? '#374151' : '#d1d5db',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: canUndo ? 'pointer' : 'not-allowed',
-                  }}
-                  onMouseEnter={(e) => canUndo && (e.currentTarget.style.backgroundColor = '#f3f4f6')}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <Undo size={18} />
-                </button>
-                <button
-                  onClick={() => redo(nodes, edges, setNodes, setEdges)}
-                  disabled={!canRedo}
-                  title="Redo"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '8px',
-                    backgroundColor: 'transparent',
-                    color: canRedo ? '#374151' : '#d1d5db',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: canRedo ? 'pointer' : 'not-allowed',
-                  }}
-                  onMouseEnter={(e) => canRedo && (e.currentTarget.style.backgroundColor = '#f3f4f6')}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <Redo size={18} />
-                </button>
-              </div>
-
-              <button
-                onClick={handleRunExperiment}
-                disabled={isAnalyzing}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '10px 16px',
-                  backgroundColor: isAnalyzing ? '#9ca3af' : '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: isAnalyzing ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                <Play size={16} />
-                {isAnalyzing ? 'Analyzing...' : 'Run Experiment'}
-              </button>
-
-              <button
-                onClick={() => setShowExamplesModal(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '10px 16px',
-                  backgroundColor: '#8b5cf6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                <BookOpen size={16} />
-                Examples
-              </button>
-
-              <div style={{ position: 'relative' }}>
-                <button
-                  onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '10px 16px',
-                    backgroundColor: '#6b7280',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                  }}
-                >
-                  <Menu size={16} />
-                </button>
-
-                {showSettingsMenu && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: 0,
-                    marginTop: '8px',
-                    backgroundColor: 'white',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    minWidth: '160px',
-                    zIndex: 1000,
-                    overflow: 'hidden',
-                  }}>
-                    <button
-                      onClick={() => {
-                        handleDownloadJSON();
-                        setShowSettingsMenu(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '12px 16px',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: '#374151',
-                        textAlign: 'left',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <Download size={16} />
-                      Export JSON
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleImportJSON();
-                        setShowSettingsMenu(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '12px 16px',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: '#374151',
-                        textAlign: 'left',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <Upload size={16} />
-                      Import JSON
-                    </button>
-                    <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '4px 0' }} />
-                    <button
-                      onClick={() => {
-                        handleClearCanvas();
-                        setShowSettingsMenu(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '12px 16px',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: '#ef4444',
-                        textAlign: 'left',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <Trash2 size={16} />
-                      Clear Canvas
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </Panel>
-
-          {/* Info Panel */}
-          <Panel position="top-left" style={{ margin: '10px' }}>
-            <div style={{
-              backgroundColor: 'white',
-              padding: '16px',
-              borderRadius: '8px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              maxWidth: '300px',
-            }}>
-
-              <div style={{
-                marginTop: '12px',
-                padding: '8px',
-                backgroundColor: '#f3f4f6',
-                borderRadius: '6px',
-                fontSize: '12px',
-                color: '#374151',
-              }}>
-                <strong>{nodes.length}</strong> components • <strong>{edges.length}</strong> connections
-              </div>
-              <div style={{
-                marginTop: '8px',
-                fontSize: '11px',
-                color: '#9ca3af',
-                lineHeight: 1.4,
-              }}>
-
-              </div>
-            </div>
-          </Panel>
-        </ReactFlow>
       </div>
 
       {/* Results Modal */}
-      {showResults && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000,
-          backdropFilter: 'blur(4px)',
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            width: '90%',
-            height: '90%',
-            borderRadius: '16px',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            position: 'relative',
-          }}>
-            {/* Header */}
-            <div style={{
-              padding: '20px 30px',
-              borderBottom: '1px solid #e5e7eb',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: analysisResult?.success ? '#f0fdf4' : (analysisResult ? '#fef2f2' : 'white'),
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                {analysisResult ? (
-                  analysisResult.success ? (
-                    <CheckCircle size={32} color="#10b981" />
-                  ) : (
-                    <AlertCircle size={32} color="#ef4444" />
-                  )
-                ) : (
-                  <div style={{
-                    width: '24px',
-                    height: '24px',
-                    border: '3px solid #e5e7eb',
-                    borderTopColor: '#3b82f6',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }} />
-                )}
-                <div>
-                  <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: '#111827' }}>
-                    {analysisResult ? analysisResult.title : 'Analyzing Experiment...'}
-                  </h2>
-                  {analysisResult && (
-                    <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
-                      {analysisResult.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => setShowResults(false)}
-                style={{
-                  background: 'white',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '50%',
-                  width: '40px',
-                  height: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: '#6b7280',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6';
-                  e.currentTarget.style.color = '#111827';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'white';
-                  e.currentTarget.style.color = '#6b7280';
-                }}
+      <AnimatePresence>
+        {showResults && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[2000]"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 w-[90%] h-[90%] rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden relative"
+            >
+              {/* Header */}
+              <div
+                className={`px-8 py-5 border-b border-zinc-200 dark:border-white/10 flex justify-between items-center ${
+                  analysisResult?.success ? 'bg-emerald-50 dark:bg-emerald-500/10' : analysisResult ? 'bg-red-50 dark:bg-red-500/10' : 'bg-zinc-50 dark:bg-zinc-900'
+                }`}
               >
-                <X size={24} />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: '30px',
-              display: 'flex',
-              gap: '30px',
-              backgroundColor: '#f9fafb',
-            }}>
-              {analysisResult ? (
-                <>
-                  {/* Left Column: Explanation / Mistake */}
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    {analysisResult.success ? (
-                      <div style={{
-                        backgroundColor: 'white',
-                        padding: '24px',
-                        borderRadius: '12px',
-                        border: '1px solid #e5e7eb',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                      }}>
-                        <h3 style={{ marginTop: 0, fontSize: '18px', fontWeight: 600, color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          🎉 Congratulations!
-                        </h3>
-                        <div style={{ fontSize: '16px', lineHeight: 1.6, color: '#374151', whiteSpace: 'pre-wrap' }}>
-                          {analysisResult.explanation}
-                        </div>
-                      </div>
+                <div className="flex items-center gap-3.5">
+                  {analysisResult ? (
+                    analysisResult.success ? (
+                      <CheckCircle size={30} className="text-emerald-500" />
                     ) : (
-                      <div style={{
-                        backgroundColor: '#fef2f2',
-                        padding: '24px',
-                        borderRadius: '12px',
-                        border: '1px solid #fecaca',
-                      }}>
-                        <h3 style={{ marginTop: 0, fontSize: '18px', fontWeight: 600, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          ❌ Experiment Failed
-                        </h3>
-                        <div style={{ fontSize: '16px', lineHeight: 1.6, color: '#991b1b' }}>
-                          <strong>Mistake:</strong> {analysisResult.mistake}
+                      <AlertCircle size={30} className="text-red-500" />
+                    )
+                  ) : (
+                    <div className="w-6 h-6 border-[3px] border-zinc-200 dark:border-white/10 border-t-orange-500 rounded-full animate-spin" />
+                  )}
+                  <div>
+                    <h2 className="font-serif text-2xl text-zinc-900 dark:text-white m-0">
+                      {analysisResult ? analysisResult.title : 'Analyzing Experiment...'}
+                    </h2>
+                    {analysisResult && (
+                      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                        {analysisResult.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowResults(false)}
+                  className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-8 flex gap-8 bg-white dark:bg-zinc-950">
+                {analysisResult ? (
+                  <>
+                    {/* Left Column: Explanation / Mistake */}
+                    <div className="flex-1 flex flex-col gap-5">
+                      {analysisResult.success ? (
+                        <div className="bg-zinc-50 dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-white/10">
+                          <h3 className="mt-0 text-lg font-semibold text-emerald-600 dark:text-emerald-500 flex items-center gap-2">
+                            <PartyPopper size={19} />
+                            Congratulations!
+                          </h3>
+                          <div className="text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-wrap">
+                            {analysisResult.explanation}
+                          </div>
                         </div>
-                        <div style={{ marginTop: '16px', fontSize: '14px', color: '#7f1d1d', fontStyle: 'italic' }}>
-                          Review your connections and component properties to fix the issue.
+                      ) : (
+                        <div className="bg-red-50 dark:bg-red-500/10 p-6 rounded-2xl border border-red-200 dark:border-red-500/20">
+                          <h3 className="mt-0 text-lg font-semibold text-red-600 dark:text-red-400 flex items-center gap-2">
+                            <XCircle size={19} />
+                            Experiment Failed
+                          </h3>
+                          <div className="text-[15px] leading-relaxed text-red-800/90 dark:text-red-200/90">
+                            <strong>Mistake:</strong> {analysisResult.mistake}
+                          </div>
+                          <div className="mt-4 text-sm text-red-600/70 dark:text-red-300/70 italic">
+                            Review your connections and component properties to fix the issue.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right Column: Visualization */}
+                    {(analysisResult.imageUrl || isRenderingImage || imageError) && (
+                      <div className="flex-1 flex flex-col gap-3">
+                        <div className="bg-zinc-50 dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-white/10 h-full flex flex-col">
+                          <h3 className="mt-0 mb-4 text-lg font-semibold text-zinc-700 dark:text-zinc-200">
+                            Visual Output
+                          </h3>
+                          <div className="flex-1 flex items-center justify-center bg-white dark:bg-zinc-950 rounded-xl overflow-hidden min-h-[240px]">
+                            {analysisResult.imageUrl ? (
+                              <img
+                                src={analysisResult.imageUrl}
+                                alt="AI-rendered illustration of the experiment outcome"
+                                className="max-w-full max-h-[420px] object-contain"
+                              />
+                            ) : isRenderingImage ? (
+                              <div className="flex flex-col items-center gap-3 py-10">
+                                <div className="w-10 h-10 border-4 border-zinc-200 dark:border-white/10 border-t-orange-500 rounded-full animate-spin" />
+                                <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Painting your result...</div>
+                                <div className="text-xs text-zinc-400 dark:text-zinc-500">This can take up to a minute.</div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-zinc-400 dark:text-zinc-500 py-10">{imageError}</div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}
+                  </>
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-5">
+                    <div className="w-14 h-14 border-[6px] border-zinc-200 dark:border-white/10 border-t-orange-500 rounded-full animate-spin" />
+                    <div className="text-lg text-zinc-500 dark:text-zinc-400 font-medium">Processing your experiment...</div>
                   </div>
-
-                  {/* Right Column: Visualization */}
-                  {analysisResult.success && analysisResult.svg && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div style={{
-                        backgroundColor: 'white',
-                        padding: '24px',
-                        borderRadius: '12px',
-                        border: '1px solid #e5e7eb',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                      }}>
-                        <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '18px', fontWeight: 600, color: '#374151' }}>
-                          Visual Output
-                        </h3>
-                        <div
-                          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', borderRadius: '8px', overflow: 'hidden' }}
-                          dangerouslySetInnerHTML={{ __html: analysisResult.svg }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
-                  <div style={{
-                    width: '60px',
-                    height: '60px',
-                    border: '6px solid #e5e7eb',
-                    borderTopColor: '#3b82f6',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }} />
-                  <div style={{ fontSize: '18px', color: '#6b7280', fontWeight: 500 }}>Processing your experiment...</div>
-                </div>
-              )}
-            </div>
-          </div>
-          <style>{`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}</style>
-        </div>
-      )}
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Welcome Modal */}
-      {showWelcomeModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '32px',
-            borderRadius: '12px',
-            width: '90%',
-            maxWidth: '600px',
-            maxHeight: '80vh',
-            overflowY: 'auto',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-          }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 600 }}>
-              Welcome to AI Experiment Lab!
-            </h2>
-            <p style={{ margin: '0 0 16px 0', fontSize: '15px', color: '#374151', lineHeight: 1.6 }}>
-              Build and simulate complex experiments using a visual canvas powered by AI.
-            </p>
-
-            <div style={{ marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>How to Use:</h3>
-              <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#6b7280', lineHeight: 1.8 }}>
-                <li>Browse the <strong>1000+ components</strong> in the left sidebar</li>
-                <li><strong>Drag components</strong> onto the canvas</li>
-                <li><strong>Connect components</strong> by dragging from output (green) to input (blue)</li>
-                <li><strong>Double-click nodes</strong> to edit their labels</li>
-                <li><strong>Click connections</strong> to add labels/conditions</li>
-                <li>Click <strong>"Run Experiment"</strong> to analyze with AI</li>
-                <li><strong>Export/Import</strong> your experiments as JSON</li>
-              </ol>
-            </div>
-
-            <div style={{
-              padding: '12px',
-              backgroundColor: '#fef3c7',
-              borderRadius: '8px',
-              marginBottom: '20px',
-            }}>
-              <p style={{ margin: 0, fontSize: '13px', color: '#92400e' }}>
-                <strong>Important:</strong> AI-powered experiment analysis is powered by Amazon Bedrock.
-                No additional API key setup is needed.
+      <AnimatePresence>
+        {showWelcomeModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 p-8 rounded-3xl w-full max-w-[600px] max-h-[85vh] overflow-y-auto shadow-[0_20px_60px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+            >
+              <h2 className="font-serif text-3xl text-zinc-900 dark:text-white mb-3">
+                Welcome to <span className="text-orange-500">AI Experiment Lab</span>
+              </h2>
+              <p className="mb-6 text-[15px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                Build and simulate complex experiments using a visual canvas powered by AI.
               </p>
-            </div>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '12px',
-              marginBottom: '20px',
-            }}>
-              <div style={{
-                padding: '12px',
-                backgroundColor: '#eff6ff',
-                borderRadius: '8px',
-              }}>
-                <div style={{ marginBottom: '4px', color: '#3b82f6' }}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg></div>
-                <div style={{ fontSize: '13px', fontWeight: 600 }}>Electronics</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>300+ components</div>
+              <div className="mb-6">
+                <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-200 mb-3">How to use</h3>
+                <ol className="m-0 pl-5 text-sm text-zinc-500 dark:text-zinc-400 leading-loose list-decimal">
+                  <li>Browse the <strong className="text-zinc-800 dark:text-zinc-200">1000+ components</strong> in the left sidebar</li>
+                  <li><strong className="text-zinc-800 dark:text-zinc-200">Drag components</strong> onto the canvas</li>
+                  <li><strong className="text-zinc-800 dark:text-zinc-200">Connect components</strong> by dragging from output (orange) to input (blue)</li>
+                  <li><strong className="text-zinc-800 dark:text-zinc-200">Double-click nodes</strong> to edit their labels</li>
+                  <li><strong className="text-zinc-800 dark:text-zinc-200">Click connections</strong> to add labels/conditions</li>
+                  <li>Click <strong className="text-zinc-800 dark:text-zinc-200">"Run Experiment"</strong> to analyze with AI</li>
+                  <li><strong className="text-zinc-800 dark:text-zinc-200">Export/Import</strong> your experiments as JSON</li>
+                </ol>
               </div>
-              <div style={{
-                padding: '12px',
-                backgroundColor: '#f0fdf4',
-                borderRadius: '8px',
-              }}>
-                <div style={{ marginBottom: '4px', color: '#10b981' }}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" /><path d="M8.5 2h7" /><path d="M7 16h10" /></svg></div>
-                <div style={{ fontSize: '13px', fontWeight: 600 }}>Chemistry</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>200+ components</div>
-              </div>
-              <div style={{
-                padding: '12px',
-                backgroundColor: '#faf5ff',
-                borderRadius: '8px',
-              }}>
-                <div style={{ marginBottom: '4px', color: '#8b5cf6' }}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" /><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" /><path d="M12 2v2" /><path d="M12 22v-2" /><path d="m17 20.66-1-1.73" /><path d="M11 10.27 7 3.34" /><path d="m20.66 17-1.73-1" /><path d="m3.34 7 1.73 1" /><path d="M14 12h8" /><path d="M2 12h2" /><path d="m20.66 7-1.73 1" /><path d="m3.34 17 1.73-1" /><path d="m17 3.34-1 1.73" /><path d="m11 13.73-4 6.93" /></svg></div>
-                <div style={{ fontSize: '13px', fontWeight: 600 }}>Physics</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>250+ components</div>
-              </div>
-              <div style={{
-                padding: '12px',
-                backgroundColor: '#fffbeb',
-                borderRadius: '8px',
-              }}>
-                <div style={{ marginBottom: '4px', color: '#f59e0b' }}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg></div>
-                <div style={{ fontSize: '13px', fontWeight: 600 }}>Coding</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>200+ components</div>
-              </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => {
-                  handleCloseWelcome();
-                  setShowExamplesModal(true);
-                }}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                View Examples
-              </button>
-              <button
-                onClick={handleCloseWelcome}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                Get Started
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="p-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-2xl mb-6">
+                <p className="m-0 text-[13px] text-orange-800/90 dark:text-orange-200/90">
+                  <strong>Important:</strong> AI-powered experiment analysis runs on our hosted OpenAI-compatible backend.
+                  No additional API key setup is needed.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {[
+                  { icon: <Zap size={22} />, label: 'Electronics', count: '300+ components', color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10' },
+                  { icon: <FlaskConical size={22} />, label: 'Chemistry', count: '200+ components', color: 'text-emerald-500 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+                  { icon: <Atom size={22} />, label: 'Physics', count: '250+ components', color: 'text-violet-500 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-500/10' },
+                  { icon: <Code2 size={22} />, label: 'Coding', count: '200+ components', color: 'text-orange-500 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-500/10' },
+                ].map((cat) => (
+                  <div key={cat.label} className={`p-3.5 rounded-2xl ${cat.bg} border border-zinc-200/60 dark:border-white/5`}>
+                    <div className={`mb-2 ${cat.color}`}>{cat.icon}</div>
+                    <div className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">{cat.label}</div>
+                    <div className="text-[11px] text-zinc-500">{cat.count}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    handleCloseWelcome();
+                    setShowExamplesModal(true);
+                  }}
+                  className="px-5 py-2.5 rounded-full bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white text-sm font-medium transition-colors"
+                >
+                  View Examples
+                </button>
+                <button
+                  onClick={handleCloseWelcome}
+                  className="px-5 py-2.5 rounded-full bg-orange-500 text-white hover:bg-orange-600 text-sm font-medium shadow-[0_4px_16px_rgba(255,79,0,0.35)] transition-colors"
+                >
+                  Get Started
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Examples Modal */}
-      {showExamplesModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            width: '90%',
-            maxWidth: '500px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-          }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 600 }}>
-              Example Experiments
-            </h2>
-            <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#6b7280' }}>
-              Load a pre-built experiment to get started quickly
-            </p>
+      <AnimatePresence>
+        {showExamplesModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 p-7 rounded-3xl w-full max-w-[500px] shadow-[0_20px_60px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+            >
+              <h2 className="font-serif text-2xl text-zinc-900 dark:text-white mb-2">
+                Example Experiments
+              </h2>
+              <p className="mb-5 text-sm text-zinc-500 dark:text-zinc-400">
+                Load a pre-built experiment to get started quickly
+              </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-              {EXAMPLE_LIST.map((example) => (
+              <div className="flex flex-col gap-2.5 mb-6 max-h-[50vh] overflow-y-auto pr-1">
+                {EXAMPLE_LIST.map((example) => (
+                  <button
+                    key={example.id}
+                    onClick={() => handleLoadExample(example.id)}
+                    className="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-2xl text-left transition-colors hover:border-orange-500/50 hover:bg-orange-50/60 dark:hover:bg-zinc-800/80"
+                  >
+                    <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+                      {example.name}
+                    </div>
+                    <div className="text-xs text-zinc-500">
+                      {example.category}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex justify-end">
                 <button
-                  key={example.id}
-                  onClick={() => handleLoadExample(example.id)}
-                  style={{
-                    padding: '16px',
-                    backgroundColor: '#f9fafb',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f3f4f6';
-                    e.currentTarget.style.borderColor = '#3b82f6';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f9fafb';
-                    e.currentTarget.style.borderColor = '#e5e7eb';
-                  }}
+                  onClick={() => setShowExamplesModal(false)}
+                  className="px-5 py-2.5 rounded-full bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white text-sm font-medium transition-colors"
                 >
-                  <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '4px' }}>
-                    {example.name}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                    {example.category}
-                  </div>
+                  Close
                 </button>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowExamplesModal(false)}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* API Key Modal */}
-      {showApiKeyModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            width: '90%',
-            maxWidth: '500px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-          }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 600 }}>
-              Configure API Key
-            </h2>
-            <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#6b7280' }}>
-              AI-powered experiment analysis is powered by Amazon Bedrock. No additional configuration is needed.
-            </p>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your API key..."
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px',
-                marginBottom: '16px',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowApiKeyModal(false)}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (apiKey) {
-                    localStorage.setItem('aiexp-api-key', apiKey);
-                    setShowApiKeyModal(false);
-                    alert('API key saved successfully!');
-                  } else {
-                    alert('Please enter an API key');
-                  }
-                }}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showApiKeyModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 p-7 rounded-3xl w-full max-w-[500px] shadow-[0_20px_60px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+            >
+              <h2 className="font-serif text-2xl text-zinc-900 dark:text-white mb-2">
+                Configure API Key
+              </h2>
+              <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+                AI-powered experiment analysis runs on our hosted backend. No additional configuration is needed.
+              </p>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Enter your API key..."
+                className="w-full px-3.5 py-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl text-sm text-zinc-900 dark:text-zinc-100 mb-4 outline-none focus:border-orange-500/60 transition-colors box-border"
+              />
+              <div className="flex gap-2.5 justify-end">
+                <button
+                  onClick={() => setShowApiKeyModal(false)}
+                  className="px-5 py-2.5 rounded-full bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white text-sm font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (apiKey) {
+                      localStorage.setItem('aiexp-api-key', apiKey);
+                      setShowApiKeyModal(false);
+                      showToast('API key saved successfully!', 'success');
+                    } else {
+                      showToast('Please enter an API key', 'error');
+                    }
+                  }}
+                  className="px-5 py-2.5 rounded-full bg-orange-500 text-white hover:bg-orange-600 text-sm font-medium shadow-[0_4px_16px_rgba(255,79,0,0.35)] transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Robot Assistant Chatbot */}
       <RobotAssistant
         experimentJSON={generateExperimentJSON(nodes, edges)}
         onRequestHint={handleRequestHint}
       />
+
+      <PromptDialog state={promptState} onClose={() => setPromptState(null)} />
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

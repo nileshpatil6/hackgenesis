@@ -1,13 +1,17 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { Point, DrawnShape, DrawingTool } from '../types/drawing';
 import { shapeRecognizer } from '../utils/shapeRecognition';
 
 interface DrawingCanvasProps {
   onShapeComplete: (shape: DrawnShape) => void;
   currentTool: DrawingTool | null;
+  onRequestLabel: (title: string, defaultValue: string, onConfirm: (label: string) => void) => void;
+  onUnrecognizedShape: () => void;
+  onCancel: () => void;
 }
 
-export function DrawingCanvas({ onShapeComplete, currentTool }: DrawingCanvasProps) {
+export function DrawingCanvas({ onShapeComplete, currentTool, onRequestLabel, onUnrecognizedShape, onCancel }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -87,6 +91,20 @@ export function DrawingCanvas({ onShapeComplete, currentTool }: DrawingCanvasPro
     return () => window.removeEventListener('resize', updateSize);
   }, [rawPoints, drawPoints]);
 
+  // Escape always gets you out of draw mode, even mid-stroke.
+  useEffect(() => {
+    if (!currentTool) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsDrawing(false);
+        setRawPoints([]);
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentTool, onCancel]);
+
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!currentTool) return;
 
@@ -164,10 +182,8 @@ export function DrawingCanvas({ onShapeComplete, currentTool }: DrawingCanvasPro
       setTimeout(() => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Prompt for label
-        const label = prompt(`Enter a label for this ${analysis.type}:`, analysis.type.charAt(0).toUpperCase() + analysis.type.slice(1));
-        
-        if (label && label.trim()) {
+        onRequestLabel(`Enter a label for this ${analysis.type}:`, analysis.type.charAt(0).toUpperCase() + analysis.type.slice(1), (label) => {
+          if (!label.trim()) return;
           const shape: DrawnShape = {
             id: `shape_${Date.now()}`,
             type: analysis.type as any,
@@ -178,17 +194,17 @@ export function DrawingCanvas({ onShapeComplete, currentTool }: DrawingCanvasPro
           };
 
           onShapeComplete(shape);
-        }
+        });
       }, 500);
     } else {
       // Clear canvas if shape not recognized
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      alert('Shape not recognized. Please try drawing more clearly: rectangle, circle, triangle, or line.');
+
+      onUnrecognizedShape();
     }
 
     setRawPoints([]);
-  }, [isDrawing, currentTool, rawPoints, drawPerfectShape, onShapeComplete]);
+  }, [isDrawing, currentTool, rawPoints, drawPerfectShape, onShapeComplete, onRequestLabel, onUnrecognizedShape]);
 
   if (!currentTool) {
     return null;
@@ -226,36 +242,29 @@ export function DrawingCanvas({ onShapeComplete, currentTool }: DrawingCanvasPro
         }}
       />
       <div
-        style={{
-          position: 'absolute',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: 'white',
-          padding: '12px 24px',
-          borderRadius: '30px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          zIndex: 2002,
-        }}
+        className="absolute top-5 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-white/10 shadow-[0_8px_28px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_28px_rgba(0,0,0,0.5)] flex items-center gap-3 px-6 py-3 rounded-full"
+        style={{ zIndex: 2002 }}
       >
-        <div style={{ 
-          width: '12px', 
-          height: '12px', 
-          borderRadius: '50%', 
-          backgroundColor: '#ef4444',
-          boxShadow: '0 0 0 2px rgba(239, 68, 68, 0.2)'
-        }} />
+        <div className="w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_0_2px_rgba(255,79,0,0.25)]" />
         <div>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
+          <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             {currentTool === 'freehand' ? 'Freehand Drawing' : `Drawing ${currentTool.charAt(0).toUpperCase() + currentTool.slice(1)}`}
           </div>
-          <div style={{ fontSize: '12px', color: '#6b7280' }}>
-            Draw on the whiteboard • Release to finish
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">
+            Draw on the whiteboard • Esc to cancel
           </div>
         </div>
+        <button
+          onClick={() => {
+            setIsDrawing(false);
+            setRawPoints([]);
+            onCancel();
+          }}
+          title="Cancel drawing"
+          className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-white/10 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-white/20 hover:text-zinc-900 dark:hover:text-white transition-colors"
+        >
+          <X size={14} />
+        </button>
       </div>
     </div>
   );

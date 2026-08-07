@@ -47,5 +47,6 @@ export interface AnalysisResult {
   message: string;
   mistake?: string;
   explanation: string;
-  svg?: string;
+  /** Data URL of the rendered illustration, filled in after generation. */
+  imageUrl?: string;
 }

@@ -285,13 +285,13 @@ export class ShapeRecognizer {
 
   private getIconForShape(type: string): string {
     const icons: { [key: string]: string } = {
-      rectangle: '▢',
-      circle: '○',
-      triangle: '△',
-      line: '—',
-      arrow: '→',
+      rectangle: 'rectangle',
+      circle: 'circle',
+      triangle: 'triangle',
+      line: 'line',
+      arrow: 'arrow',
     };
-    return icons[type] || '◇';
+    return icons[type] || 'shapes';
   }
 }
 
