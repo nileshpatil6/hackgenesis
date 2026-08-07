@@ -440,7 +440,7 @@ final List<ComponentData> kComponentLibrary = <ComponentData>[
     const ComponentData(
       id: 'mechanics',
       label: 'Mechanics',
-      category: 'physics',
+      category: 'mechanics',
       description: 'Mechanical component',
       icon: '⚙️',
       properties: {'type': 'generic'},
@@ -488,7 +488,7 @@ final List<ComponentData> kComponentLibrary = <ComponentData>[
     const ComponentData(
       id: 'optics',
       label: 'Optics',
-      category: 'physics',
+      category: 'optics',
       description: 'Optical component',
       icon: '🔍',
       properties: {'type': 'lens'},
