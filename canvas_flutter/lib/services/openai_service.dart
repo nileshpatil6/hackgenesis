@@ -21,11 +21,19 @@ const String _modelReasoning = 'gpt-5.6-sol';
 /// Model that renders the result illustration.
 const String _modelImage = 'gpt-image-2';
 
+/// Render quality, and the single biggest lever on how long a render takes.
+///
+/// Left unset the API defaults to `auto`, which chases fidelity and can take
+/// minutes. `low` returns in seconds and is comfortably good enough for a
+/// decorative panel — OpenAI rates gpt-image-2 at low quality on par with
+/// gpt-image-1-mini, so this stays on the better model without the wait.
+const String _imageQuality = 'low';
+
 /// Wall-clock budget for a single Responses API call.
 const Duration _requestTimeout = Duration(seconds: 90);
 
-/// Image rendering is slower than text, so it gets its own, longer budget.
-const Duration _imageTimeout = Duration(seconds: 180);
+/// Image rendering is slower than text, so it gets its own budget.
+const Duration _imageTimeout = Duration(seconds: 120);
 
 /// Maximum number of characters of an HTTP error body kept in a message.
 const int _maxErrorBodyChars = 300;
@@ -254,6 +262,7 @@ Analyze this experiment and determine:
               'model': _modelImage,
               'prompt': prompt,
               'size': '1024x1024',
+              'quality': _imageQuality,
               'n': 1,
             }),
           )

@@ -12,6 +12,12 @@ const MODEL_BALANCED = 'gpt-5.6-terra';
 const MODEL_REASONING = 'gpt-5.6-sol';
 // Renders the result illustration.
 const MODEL_IMAGE = 'gpt-image-2';
+// Render quality, and the single biggest lever on how long a render takes.
+// Left unset the API defaults to `auto`, which chases fidelity and can take
+// minutes. `low` returns in seconds and is plenty for a decorative panel -
+// OpenAI rates gpt-image-2 at low quality on par with gpt-image-1-mini, so
+// this keeps the better model without the wait.
+const IMAGE_QUALITY = 'low';
 
 type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh';
 
@@ -196,6 +202,7 @@ Analyze this experiment and determine:
         model: MODEL_IMAGE,
         prompt,
         size: '1024x1024',
+        quality: IMAGE_QUALITY,
         n: 1,
       }),
     });
