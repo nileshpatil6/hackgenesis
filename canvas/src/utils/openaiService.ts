@@ -34,9 +34,8 @@ const ANALYSIS_RESULT_SCHEMA: Record<string, unknown> = {
     message: { type: 'string' },
     mistake: { type: ['string', 'null'] },
     explanation: { type: 'string' },
-    imagePrompt: { type: ['string', 'null'] },
   },
-  required: ['success', 'title', 'message', 'mistake', 'explanation', 'imagePrompt'],
+  required: ['success', 'title', 'message', 'mistake', 'explanation'],
   additionalProperties: false,
 };
 
@@ -90,6 +89,45 @@ async function callOpenAI(
   }
 
   throw new Error('OpenAI API returned no output text');
+}
+
+/**
+ * Describes an experiment as an image prompt, without calling a model.
+ *
+ * Built in plain code on purpose: it lets the illustration start rendering at
+ * the same instant the analysis request goes out, instead of waiting for the
+ * analysis to write a prompt first. The picture therefore depicts the
+ * apparatus the player assembled rather than the verdict - the outcome simply
+ * is not known yet when the render begins.
+ */
+export function buildExperimentImagePrompt(experimentJSON: ExperimentJSON): string {
+  const labels = experimentJSON.nodes.map((n) => n.data.label);
+  const fields = [...new Set(experimentJSON.nodes.map((n) => n.data.component.category))];
+
+  const byId = new Map(experimentJSON.nodes.map((n) => [n.id, n.data.label]));
+  const links = experimentJSON.edges
+    .map((e) => {
+      const from = byId.get(e.source);
+      const to = byId.get(e.target);
+      if (!from || !to) return null;
+      return e.label ? `${from} to ${to} (${e.label})` : `${from} to ${to}`;
+    })
+    .filter((l): l is string => l !== null);
+
+  let prompt =
+    'A clean, modern scientific diagram on a plain white background, ' +
+    'illustrating this experiment setup. ' +
+    `Components: ${labels.join(', ')}. `;
+
+  if (links.length) prompt += `Connected as: ${links.join('; ')}. `;
+  if (fields.length) prompt += `Subject areas: ${fields.join(', ')}. `;
+
+  prompt +=
+    'Draw the real apparatus and how the parts wire together, with small neat ' +
+    'labels. Flat vector textbook style, soft shadows, a restrained palette ' +
+    'with orange accents, no photorealism, no text paragraphs.';
+
+  return prompt;
 }
 
 export class OpenAIService {
@@ -162,11 +200,6 @@ Analyze this experiment and determine:
 - A concise 1-2 sentence summary message
 - If failed, a clear description of the mistake WITHOUT giving away the solution (null if success)
 - A detailed explanation of what happened and why
-- If success, an "imagePrompt": a vivid one-paragraph description of a single
-  illustration showing the outcome of THIS experiment (the apparatus, the reaction,
-  the measured result). Describe subject, composition, labels and style - a clean
-  modern scientific diagram on a white background. Do not mention SVG, code, or
-  file formats. Null if failed.
 `;
 
     try {

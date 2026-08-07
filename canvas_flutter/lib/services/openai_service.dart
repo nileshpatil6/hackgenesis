@@ -49,18 +49,8 @@ const Map<String, Object?> _analysisResultSchema = <String, Object?>{
       'type': <String>['string', 'null'],
     },
     'explanation': <String, Object?>{'type': 'string'},
-    'imagePrompt': <String, Object?>{
-      'type': <String>['string', 'null'],
-    },
   },
-  'required': <String>[
-    'success',
-    'title',
-    'message',
-    'mistake',
-    'explanation',
-    'imagePrompt',
-  ],
+  'required': <String>['success', 'title', 'message', 'mistake', 'explanation'],
   'additionalProperties': false,
 };
 
@@ -100,7 +90,60 @@ class OpenAiException implements Exception {
       statusCode == null ? message : 'OpenAI error $statusCode: $message';
 }
 
-/// Talks to the OpenAI Responses API on behalf of the lab canvas.
+/// Describes [experiment] as an image prompt, without calling a model.
+///
+/// Built in plain code on purpose: it means the illustration can start
+/// rendering at the same instant the analysis request goes out, instead of
+/// waiting for the analysis to write a prompt first. The picture therefore
+/// depicts the apparatus the player assembled rather than the verdict — the
+/// outcome simply is not known yet when the render begins.
+String buildExperimentImagePrompt(ExperimentJson experiment) {
+  final labels = experiment.nodes.map((n) => n.displayLabel).toList();
+  final fields = experiment.nodes
+      .map((n) => n.component.category)
+      .toSet()
+      .toList();
+
+  final byId = <String, String>{
+    for (final n in experiment.nodes) n.id: n.displayLabel,
+  };
+  final links = experiment.edges
+      .map((e) {
+        final from = byId[e.source];
+        final to = byId[e.target];
+        if (from == null || to == null) return null;
+        final label = e.label;
+        return label == null || label.isEmpty
+            ? '$from to $to'
+            : '$from to $to ($label)';
+      })
+      .whereType<String>()
+      .toList();
+
+  final buffer = StringBuffer()
+    ..write(
+      'A clean, modern scientific diagram on a plain white background, '
+      'illustrating this experiment setup. ',
+    )
+    ..write('Components: ${labels.join(', ')}. ');
+
+  if (links.isNotEmpty) {
+    buffer.write('Connected as: ${links.join('; ')}. ');
+  }
+  if (fields.isNotEmpty) {
+    buffer.write('Subject areas: ${fields.join(', ')}. ');
+  }
+
+  buffer.write(
+    'Draw the real apparatus and how the parts wire together, with small '
+    'neat labels. Flat vector textbook style, soft shadows, a restrained '
+    'palette with orange accents, no photorealism, no text paragraphs.',
+  );
+
+  return buffer.toString();
+}
+
+/// Talks to the OpenAI API on behalf of the lab canvas.
 ///
 /// The API key is read from [SettingsStore] at the moment of each call and is
 /// never cached, logged, or included in any thrown message.
@@ -203,11 +246,6 @@ Analyze this experiment and determine:
 - A concise 1-2 sentence summary message
 - If failed, a clear description of the mistake WITHOUT giving away the solution (null if success)
 - A detailed explanation of what happened and why
-- If success, an "imagePrompt": a vivid one-paragraph description of a single
-  illustration that shows the outcome of THIS experiment (the apparatus, the
-  reaction, the measured result). Describe subject, composition, labels and
-  style — a clean modern scientific diagram on a white background. Do not
-  mention SVG, code, or file formats. Null if failed.
 ''';
 
     try {

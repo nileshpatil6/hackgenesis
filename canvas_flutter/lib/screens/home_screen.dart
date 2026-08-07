@@ -176,19 +176,27 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!await _ensureApiKey()) return;
     if (!mounted) return;
 
-    _run.value = const ExperimentRun(isAnalyzing: true);
+    _run.value = const ExperimentRun(isAnalyzing: true, isRenderingImage: true);
     _showResultSheet();
 
     final service = context.read<OpenAiService>();
     final experiment = _controller.toExperiment();
-    final result = await service.analyzeExperiment(experiment);
 
+    // Both requests go out together. The illustration is prompted from the
+    // graph itself (see buildExperimentImagePrompt), so it does not have to
+    // wait for the verdict — total time is the slower of the two, not the sum.
+    // _safeGenerateImage never throws, so this future is safe to leave
+    // in flight while we await the analysis.
+    final imageFuture = _safeGenerateImage(
+      service,
+      buildExperimentImagePrompt(experiment),
+    );
+
+    final result = await service.analyzeExperiment(experiment);
     if (!mounted) return;
 
-    // Only a successful run earns an illustration, and only when the model
-    // actually described one.
-    final wantsImage = result.success && result.imagePrompt != null;
-    _run.value = ExperimentRun(result: result, isRenderingImage: wantsImage);
+    // Show the verdict the moment it lands, with the picture still rendering.
+    _run.value = ExperimentRun(result: result, isRenderingImage: true);
 
     if (result.success) _confetti.play();
 
@@ -202,30 +210,30 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    if (!wantsImage) return;
-    await _renderResultImage(service, result);
+    final image = await imageFuture;
+    if (!mounted) return;
+    // Drop it if a newer run replaced this result while the image rendered.
+    if (!identical(_run.value.result, result)) return;
+    _run.value = ExperimentRun(
+      result: result,
+      imageBytes: image.bytes,
+      imageError: image.error,
+    );
   }
 
-  /// Renders the outcome illustration and folds it into the live run state.
-  Future<void> _renderResultImage(
+  /// Renders [prompt] into image bytes, converting every failure into a
+  /// message instead of an exception so the caller can start it early and
+  /// await it later without risking an unhandled async error.
+  Future<({Uint8List? bytes, String? error})> _safeGenerateImage(
     OpenAiService service,
-    AnalysisResult result,
+    String prompt,
   ) async {
     try {
-      final bytes = await service.generateImage(result.imagePrompt!);
-      if (!mounted) return;
-      // Guard against a newer run having replaced this one mid-flight.
-      if (!identical(_run.value.result, result)) return;
-      _run.value = ExperimentRun(result: result, imageBytes: bytes);
+      return (bytes: await service.generateImage(prompt), error: null);
     } on OpenAiException catch (e) {
-      if (!mounted || !identical(_run.value.result, result)) return;
-      _run.value = ExperimentRun(result: result, imageError: e.message);
+      return (bytes: null, error: e.message);
     } catch (_) {
-      if (!mounted || !identical(_run.value.result, result)) return;
-      _run.value = ExperimentRun(
-        result: result,
-        imageError: 'The illustration could not be rendered.',
-      );
+      return (bytes: null, error: 'The illustration could not be rendered.');
     }
   }
 

@@ -47,8 +47,6 @@ export interface AnalysisResult {
   message: string;
   mistake?: string;
   explanation: string;
-  /** Prompt describing the illustration to render for a successful run. */
-  imagePrompt?: string;
   /** Data URL of the rendered illustration, filled in after generation. */
   imageUrl?: string;
 }

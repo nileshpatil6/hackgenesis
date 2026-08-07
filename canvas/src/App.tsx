@@ -27,7 +27,7 @@ import { ToastStack } from './components/ToastStack';
 import { ComponentData, AnalysisResult } from './types';
 import { DrawingTool, DrawnShape } from './types/drawing';
 import { generateExperimentJSON, downloadJSON } from './utils/jsonGenerator';
-import { openaiService } from './utils/openaiService';
+import { openaiService, buildExperimentImagePrompt } from './utils/openaiService';
 import { EXAMPLE_EXPERIMENTS, EXAMPLE_LIST } from './data/exampleExperiments';
 import { shapeRecognizer } from './utils/shapeRecognition';
 import { CATEGORIES } from './data/componentLibrary';
@@ -238,7 +238,19 @@ function App() {
 
     try {
       const experimentJSON = generateExperimentJSON(nodes, edges);
+
+      // Both requests go out together. The illustration is prompted from the
+      // graph itself, so it does not wait on the verdict - total time is the
+      // slower of the two, not the sum. The .catch is attached immediately so
+      // this promise can sit in flight without an unhandled rejection.
+      setIsRenderingImage(true);
+      const imagePromise = openaiService
+        .generateImage(buildExperimentImagePrompt(experimentJSON))
+        .then((url) => ({ url, error: null as string | null }))
+        .catch(() => ({ url: null, error: 'The illustration could not be rendered.' }));
+
       const result = await openaiService.analyzeExperiment(experimentJSON);
+      // Show the verdict the moment it lands, picture still rendering.
       setAnalysisResult(result);
 
       if (result.success) {
@@ -250,18 +262,12 @@ function App() {
         });
       }
 
-      // The illustration is cosmetic: render it after the verdict is already
-      // on screen so a slow or failed image never holds up the result.
-      if (result.success && result.imagePrompt) {
-        setIsRenderingImage(true);
-        try {
-          const imageUrl = await openaiService.generateImage(result.imagePrompt);
-          setAnalysisResult((prev) => (prev === result ? { ...prev, imageUrl } : prev));
-        } catch {
-          setImageError('The illustration could not be rendered.');
-        } finally {
-          setIsRenderingImage(false);
-        }
+      const image = await imagePromise;
+      setIsRenderingImage(false);
+      if (image.url) {
+        setAnalysisResult((prev) => (prev === result ? { ...prev, imageUrl: image.url! } : prev));
+      } else {
+        setImageError(image.error);
       }
     } catch (error: any) {
       setAnalysisResult({
@@ -273,6 +279,7 @@ function App() {
       });
     } finally {
       setIsAnalyzing(false);
+      setIsRenderingImage(false);
     }
   };
 
@@ -612,7 +619,7 @@ function App() {
                     </div>
 
                     {/* Right Column: Visualization */}
-                    {analysisResult.success && (analysisResult.imageUrl || isRenderingImage || imageError) && (
+                    {(analysisResult.imageUrl || isRenderingImage || imageError) && (
                       <div className="flex-1 flex flex-col gap-3">
                         <div className="bg-zinc-50 dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-white/10 h-full flex flex-col">
                           <h3 className="mt-0 mb-4 text-lg font-semibold text-zinc-700 dark:text-zinc-200">
