@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 
 export const Footer = () => {
    const handleStartBuilding = () => {
-      window.location.href = "https://main.d1hvp1lq9dt37i.amplifyapp.com/";
+      window.location.href = "https://test.com";
    };
 
    const handleOpenPlatform = () => {
-      window.location.href = "https://main.d12g8b8lvrkq9l.amplifyapp.com/dashboard";
+      window.location.href = "https://test.com";
    };
 
    return (

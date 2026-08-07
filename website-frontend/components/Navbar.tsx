@@ -9,11 +9,11 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const handleStartBuilding = () => {
-    window.location.href = "https://main.d1hvp1lq9dt37i.amplifyapp.com/";
+    window.location.href = "https://test.com";
   };
 
   const handleOpenPlatform = () => {
-    window.location.href = "https://main.d12g8b8lvrkq9l.amplifyapp.com/dashboard";
+    window.location.href = "https://test.com";
   };
 
   useEffect(() => {
@@ -88,10 +88,10 @@ export const Navbar = () => {
               >
                 {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
-              <a href="https://main.d1hvp1lq9dt37i.amplifyapp.com/" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-500 transition-colors">
+              <a href="https://test.com" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-500 transition-colors">
                 Experiment Lab
               </a>
-              <a href="https://main.d12g8b8lvrkq9l.amplifyapp.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-500 transition-colors">
+              <a href="https://test.com" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-500 transition-colors">
                 Learning Platform
               </a>
 
