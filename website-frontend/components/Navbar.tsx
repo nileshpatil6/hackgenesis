@@ -78,6 +78,12 @@ export const Navbar = () => {
                   {item}
                 </a>
               ))}
+              <a
+                href="http://localhost:3000/login"
+                className="px-5 py-2 text-sm text-orange-500 dark:text-orange-400 hover:text-orange-600 dark:hover:text-orange-300 transition-colors font-medium rounded-full hover:bg-orange-50/50 dark:hover:bg-orange-900/20"
+              >
+                Features
+              </a>
             </div>
 
             {/* Actions */}
@@ -145,6 +151,16 @@ export const Navbar = () => {
                   {item}
                 </motion.a>
               ))}
+              <motion.a
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                href="http://localhost:3000/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-4xl font-serif text-orange-500 hover:text-orange-600 transition-colors"
+              >
+                Features
+              </motion.a>
             </div>
             <div className="mt-auto">
               <Button
