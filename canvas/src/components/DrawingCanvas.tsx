@@ -226,33 +226,15 @@ export function DrawingCanvas({ onShapeComplete, currentTool }: DrawingCanvasPro
         }}
       />
       <div
-        style={{
-          position: 'absolute',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: 'white',
-          padding: '12px 24px',
-          borderRadius: '30px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          zIndex: 2002,
-        }}
+        className="absolute top-5 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-white/10 shadow-[0_8px_28px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_28px_rgba(0,0,0,0.5)] flex items-center gap-3 px-6 py-3 rounded-full"
+        style={{ zIndex: 2002 }}
       >
-        <div style={{ 
-          width: '12px', 
-          height: '12px', 
-          borderRadius: '50%', 
-          backgroundColor: '#ef4444',
-          boxShadow: '0 0 0 2px rgba(239, 68, 68, 0.2)'
-        }} />
+        <div className="w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_0_2px_rgba(255,79,0,0.25)]" />
         <div>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
+          <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             {currentTool === 'freehand' ? 'Freehand Drawing' : `Drawing ${currentTool.charAt(0).toUpperCase() + currentTool.slice(1)}`}
           </div>
-          <div style={{ fontSize: '12px', color: '#6b7280' }}>
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">
             Draw on the whiteboard • Release to finish
           </div>
         </div>
