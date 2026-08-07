@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 
 export const Footer = () => {
    const handleStartBuilding = () => {
-      window.location.href = "https://test.com";
+      window.location.href = "http://localhost:5000/";
    };
 
    const handleOpenPlatform = () => {
-      window.location.href = "https://test.com";
+      window.location.href = "http://localhost:5000/";
    };
 
    return (

@@ -8,11 +8,11 @@ export const Hero = () => {
   const y = useTransform(scrollY, [0, 500], [0, 200]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
   const handleStartBuilding = () => {
-    window.location.href = "https://test.com";
+    window.location.href = "http://localhost:5000/";
   };
 
   const handleOpenPlatform = () => {
-    window.location.href = "https://test.com";
+    window.location.href = "http://localhost:5000/";
   };
 
   return (
