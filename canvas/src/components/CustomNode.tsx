@@ -31,46 +31,31 @@ export const CustomNode = memo(({ data, selected }: NodeProps<CustomNodeData>) =
 
   return (
     <div
-      className={`custom-node ${selected ? 'selected' : ''}`}
-      style={{
-        padding: '18px 24px',
-        borderRadius: '12px',
-        border: `2px solid ${selected ? '#3b82f6' : '#e5e7eb'}`,
-        backgroundColor: 'white',
-        minWidth: '180px',
-        boxShadow: selected ? '0 8px 24px rgba(59, 130, 246, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)' : '0 4px 12px rgba(0,0,0,0.08)',
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        cursor: 'grab',
-      }}
+      className={`custom-node min-w-[170px] rounded-2xl border-2 px-6 py-4 backdrop-blur-md transition-all duration-200 cursor-grab active:cursor-grabbing ${
+        selected
+          ? 'border-orange-500 bg-zinc-900/95 shadow-[0_8px_28px_rgba(255,79,0,0.35)]'
+          : 'border-white/10 bg-zinc-900/90 shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:border-white/20'
+      }`}
       onDoubleClick={handleDoubleClick}
     >
-      {/* Input handles */}
+      {/* Input handle */}
       {data.component.inputs !== 0 && (
         <Handle
           type="target"
           position={Position.Left}
-          style={{ 
-            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', 
-            width: 14, 
-            height: 14,
-            border: '3px solid white',
-            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.35)',
+          style={{
+            background: '#3b82f6',
+            width: 12,
+            height: 12,
+            border: '2px solid #09090b',
+            boxShadow: '0 0 0 2px rgba(59,130,246,0.3)',
           }}
         />
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        {/* Icon */}
-        <div style={{ 
-          fontSize: '32px', 
-          textAlign: 'center',
-          marginBottom: '4px',
-          filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))',
-        }}>
-          {data.component.icon}
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <div className="text-3xl text-center mb-1 drop-shadow">{data.component.icon}</div>
 
-        {/* Label */}
         {isEditing ? (
           <input
             type="text"
@@ -79,60 +64,30 @@ export const CustomNode = memo(({ data, selected }: NodeProps<CustomNodeData>) =
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             autoFocus
-            style={{
-              width: '100%',
-              padding: '4px',
-              border: '1px solid #3b82f6',
-              borderRadius: '4px',
-              fontSize: '12px',
-              outline: 'none',
-            }}
+            className="w-full px-1.5 py-1 bg-zinc-800 border border-orange-500 rounded text-xs text-white outline-none text-center"
           />
         ) : (
-          <div
-            style={{
-              fontSize: '14px',
-              fontWeight: 600,
-              textAlign: 'center',
-              wordBreak: 'break-word',
-              color: '#111827',
-              letterSpacing: '-0.01em',
-              lineHeight: '1.4',
-            }}
-          >
+          <div className="text-sm font-semibold text-center text-zinc-100 break-words leading-snug tracking-tight">
             {text}
           </div>
         )}
 
-        {/* Category badge */}
-        <div
-          style={{
-            fontSize: '10px',
-            backgroundColor: '#f3f4f6',
-            padding: '4px 8px',
-            borderRadius: '6px',
-            textAlign: 'center',
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            fontWeight: 600,
-          }}
-        >
+        <div className="text-[10px] bg-white/5 text-zinc-400 px-2 py-1 rounded-md text-center uppercase tracking-wider font-semibold">
           {data.component.category}
         </div>
       </div>
 
-      {/* Output handles */}
+      {/* Output handle */}
       {data.component.outputs !== 0 && (
         <Handle
           type="source"
           position={Position.Right}
-          style={{ 
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
-            width: 14, 
-            height: 14,
-            border: '3px solid white',
-            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.35)',
+          style={{
+            background: '#ff4f00',
+            width: 12,
+            height: 12,
+            border: '2px solid #09090b',
+            boxShadow: '0 0 0 2px rgba(255,79,0,0.3)',
           }}
         />
       )}

@@ -13,7 +13,8 @@ import ReactFlow, {
   Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Play, Download, Trash2, BookOpen, Upload, Menu, Undo, Redo, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Play, Download, Trash2, BookOpen, Upload, Menu, Undo, Redo, X, CheckCircle, AlertCircle, Zap, FlaskConical, Atom, Code2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
 import { ComponentLibrary } from './components/ComponentLibrary';
@@ -334,12 +335,12 @@ function App() {
   };
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="flex w-screen h-screen font-sans bg-zinc-950 text-zinc-100">
       {/* Component Library Sidebar */}
       <ComponentLibrary onDragStart={() => { }} />
 
       {/* Main Canvas */}
-      <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }}>
+      <div ref={reactFlowWrapper} className="flex-1 relative">
         <DrawingToolbar
           selectedTool={currentDrawingTool}
           onToolSelect={handleToolSelect}
@@ -366,84 +367,52 @@ function App() {
           deleteKeyCode="Delete"
         >
           <Background
-            color="#e5e7eb"
-            gap={20}
+            color="#27272a"
+            gap={22}
             size={1}
-            style={{ backgroundColor: '#f9fafb' }}
+            style={{ backgroundColor: '#09090b' }}
           />
           <Controls />
-          <MiniMap />
+          <MiniMap
+            style={{ backgroundColor: '#18181b' }}
+            maskColor="rgba(9, 9, 11, 0.7)"
+            nodeColor="#3f3f46"
+          />
 
           {/* Top Control Panel */}
-          <Panel position="top-right" style={{ margin: '10px' }}>
-            <div style={{
-              backgroundColor: 'white',
-              padding: '12px',
-              borderRadius: '8px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              display: 'flex',
-              gap: '8px',
-              flexWrap: 'wrap',
-            }}>
-              <div style={{ display: 'flex', gap: '4px', marginRight: '8px', borderRight: '1px solid #e5e7eb', paddingRight: '8px' }}>
+          <Panel position="top-right" style={{ margin: '14px' }}>
+            <div className="bg-zinc-900/95 backdrop-blur-md border border-white/10 p-2.5 rounded-2xl shadow-[0_8px_28px_rgba(0,0,0,0.5)] flex gap-2 flex-wrap items-center">
+              <div className="flex gap-1 mr-1.5 border-r border-white/10 pr-2">
                 <button
                   onClick={() => undo(nodes, edges, setNodes, setEdges)}
                   disabled={!canUndo}
                   title="Undo"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '8px',
-                    backgroundColor: 'transparent',
-                    color: canUndo ? '#374151' : '#d1d5db',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: canUndo ? 'pointer' : 'not-allowed',
-                  }}
-                  onMouseEnter={(e) => canUndo && (e.currentTarget.style.backgroundColor = '#f3f4f6')}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  className={`flex items-center justify-center p-2 rounded-lg transition-colors ${
+                    canUndo ? 'text-zinc-300 hover:bg-white/10 hover:text-white' : 'text-zinc-700 cursor-not-allowed'
+                  }`}
                 >
-                  <Undo size={18} />
+                  <Undo size={17} />
                 </button>
                 <button
                   onClick={() => redo(nodes, edges, setNodes, setEdges)}
                   disabled={!canRedo}
                   title="Redo"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '8px',
-                    backgroundColor: 'transparent',
-                    color: canRedo ? '#374151' : '#d1d5db',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: canRedo ? 'pointer' : 'not-allowed',
-                  }}
-                  onMouseEnter={(e) => canRedo && (e.currentTarget.style.backgroundColor = '#f3f4f6')}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  className={`flex items-center justify-center p-2 rounded-lg transition-colors ${
+                    canRedo ? 'text-zinc-300 hover:bg-white/10 hover:text-white' : 'text-zinc-700 cursor-not-allowed'
+                  }`}
                 >
-                  <Redo size={18} />
+                  <Redo size={17} />
                 </button>
               </div>
 
               <button
                 onClick={handleRunExperiment}
                 disabled={isAnalyzing}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '10px 16px',
-                  backgroundColor: isAnalyzing ? '#9ca3af' : '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: isAnalyzing ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  isAnalyzing
+                    ? 'bg-zinc-700 text-zinc-400 cursor-not-allowed'
+                    : 'bg-orange-500 text-white hover:bg-orange-600 shadow-[0_4px_16px_rgba(255,79,0,0.35)]'
+                }`}
               >
                 <Play size={16} />
                 {isAnalyzing ? 'Analyzing...' : 'Run Experiment'}
@@ -451,163 +420,74 @@ function App() {
 
               <button
                 onClick={() => setShowExamplesModal(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '10px 16px',
-                  backgroundColor: '#8b5cf6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-zinc-200 hover:bg-white/10 transition-colors"
               >
                 <BookOpen size={16} />
                 Examples
               </button>
 
-              <div style={{ position: 'relative' }}>
+              <div className="relative">
                 <button
                   onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '10px 16px',
-                    backgroundColor: '#6b7280',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                  }}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-zinc-200 hover:bg-white/10 transition-colors"
                 >
                   <Menu size={16} />
                 </button>
 
-                {showSettingsMenu && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: 0,
-                    marginTop: '8px',
-                    backgroundColor: 'white',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    minWidth: '160px',
-                    zIndex: 1000,
-                    overflow: 'hidden',
-                  }}>
-                    <button
-                      onClick={() => {
-                        handleDownloadJSON();
-                        setShowSettingsMenu(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '12px 16px',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: '#374151',
-                        textAlign: 'left',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                <AnimatePresence>
+                  {showSettingsMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full right-0 mt-2 bg-zinc-900 border border-white/10 rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.5)] min-w-[170px] z-[1000] overflow-hidden"
                     >
-                      <Download size={16} />
-                      Export JSON
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleImportJSON();
-                        setShowSettingsMenu(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '12px 16px',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: '#374151',
-                        textAlign: 'left',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <Upload size={16} />
-                      Import JSON
-                    </button>
-                    <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '4px 0' }} />
-                    <button
-                      onClick={() => {
-                        handleClearCanvas();
-                        setShowSettingsMenu(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '12px 16px',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: '#ef4444',
-                        textAlign: 'left',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <Trash2 size={16} />
-                      Clear Canvas
-                    </button>
-                  </div>
-                )}
+                      <button
+                        onClick={() => {
+                          handleDownloadJSON();
+                          setShowSettingsMenu(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors text-left"
+                      >
+                        <Download size={15} />
+                        Export JSON
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleImportJSON();
+                          setShowSettingsMenu(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors text-left"
+                      >
+                        <Upload size={15} />
+                        Import JSON
+                      </button>
+                      <div className="h-px bg-white/10 my-1" />
+                      <button
+                        onClick={() => {
+                          handleClearCanvas();
+                          setShowSettingsMenu(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left"
+                      >
+                        <Trash2 size={15} />
+                        Clear Canvas
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </Panel>
 
           {/* Info Panel */}
-          <Panel position="top-left" style={{ margin: '10px' }}>
-            <div style={{
-              backgroundColor: 'white',
-              padding: '16px',
-              borderRadius: '8px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              maxWidth: '300px',
-            }}>
-
-              <div style={{
-                marginTop: '12px',
-                padding: '8px',
-                backgroundColor: '#f3f4f6',
-                borderRadius: '6px',
-                fontSize: '12px',
-                color: '#374151',
-              }}>
-                <strong>{nodes.length}</strong> components • <strong>{edges.length}</strong> connections
-              </div>
-              <div style={{
-                marginTop: '8px',
-                fontSize: '11px',
-                color: '#9ca3af',
-                lineHeight: 1.4,
-              }}>
-
+          <Panel position="top-left" style={{ margin: '14px' }}>
+            <div className="bg-zinc-900/95 backdrop-blur-md border border-white/10 px-4 py-2.5 rounded-2xl shadow-[0_8px_28px_rgba(0,0,0,0.5)]">
+              <div className="text-xs text-zinc-300">
+                <span className="text-orange-500 font-semibold">{nodes.length}</span> components
+                <span className="text-zinc-600 mx-1.5">•</span>
+                <span className="text-orange-500 font-semibold">{edges.length}</span> connections
               </div>
             </div>
           </Panel>
@@ -615,501 +495,301 @@ function App() {
       </div>
 
       {/* Results Modal */}
-      {showResults && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000,
-          backdropFilter: 'blur(4px)',
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            width: '90%',
-            height: '90%',
-            borderRadius: '16px',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            position: 'relative',
-          }}>
-            {/* Header */}
-            <div style={{
-              padding: '20px 30px',
-              borderBottom: '1px solid #e5e7eb',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: analysisResult?.success ? '#f0fdf4' : (analysisResult ? '#fef2f2' : 'white'),
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                {analysisResult ? (
-                  analysisResult.success ? (
-                    <CheckCircle size={32} color="#10b981" />
-                  ) : (
-                    <AlertCircle size={32} color="#ef4444" />
-                  )
-                ) : (
-                  <div style={{
-                    width: '24px',
-                    height: '24px',
-                    border: '3px solid #e5e7eb',
-                    borderTopColor: '#3b82f6',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }} />
-                )}
-                <div>
-                  <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: '#111827' }}>
-                    {analysisResult ? analysisResult.title : 'Analyzing Experiment...'}
-                  </h2>
-                  {analysisResult && (
-                    <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
-                      {analysisResult.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => setShowResults(false)}
-                style={{
-                  background: 'white',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '50%',
-                  width: '40px',
-                  height: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: '#6b7280',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6';
-                  e.currentTarget.style.color = '#111827';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'white';
-                  e.currentTarget.style.color = '#6b7280';
-                }}
+      <AnimatePresence>
+        {showResults && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[2000]"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.2 }}
+              className="bg-zinc-950 border border-white/10 w-[90%] h-[90%] rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden relative"
+            >
+              {/* Header */}
+              <div
+                className={`px-8 py-5 border-b border-white/10 flex justify-between items-center ${
+                  analysisResult?.success ? 'bg-emerald-500/10' : analysisResult ? 'bg-red-500/10' : 'bg-zinc-900'
+                }`}
               >
-                <X size={24} />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: '30px',
-              display: 'flex',
-              gap: '30px',
-              backgroundColor: '#f9fafb',
-            }}>
-              {analysisResult ? (
-                <>
-                  {/* Left Column: Explanation / Mistake */}
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    {analysisResult.success ? (
-                      <div style={{
-                        backgroundColor: 'white',
-                        padding: '24px',
-                        borderRadius: '12px',
-                        border: '1px solid #e5e7eb',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                      }}>
-                        <h3 style={{ marginTop: 0, fontSize: '18px', fontWeight: 600, color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          🎉 Congratulations!
-                        </h3>
-                        <div style={{ fontSize: '16px', lineHeight: 1.6, color: '#374151', whiteSpace: 'pre-wrap' }}>
-                          {analysisResult.explanation}
-                        </div>
-                      </div>
+                <div className="flex items-center gap-3.5">
+                  {analysisResult ? (
+                    analysisResult.success ? (
+                      <CheckCircle size={30} className="text-emerald-500" />
                     ) : (
-                      <div style={{
-                        backgroundColor: '#fef2f2',
-                        padding: '24px',
-                        borderRadius: '12px',
-                        border: '1px solid #fecaca',
-                      }}>
-                        <h3 style={{ marginTop: 0, fontSize: '18px', fontWeight: 600, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          ❌ Experiment Failed
-                        </h3>
-                        <div style={{ fontSize: '16px', lineHeight: 1.6, color: '#991b1b' }}>
-                          <strong>Mistake:</strong> {analysisResult.mistake}
+                      <AlertCircle size={30} className="text-red-500" />
+                    )
+                  ) : (
+                    <div className="w-6 h-6 border-[3px] border-white/10 border-t-orange-500 rounded-full animate-spin" />
+                  )}
+                  <div>
+                    <h2 className="font-serif text-2xl text-white m-0">
+                      {analysisResult ? analysisResult.title : 'Analyzing Experiment...'}
+                    </h2>
+                    {analysisResult && (
+                      <p className="mt-1 text-sm text-zinc-400">
+                        {analysisResult.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowResults(false)}
+                  className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-8 flex gap-8 bg-zinc-950">
+                {analysisResult ? (
+                  <>
+                    {/* Left Column: Explanation / Mistake */}
+                    <div className="flex-1 flex flex-col gap-5">
+                      {analysisResult.success ? (
+                        <div className="bg-zinc-900 p-6 rounded-2xl border border-white/10">
+                          <h3 className="mt-0 text-lg font-semibold text-emerald-500 flex items-center gap-2">
+                            🎉 Congratulations!
+                          </h3>
+                          <div className="text-[15px] leading-relaxed text-zinc-300 whitespace-pre-wrap">
+                            {analysisResult.explanation}
+                          </div>
                         </div>
-                        <div style={{ marginTop: '16px', fontSize: '14px', color: '#7f1d1d', fontStyle: 'italic' }}>
-                          Review your connections and component properties to fix the issue.
+                      ) : (
+                        <div className="bg-red-500/10 p-6 rounded-2xl border border-red-500/20">
+                          <h3 className="mt-0 text-lg font-semibold text-red-400 flex items-center gap-2">
+                            ❌ Experiment Failed
+                          </h3>
+                          <div className="text-[15px] leading-relaxed text-red-200/90">
+                            <strong>Mistake:</strong> {analysisResult.mistake}
+                          </div>
+                          <div className="mt-4 text-sm text-red-300/70 italic">
+                            Review your connections and component properties to fix the issue.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right Column: Visualization */}
+                    {analysisResult.success && analysisResult.svg && (
+                      <div className="flex-1 flex flex-col gap-3">
+                        <div className="bg-zinc-900 p-6 rounded-2xl border border-white/10 h-full flex flex-col">
+                          <h3 className="mt-0 mb-4 text-lg font-semibold text-zinc-200">
+                            Visual Output
+                          </h3>
+                          <div
+                            className="flex-1 flex items-center justify-center bg-zinc-950 rounded-xl overflow-hidden"
+                            dangerouslySetInnerHTML={{ __html: analysisResult.svg }}
+                          />
                         </div>
                       </div>
                     )}
+                  </>
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-5">
+                    <div className="w-14 h-14 border-[6px] border-white/10 border-t-orange-500 rounded-full animate-spin" />
+                    <div className="text-lg text-zinc-400 font-medium">Processing your experiment...</div>
                   </div>
-
-                  {/* Right Column: Visualization */}
-                  {analysisResult.success && analysisResult.svg && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div style={{
-                        backgroundColor: 'white',
-                        padding: '24px',
-                        borderRadius: '12px',
-                        border: '1px solid #e5e7eb',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                      }}>
-                        <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '18px', fontWeight: 600, color: '#374151' }}>
-                          Visual Output
-                        </h3>
-                        <div
-                          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', borderRadius: '8px', overflow: 'hidden' }}
-                          dangerouslySetInnerHTML={{ __html: analysisResult.svg }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
-                  <div style={{
-                    width: '60px',
-                    height: '60px',
-                    border: '6px solid #e5e7eb',
-                    borderTopColor: '#3b82f6',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }} />
-                  <div style={{ fontSize: '18px', color: '#6b7280', fontWeight: 500 }}>Processing your experiment...</div>
-                </div>
-              )}
-            </div>
-          </div>
-          <style>{`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}</style>
-        </div>
-      )}
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Welcome Modal */}
-      {showWelcomeModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '32px',
-            borderRadius: '12px',
-            width: '90%',
-            maxWidth: '600px',
-            maxHeight: '80vh',
-            overflowY: 'auto',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-          }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 600 }}>
-              Welcome to AI Experiment Lab!
-            </h2>
-            <p style={{ margin: '0 0 16px 0', fontSize: '15px', color: '#374151', lineHeight: 1.6 }}>
-              Build and simulate complex experiments using a visual canvas powered by AI.
-            </p>
-
-            <div style={{ marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>How to Use:</h3>
-              <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#6b7280', lineHeight: 1.8 }}>
-                <li>Browse the <strong>1000+ components</strong> in the left sidebar</li>
-                <li><strong>Drag components</strong> onto the canvas</li>
-                <li><strong>Connect components</strong> by dragging from output (green) to input (blue)</li>
-                <li><strong>Double-click nodes</strong> to edit their labels</li>
-                <li><strong>Click connections</strong> to add labels/conditions</li>
-                <li>Click <strong>"Run Experiment"</strong> to analyze with AI</li>
-                <li><strong>Export/Import</strong> your experiments as JSON</li>
-              </ol>
-            </div>
-
-            <div style={{
-              padding: '12px',
-              backgroundColor: '#fef3c7',
-              borderRadius: '8px',
-              marginBottom: '20px',
-            }}>
-              <p style={{ margin: 0, fontSize: '13px', color: '#92400e' }}>
-                <strong>Important:</strong> AI-powered experiment analysis is powered by Amazon Bedrock.
-                No additional API key setup is needed.
+      <AnimatePresence>
+        {showWelcomeModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.2 }}
+              className="bg-zinc-950 border border-white/10 p-8 rounded-3xl w-full max-w-[600px] max-h-[85vh] overflow-y-auto shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+            >
+              <h2 className="font-serif text-3xl text-white mb-3">
+                Welcome to <span className="text-orange-500">AI Experiment Lab</span>
+              </h2>
+              <p className="mb-6 text-[15px] text-zinc-400 leading-relaxed">
+                Build and simulate complex experiments using a visual canvas powered by AI.
               </p>
-            </div>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '12px',
-              marginBottom: '20px',
-            }}>
-              <div style={{
-                padding: '12px',
-                backgroundColor: '#eff6ff',
-                borderRadius: '8px',
-              }}>
-                <div style={{ marginBottom: '4px', color: '#3b82f6' }}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg></div>
-                <div style={{ fontSize: '13px', fontWeight: 600 }}>Electronics</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>300+ components</div>
+              <div className="mb-6">
+                <h3 className="text-base font-semibold text-zinc-200 mb-3">How to use</h3>
+                <ol className="m-0 pl-5 text-sm text-zinc-400 leading-loose list-decimal">
+                  <li>Browse the <strong className="text-zinc-200">1000+ components</strong> in the left sidebar</li>
+                  <li><strong className="text-zinc-200">Drag components</strong> onto the canvas</li>
+                  <li><strong className="text-zinc-200">Connect components</strong> by dragging from output (orange) to input (blue)</li>
+                  <li><strong className="text-zinc-200">Double-click nodes</strong> to edit their labels</li>
+                  <li><strong className="text-zinc-200">Click connections</strong> to add labels/conditions</li>
+                  <li>Click <strong className="text-zinc-200">"Run Experiment"</strong> to analyze with AI</li>
+                  <li><strong className="text-zinc-200">Export/Import</strong> your experiments as JSON</li>
+                </ol>
               </div>
-              <div style={{
-                padding: '12px',
-                backgroundColor: '#f0fdf4',
-                borderRadius: '8px',
-              }}>
-                <div style={{ marginBottom: '4px', color: '#10b981' }}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" /><path d="M8.5 2h7" /><path d="M7 16h10" /></svg></div>
-                <div style={{ fontSize: '13px', fontWeight: 600 }}>Chemistry</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>200+ components</div>
-              </div>
-              <div style={{
-                padding: '12px',
-                backgroundColor: '#faf5ff',
-                borderRadius: '8px',
-              }}>
-                <div style={{ marginBottom: '4px', color: '#8b5cf6' }}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" /><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" /><path d="M12 2v2" /><path d="M12 22v-2" /><path d="m17 20.66-1-1.73" /><path d="M11 10.27 7 3.34" /><path d="m20.66 17-1.73-1" /><path d="m3.34 7 1.73 1" /><path d="M14 12h8" /><path d="M2 12h2" /><path d="m20.66 7-1.73 1" /><path d="m3.34 17 1.73-1" /><path d="m17 3.34-1 1.73" /><path d="m11 13.73-4 6.93" /></svg></div>
-                <div style={{ fontSize: '13px', fontWeight: 600 }}>Physics</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>250+ components</div>
-              </div>
-              <div style={{
-                padding: '12px',
-                backgroundColor: '#fffbeb',
-                borderRadius: '8px',
-              }}>
-                <div style={{ marginBottom: '4px', color: '#f59e0b' }}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg></div>
-                <div style={{ fontSize: '13px', fontWeight: 600 }}>Coding</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>200+ components</div>
-              </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => {
-                  handleCloseWelcome();
-                  setShowExamplesModal(true);
-                }}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                View Examples
-              </button>
-              <button
-                onClick={handleCloseWelcome}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                Get Started
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl mb-6">
+                <p className="m-0 text-[13px] text-orange-200/90">
+                  <strong>Important:</strong> AI-powered experiment analysis runs on our hosted OpenAI-compatible backend.
+                  No additional API key setup is needed.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {[
+                  { icon: <Zap size={22} />, label: 'Electronics', count: '300+ components', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+                  { icon: <FlaskConical size={22} />, label: 'Chemistry', count: '200+ components', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+                  { icon: <Atom size={22} />, label: 'Physics', count: '250+ components', color: 'text-violet-400', bg: 'bg-violet-500/10' },
+                  { icon: <Code2 size={22} />, label: 'Coding', count: '200+ components', color: 'text-orange-400', bg: 'bg-orange-500/10' },
+                ].map((cat) => (
+                  <div key={cat.label} className={`p-3.5 rounded-2xl ${cat.bg} border border-white/5`}>
+                    <div className={`mb-2 ${cat.color}`}>{cat.icon}</div>
+                    <div className="text-[13px] font-semibold text-zinc-100">{cat.label}</div>
+                    <div className="text-[11px] text-zinc-500">{cat.count}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    handleCloseWelcome();
+                    setShowExamplesModal(true);
+                  }}
+                  className="px-5 py-2.5 rounded-full bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white text-sm font-medium transition-colors"
+                >
+                  View Examples
+                </button>
+                <button
+                  onClick={handleCloseWelcome}
+                  className="px-5 py-2.5 rounded-full bg-orange-500 text-white hover:bg-orange-600 text-sm font-medium shadow-[0_4px_16px_rgba(255,79,0,0.35)] transition-colors"
+                >
+                  Get Started
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Examples Modal */}
-      {showExamplesModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            width: '90%',
-            maxWidth: '500px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-          }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 600 }}>
-              Example Experiments
-            </h2>
-            <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#6b7280' }}>
-              Load a pre-built experiment to get started quickly
-            </p>
+      <AnimatePresence>
+        {showExamplesModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.2 }}
+              className="bg-zinc-950 border border-white/10 p-7 rounded-3xl w-full max-w-[500px] shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+            >
+              <h2 className="font-serif text-2xl text-white mb-2">
+                Example Experiments
+              </h2>
+              <p className="mb-5 text-sm text-zinc-400">
+                Load a pre-built experiment to get started quickly
+              </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-              {EXAMPLE_LIST.map((example) => (
+              <div className="flex flex-col gap-2.5 mb-6 max-h-[50vh] overflow-y-auto pr-1">
+                {EXAMPLE_LIST.map((example) => (
+                  <button
+                    key={example.id}
+                    onClick={() => handleLoadExample(example.id)}
+                    className="p-4 bg-zinc-900 border border-white/10 rounded-2xl text-left transition-colors hover:border-orange-500/50 hover:bg-zinc-800/80"
+                  >
+                    <div className="text-sm font-semibold text-zinc-100 mb-1">
+                      {example.name}
+                    </div>
+                    <div className="text-xs text-zinc-500">
+                      {example.category}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex justify-end">
                 <button
-                  key={example.id}
-                  onClick={() => handleLoadExample(example.id)}
-                  style={{
-                    padding: '16px',
-                    backgroundColor: '#f9fafb',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f3f4f6';
-                    e.currentTarget.style.borderColor = '#3b82f6';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f9fafb';
-                    e.currentTarget.style.borderColor = '#e5e7eb';
-                  }}
+                  onClick={() => setShowExamplesModal(false)}
+                  className="px-5 py-2.5 rounded-full bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white text-sm font-medium transition-colors"
                 >
-                  <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '4px' }}>
-                    {example.name}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                    {example.category}
-                  </div>
+                  Close
                 </button>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowExamplesModal(false)}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* API Key Modal */}
-      {showApiKeyModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            width: '90%',
-            maxWidth: '500px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-          }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 600 }}>
-              Configure API Key
-            </h2>
-            <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#6b7280' }}>
-              AI-powered experiment analysis is powered by Amazon Bedrock. No additional configuration is needed.
-            </p>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your API key..."
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px',
-                marginBottom: '16px',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowApiKeyModal(false)}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (apiKey) {
-                    localStorage.setItem('aiexp-api-key', apiKey);
-                    setShowApiKeyModal(false);
-                    alert('API key saved successfully!');
-                  } else {
-                    alert('Please enter an API key');
-                  }
-                }}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showApiKeyModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.2 }}
+              className="bg-zinc-950 border border-white/10 p-7 rounded-3xl w-full max-w-[500px] shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+            >
+              <h2 className="font-serif text-2xl text-white mb-2">
+                Configure API Key
+              </h2>
+              <p className="mb-4 text-sm text-zinc-400">
+                AI-powered experiment analysis runs on our hosted backend. No additional configuration is needed.
+              </p>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Enter your API key..."
+                className="w-full px-3.5 py-3 bg-zinc-900 border border-white/10 rounded-xl text-sm text-zinc-100 mb-4 outline-none focus:border-orange-500/60 transition-colors box-border"
+              />
+              <div className="flex gap-2.5 justify-end">
+                <button
+                  onClick={() => setShowApiKeyModal(false)}
+                  className="px-5 py-2.5 rounded-full bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white text-sm font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (apiKey) {
+                      localStorage.setItem('aiexp-api-key', apiKey);
+                      setShowApiKeyModal(false);
+                      alert('API key saved successfully!');
+                    } else {
+                      alert('Please enter an API key');
+                    }
+                  }}
+                  className="px-5 py-2.5 rounded-full bg-orange-500 text-white hover:bg-orange-600 text-sm font-medium shadow-[0_4px_16px_rgba(255,79,0,0.35)] transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Robot Assistant Chatbot */}
       <RobotAssistant

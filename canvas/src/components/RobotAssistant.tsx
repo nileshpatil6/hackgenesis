@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send } from 'lucide-react';
+import { X, Send, Sparkles } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -17,14 +18,13 @@ export function RobotAssistant({ onRequestHint }: RobotAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "👋 Hi! I'm your lab assistant! I can help you with hints about your experiment. What would you like to know?",
+      content: "Hi! I'm your lab assistant. I can help you with hints about your experiment. What would you like to know?",
       timestamp: Date.now()
     }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -49,7 +49,7 @@ export function RobotAssistant({ onRequestHint }: RobotAssistantProps) {
 
     try {
       const hint = await onRequestHint(inputValue);
-      
+
       const assistantMessage: Message = {
         role: 'assistant',
         content: hint,
@@ -79,280 +79,113 @@ export function RobotAssistant({ onRequestHint }: RobotAssistantProps) {
   return (
     <>
       {/* Robot Button */}
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          style={{
-            position: 'fixed',
-            bottom: '30px',
-            right: '30px',
-            width: '70px',
-            height: '70px',
-            borderRadius: '50%',
-            backgroundColor: '#8b5cf6',
-            border: 'none',
-            boxShadow: '0 8px 24px rgba(139, 92, 246, 0.4)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '36px',
-            zIndex: 1000,
-            transition: 'all 0.3s ease',
-            animation: 'bounce 2s infinite',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.1)';
-            e.currentTarget.style.boxShadow = '0 12px 32px rgba(139, 92, 246, 0.5)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(139, 92, 246, 0.4)';
-          }}
-        >
-          🤖
-        </button>
-      )}
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsOpen(true)}
+            className="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-orange-500 border-none shadow-[0_8px_28px_rgba(255,79,0,0.45)] cursor-pointer flex items-center justify-center z-[1000] text-white"
+          >
+            <Sparkles size={26} />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Chat Window */}
-      {isOpen && (
-        <div
-          ref={chatContainerRef}
-          style={{
-            position: 'fixed',
-            bottom: '30px',
-            right: '30px',
-            width: '400px',
-            height: '600px',
-            backgroundColor: 'white',
-            borderRadius: '20px',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 1000,
-            overflow: 'hidden',
-            border: '2px solid #e5e7eb',
-          }}
-        >
-          {/* Header */}
-          <div
-            style={{
-              padding: '20px',
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderTopLeftRadius: '18px',
-              borderTopRightRadius: '18px',
-            }}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 30, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="fixed bottom-8 right-8 w-[380px] h-[580px] bg-zinc-950/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] flex flex-col z-[1000] overflow-hidden border border-white/10"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ fontSize: '32px' }}>🤖</div>
-              <div>
-                <div style={{ fontSize: '16px', fontWeight: 600 }}>Lab Assistant</div>
-                <div style={{ fontSize: '12px', opacity: 0.9 }}>Here to help with hints!</div>
+            {/* Header */}
+            <div className="p-5 bg-zinc-900 flex items-center justify-between border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-orange-500/15 flex items-center justify-center text-orange-500">
+                  <Sparkles size={18} />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-white">Lab Assistant</div>
+                  <div className="text-xs text-zinc-500">Here to help with hints</div>
+                </div>
               </div>
-            </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                borderRadius: '50%',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: 'white',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Messages */}
-          <div
-            style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: '20px',
-              backgroundColor: '#f9fafb',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                style={{
-                  display: 'flex',
-                  justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
-                  animation: 'slideIn 0.3s ease-out',
-                }}
+              <button
+                onClick={() => setIsOpen(false)}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
               >
-                <div
-                  style={{
-                    maxWidth: '75%',
-                    padding: '12px 16px',
-                    borderRadius: message.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                    backgroundColor: message.role === 'user' ? '#8b5cf6' : 'white',
-                    color: message.role === 'user' ? 'white' : '#374151',
-                    fontSize: '14px',
-                    lineHeight: 1.5,
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                  }}
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
+              {messages.map((message, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  {message.content}
+                  <div
+                    className={`max-w-[80%] px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                      message.role === 'user'
+                        ? 'bg-orange-500 text-white rounded-2xl rounded-br-md'
+                        : 'bg-zinc-800 text-zinc-100 rounded-2xl rounded-bl-md'
+                    }`}
+                  >
+                    {message.content}
+                  </div>
+                </motion.div>
+              ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-zinc-800 flex gap-1.5">
+                    {[0, 1, 2].map((i) => (
+                      <span
+                        key={i}
+                        className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-bounce"
+                        style={{ animationDelay: `${i * 0.15}s` }}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                <div
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: '18px 18px 18px 4px',
-                    backgroundColor: 'white',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                    display: 'flex',
-                    gap: '6px',
-                  }}
-                >
-                  <div style={{ 
-                    width: '8px', 
-                    height: '8px', 
-                    borderRadius: '50%', 
-                    backgroundColor: '#8b5cf6',
-                    animation: 'bounce 1.4s infinite ease-in-out both',
-                    animationDelay: '-0.32s'
-                  }} />
-                  <div style={{ 
-                    width: '8px', 
-                    height: '8px', 
-                    borderRadius: '50%', 
-                    backgroundColor: '#8b5cf6',
-                    animation: 'bounce 1.4s infinite ease-in-out both',
-                    animationDelay: '-0.16s'
-                  }} />
-                  <div style={{ 
-                    width: '8px', 
-                    height: '8px', 
-                    borderRadius: '50%', 
-                    backgroundColor: '#8b5cf6',
-                    animation: 'bounce 1.4s infinite ease-in-out both'
-                  }} />
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
 
-          {/* Input */}
-          <div
-            style={{
-              padding: '16px',
-              borderTop: '1px solid #e5e7eb',
-              backgroundColor: 'white',
-              display: 'flex',
-              gap: '12px',
-              alignItems: 'flex-end',
-            }}
-          >
-            <textarea
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Ask for a hint..."
-              disabled={isLoading}
-              style={{
-                flex: 1,
-                padding: '12px',
-                borderRadius: '12px',
-                border: '1px solid #e5e7eb',
-                fontSize: '14px',
-                resize: 'none',
-                fontFamily: 'system-ui, sans-serif',
-                minHeight: '44px',
-                maxHeight: '120px',
-                outline: 'none',
-                transition: 'border-color 0.2s',
-              }}
-              onFocus={(e) => e.currentTarget.style.borderColor = '#8b5cf6'}
-              onBlur={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
-              rows={1}
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isLoading}
-              style={{
-                padding: '12px',
-                borderRadius: '12px',
-                backgroundColor: inputValue.trim() && !isLoading ? '#8b5cf6' : '#e5e7eb',
-                border: 'none',
-                cursor: inputValue.trim() && !isLoading ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-                width: '44px',
-                height: '44px',
-              }}
-              onMouseEnter={(e) => {
-                if (inputValue.trim() && !isLoading) {
-                  e.currentTarget.style.backgroundColor = '#7c3aed';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (inputValue.trim() && !isLoading) {
-                  e.currentTarget.style.backgroundColor = '#8b5cf6';
-                }
-              }}
-            >
-              <Send size={20} color={inputValue.trim() && !isLoading ? 'white' : '#9ca3af'} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        @keyframes bounce {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-        }
-
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes bounce {
-          0%, 80%, 100% {
-            transform: scale(0);
-          }
-          40% {
-            transform: scale(1);
-          }
-        }
-      `}</style>
+            {/* Input */}
+            <div className="p-4 border-t border-white/10 bg-zinc-950 flex gap-3 items-end">
+              <textarea
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Ask for a hint..."
+                disabled={isLoading}
+                rows={1}
+                className="flex-1 px-3.5 py-2.5 rounded-2xl bg-zinc-900 border border-white/10 text-sm text-zinc-100 placeholder:text-zinc-500 resize-none outline-none focus:border-orange-500/60 transition-colors min-h-[42px] max-h-[120px]"
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!inputValue.trim() || isLoading}
+                className={`w-[42px] h-[42px] rounded-2xl flex items-center justify-center transition-colors ${
+                  inputValue.trim() && !isLoading
+                    ? 'bg-orange-500 hover:bg-orange-600 cursor-pointer'
+                    : 'bg-zinc-800 cursor-not-allowed'
+                }`}
+              >
+                <Send size={18} color={inputValue.trim() && !isLoading ? 'white' : '#71717a'} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

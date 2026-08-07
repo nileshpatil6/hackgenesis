@@ -231,28 +231,30 @@ export function DrawingCanvas({ onShapeComplete, currentTool }: DrawingCanvasPro
           top: '20px',
           left: '50%',
           transform: 'translateX(-50%)',
-          backgroundColor: 'white',
+          backgroundColor: 'rgba(24, 24, 27, 0.95)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255,255,255,0.1)',
           padding: '12px 24px',
           borderRadius: '30px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
           zIndex: 2002,
         }}
       >
-        <div style={{ 
-          width: '12px', 
-          height: '12px', 
-          borderRadius: '50%', 
-          backgroundColor: '#ef4444',
-          boxShadow: '0 0 0 2px rgba(239, 68, 68, 0.2)'
+        <div style={{
+          width: '12px',
+          height: '12px',
+          borderRadius: '50%',
+          backgroundColor: '#ff4f00',
+          boxShadow: '0 0 0 2px rgba(255, 79, 0, 0.25)'
         }} />
         <div>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: '#fafafa' }}>
             {currentTool === 'freehand' ? 'Freehand Drawing' : `Drawing ${currentTool.charAt(0).toUpperCase() + currentTool.slice(1)}`}
           </div>
-          <div style={{ fontSize: '12px', color: '#6b7280' }}>
+          <div style={{ fontSize: '12px', color: '#a1a1aa' }}>
             Draw on the whiteboard • Release to finish
           </div>
         </div>
