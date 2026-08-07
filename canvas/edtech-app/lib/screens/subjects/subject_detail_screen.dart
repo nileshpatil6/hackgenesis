@@ -375,25 +375,49 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
           ],
         ),
       ),
-      floatingActionButton: _tabController.index == 0
-          ? FloatingActionButton.extended(
-              onPressed: _uploadFile,
-              backgroundColor: subjectColor,
-              icon: const Icon(Icons.upload_file_rounded, color: Colors.white),
-              label: const Text('Upload',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
-              elevation: 4,
-            )
-          : FloatingActionButton.extended(
-              onPressed: () => _onSecondaryFabPressed(subjectColor),
-              backgroundColor: subjectColor,
-              icon: const Icon(Icons.add_rounded, color: Colors.white),
-              label: const Text('Create',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
-              elevation: 4,
-            ),
+      // Every empty state already renders its own "Upload PDFs" call to
+      // action, so showing the button again as a FAB duplicated it and the
+      // two overlapped in the corner. The FAB only appears once a tab has
+      // content and the inline button is gone.
+      floatingActionButton: _buildFab(subjectColor),
+    );
+  }
+
+  /// Whether the visible tab is currently showing its empty state.
+  bool get _activeTabIsEmpty {
+    switch (_tabController.index) {
+      case 0:
+      case 1:
+        return _uploadedFiles.isEmpty;
+      case 2:
+        return _uploadedFiles.isEmpty && _quizzes.isEmpty;
+      case 3:
+        return _uploadedFiles.isEmpty && _flashcards.isEmpty;
+      default:
+        return false;
+    }
+  }
+
+  Widget? _buildFab(Color subjectColor) {
+    if (_activeTabIsEmpty) return null;
+
+    final isNotes = _tabController.index == 0;
+    return FloatingActionButton.extended(
+      onPressed:
+          isNotes ? _uploadFile : () => _onSecondaryFabPressed(subjectColor),
+      backgroundColor: subjectColor,
+      icon: Icon(
+        isNotes ? Icons.upload_file_rounded : Icons.add_rounded,
+        color: Colors.white,
+      ),
+      label: Text(
+        isNotes ? 'Upload' : 'Create',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      elevation: 4,
     );
   }
 
