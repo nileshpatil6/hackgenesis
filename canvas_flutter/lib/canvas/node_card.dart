@@ -51,6 +51,35 @@ const Map<String, Color> _kCategoryColors = <String, Color>{
 Color categoryColor(String categoryId) =>
     _kCategoryColors[categoryId] ?? AppColors.primary;
 
+/// Category id -> vector icon, replacing the old emoji glyphs.
+///
+/// Kept private on purpose: the canvas layer must stay decoupled from
+/// `lib/data/component_library.dart`.
+const Map<String, IconData> _kCategoryIcons = <String, IconData>{
+  'electronics': Icons.bolt,
+  'chemicals': Icons.science,
+  'physics': Icons.blur_circular,
+  'biology': Icons.biotech,
+  'coding': Icons.code,
+  'mathematics': Icons.functions,
+  'thermodynamics': Icons.thermostat,
+  'optics': Icons.remove_red_eye,
+  'quantum': Icons.all_inclusive,
+  'mechanics': Icons.settings,
+  'astronomy': Icons.public,
+  'geology': Icons.terrain,
+  'music': Icons.music_note,
+  'robotics': Icons.smart_toy,
+  'ai_ml': Icons.psychology,
+};
+
+/// Resolves the vector icon for a component [categoryId].
+///
+/// Falls back to a generic glyph for unknown categories so the canvas can
+/// never break on a category the library adds later.
+IconData categoryIcon(String categoryId) =>
+    _kCategoryIcons[categoryId] ?? Icons.widgets_outlined;
+
 /// The world-space anchor of a node's output port (right edge, centred).
 Offset nodeOutputPort(ExperimentNode node) =>
     Offset(node.position.dx + kNodeWidth, node.position.dy + kNodeHeight / 2);
@@ -270,9 +299,10 @@ class _CardBody extends StatelessWidget {
                         color: accent.withValues(alpha: 0.14),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(
-                        node.component.icon,
-                        style: const TextStyle(fontSize: 20, height: 1.1),
+                      child: Icon(
+                        categoryIcon(node.component.category),
+                        size: 20,
+                        color: accent,
                       ),
                     ),
                     const SizedBox(width: 10),
