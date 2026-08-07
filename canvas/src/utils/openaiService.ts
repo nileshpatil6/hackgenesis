@@ -10,6 +10,8 @@ const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || '';
 const MODEL_FAST = 'gpt-5.6-luna';
 const MODEL_BALANCED = 'gpt-5.6-terra';
 const MODEL_REASONING = 'gpt-5.6-sol';
+// Renders the result illustration.
+const MODEL_IMAGE = 'gpt-image-2';
 
 type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh';
 
@@ -26,9 +28,9 @@ const ANALYSIS_RESULT_SCHEMA: Record<string, unknown> = {
     message: { type: 'string' },
     mistake: { type: ['string', 'null'] },
     explanation: { type: 'string' },
-    svg: { type: ['string', 'null'] },
+    imagePrompt: { type: ['string', 'null'] },
   },
-  required: ['success', 'title', 'message', 'mistake', 'explanation', 'svg'],
+  required: ['success', 'title', 'message', 'mistake', 'explanation', 'imagePrompt'],
   additionalProperties: false,
 };
 
@@ -154,7 +156,11 @@ Analyze this experiment and determine:
 - A concise 1-2 sentence summary message
 - If failed, a clear description of the mistake WITHOUT giving away the solution (null if success)
 - A detailed explanation of what happened and why
-- If success, a colorful, modern, self-contained SVG string (starting with <svg... and ending with </svg>) visualizing the output (a graph, chemical reaction, circuit diagram, or similar). Null if failed.
+- If success, an "imagePrompt": a vivid one-paragraph description of a single
+  illustration showing the outcome of THIS experiment (the apparatus, the reaction,
+  the measured result). Describe subject, composition, labels and style - a clean
+  modern scientific diagram on a white background. Do not mention SVG, code, or
+  file formats. Null if failed.
 `;
 
     try {
@@ -174,6 +180,43 @@ Analyze this experiment and determine:
         explanation: `Error details: ${error}`,
       };
     }
+  }
+
+  /**
+   * Renders `prompt` with the image model and returns a PNG data URL.
+   */
+  async generateImage(prompt: string): Promise<string> {
+    const response = await fetch(`${OPENAI_BASE_URL}/images/generations`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: MODEL_IMAGE,
+        prompt,
+        size: '1024x1024',
+        n: 1,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Image generation failed (${response.status}): ${errorText.slice(0, 300)}`);
+    }
+
+    const data = await response.json();
+    const first = data?.data?.[0];
+
+    if (first?.b64_json) {
+      return `data:image/png;base64,${first.b64_json}`;
+    }
+    // Some deployments hand back a URL instead of inline base64.
+    if (first?.url) {
+      return first.url as string;
+    }
+
+    throw new Error('The image service returned no image data.');
   }
 
   async generateVisualization(experimentJSON: ExperimentJSON): Promise<string> {

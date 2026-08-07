@@ -69,6 +69,8 @@ function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [isRenderingImage, setIsRenderingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [currentDrawingTool, setCurrentDrawingTool] = useState<DrawingTool | null>(null);
@@ -231,6 +233,8 @@ function App() {
     setIsAnalyzing(true);
     setShowResults(true);
     setAnalysisResult(null);
+    setIsRenderingImage(false);
+    setImageError(null);
 
     try {
       const experimentJSON = generateExperimentJSON(nodes, edges);
@@ -244,6 +248,20 @@ function App() {
           origin: { y: 0.6 },
           colors: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899']
         });
+      }
+
+      // The illustration is cosmetic: render it after the verdict is already
+      // on screen so a slow or failed image never holds up the result.
+      if (result.success && result.imagePrompt) {
+        setIsRenderingImage(true);
+        try {
+          const imageUrl = await openaiService.generateImage(result.imagePrompt);
+          setAnalysisResult((prev) => (prev === result ? { ...prev, imageUrl } : prev));
+        } catch {
+          setImageError('The illustration could not be rendered.');
+        } finally {
+          setIsRenderingImage(false);
+        }
       }
     } catch (error: any) {
       setAnalysisResult({
@@ -594,16 +612,29 @@ function App() {
                     </div>
 
                     {/* Right Column: Visualization */}
-                    {analysisResult.success && analysisResult.svg && (
+                    {analysisResult.success && (analysisResult.imageUrl || isRenderingImage || imageError) && (
                       <div className="flex-1 flex flex-col gap-3">
                         <div className="bg-zinc-50 dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-white/10 h-full flex flex-col">
                           <h3 className="mt-0 mb-4 text-lg font-semibold text-zinc-700 dark:text-zinc-200">
                             Visual Output
                           </h3>
-                          <div
-                            className="flex-1 flex items-center justify-center bg-white dark:bg-zinc-950 rounded-xl overflow-hidden"
-                            dangerouslySetInnerHTML={{ __html: analysisResult.svg }}
-                          />
+                          <div className="flex-1 flex items-center justify-center bg-white dark:bg-zinc-950 rounded-xl overflow-hidden min-h-[240px]">
+                            {analysisResult.imageUrl ? (
+                              <img
+                                src={analysisResult.imageUrl}
+                                alt="AI-rendered illustration of the experiment outcome"
+                                className="max-w-full max-h-[420px] object-contain"
+                              />
+                            ) : isRenderingImage ? (
+                              <div className="flex flex-col items-center gap-3 py-10">
+                                <div className="w-10 h-10 border-4 border-zinc-200 dark:border-white/10 border-t-orange-500 rounded-full animate-spin" />
+                                <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Painting your result...</div>
+                                <div className="text-xs text-zinc-400 dark:text-zinc-500">This can take up to a minute.</div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-zinc-400 dark:text-zinc-500 py-10">{imageError}</div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}

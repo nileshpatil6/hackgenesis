@@ -402,9 +402,13 @@ function App_Challenge() {
               </div>
             )}
 
-            {analysisResult.svg && (
-              <div className="bg-white dark:bg-zinc-950 border border-zinc-800 rounded-xl p-6 mb-6">
-                <div dangerouslySetInnerHTML={{ __html: analysisResult.svg }} />
+            {analysisResult.imageUrl && (
+              <div className="bg-white dark:bg-zinc-950 border border-zinc-800 rounded-xl p-6 mb-6 flex items-center justify-center">
+                <img
+                  src={analysisResult.imageUrl}
+                  alt="AI-rendered illustration of the experiment outcome"
+                  className="max-w-full max-h-[360px] object-contain"
+                />
               </div>
             )}
 
