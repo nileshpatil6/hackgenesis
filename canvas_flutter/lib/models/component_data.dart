@@ -101,3 +101,24 @@ class ComponentCategory {
   final String icon;
   final Color color;
 }
+
+/// The un-suffixed base a group of [ComponentData] variations was generated
+/// from — e.g. all ten resistor values collapse to one `ComponentFamily`
+/// with id `resistor`. Shown as a single row in the component library;
+/// tapping it reveals its variations instead of listing them individually.
+@immutable
+class ComponentFamily {
+  const ComponentFamily({
+    required this.id,
+    required this.label,
+    required this.category,
+    required this.description,
+  });
+
+  final String id;
+  final String label;
+
+  /// Matches a [ComponentCategory.id].
+  final String category;
+  final String description;
+}
