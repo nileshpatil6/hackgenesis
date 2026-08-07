@@ -47,7 +47,7 @@ A powerful visual experiment builder powered by AI. Create complex scientific ex
 
 ### AI-Powered Analysis
 
-🤖 **Google Gemini Integration**:
+🤖 **OpenAI Integration**:
 - Analyze your experiment setup
 - Predict outcomes and results
 - Provide step-by-step explanations
@@ -66,7 +66,7 @@ A powerful visual experiment builder powered by AI. Create complex scientific ex
 ### Prerequisites
 
 - Node.js 18+ and npm
-- Google Gemini API Key ([Get one here](https://makersuite.google.com/app/apikey))
+- OpenAI API Key ([Get one here](https://platform.openai.com/api-keys))
 
 ### Installation
 
@@ -87,20 +87,20 @@ npm run dev
 
 4. Open your browser to `http://localhost:3000`
 
-### Get Your Gemini API Key
+### Get Your OpenAI API Key
 
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click "Create API Key"
+1. Visit [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Sign in with your OpenAI account
+3. Click "Create new secret key"
 4. Copy the API key
-5. In the app, click the "API Key" button and paste your key
+5. Set it as `VITE_OPENAI_API_KEY` in your `.env` file
 
 ## How to Use
 
 ### First Time Setup
 
 1. On first launch, you'll see a **Welcome Modal** with instructions
-2. Click **"API Key"** button and enter your Google Gemini API key
+2. Set your OpenAI API key in the `.env` file (see [Get Your OpenAI API Key](#get-your-openai-api-key))
 3. Your API key is saved securely in browser local storage
 4. Try loading an **Example Experiment** to see how it works!
 
@@ -176,7 +176,7 @@ npm run dev
 - **TypeScript** - Type safety
 - **Vite** - Build tool and dev server
 - **React Flow** - Node-based editor
-- **Google Gemini AI** - AI analysis engine
+- **OpenAI API** - AI analysis engine
 - **Zustand** - State management
 - **Lucide React** - Icons
 
@@ -193,7 +193,7 @@ aiexp/
 │   ├── types/
 │   │   └── index.ts            # TypeScript type definitions
 │   ├── utils/
-│   │   ├── geminiService.ts    # Gemini API integration
+│   │   ├── openaiService.ts    # OpenAI API integration
 │   │   └── jsonGenerator.ts    # JSON export utility
 │   ├── App.tsx                 # Main application
 │   ├── main.tsx                # Entry point
@@ -221,7 +221,7 @@ aiexp/
 
 ### AI Analysis
 - Converts visual experiment to structured JSON
-- Sends to Gemini for analysis
+- Sends to OpenAI for analysis
 - Receives detailed explanations
 - Shows step-by-step process
 - Calculates numerical results
@@ -253,7 +253,7 @@ aiexp/
 ## Troubleshooting
 
 ### API Key Issues
-- Make sure you've entered a valid Gemini API key
+- Make sure `VITE_OPENAI_API_KEY` is set correctly in your `.env` file
 - Check that your API key has the necessary permissions
 - Verify your Google Cloud project has the Generative AI API enabled
 
@@ -297,7 +297,7 @@ MIT License - Feel free to use this for learning and experimentation!
 
 Built with ❤️ using:
 - React Flow for the amazing node editor
-- Google Gemini for AI-powered analysis
+- OpenAI for AI-powered analysis
 - The open-source community
 
 ---

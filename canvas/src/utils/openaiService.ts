@@ -1,34 +1,93 @@
 import { ExperimentJSON, AnalysisResult } from '../types';
 
-const BEDROCK_BASE_URL = import.meta.env.VITE_OPENAI_BASE_URL || 'https://bedrock-mantle.eu-north-1.api.aws/v1';
-const BEDROCK_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || '';
+const OPENAI_BASE_URL = 'https://api.openai.com/v1';
+const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || '';
 
-async function bedrockChat(messages: Array<{ role: string; content: string }>, model: string = 'deepseek.v3.2'): Promise<string> {
-  const response = await fetch(`${BEDROCK_BASE_URL}/chat/completions`, {
+// Model tiers picked per task, not one-size-fits-all:
+// - Luna: cheap + fast, used for short conversational hints
+// - Terra: balanced, used for code generation
+// - Sol: frontier reasoning, used for structured experiment analysis
+const MODEL_FAST = 'gpt-5.6-luna';
+const MODEL_BALANCED = 'gpt-5.6-terra';
+const MODEL_REASONING = 'gpt-5.6-sol';
+
+type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh';
+
+interface JsonSchemaFormat {
+  name: string;
+  schema: Record<string, unknown>;
+}
+
+const ANALYSIS_RESULT_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    success: { type: 'boolean' },
+    title: { type: 'string' },
+    message: { type: 'string' },
+    mistake: { type: ['string', 'null'] },
+    explanation: { type: 'string' },
+    svg: { type: ['string', 'null'] },
+  },
+  required: ['success', 'title', 'message', 'mistake', 'explanation', 'svg'],
+  additionalProperties: false,
+};
+
+async function callOpenAI(
+  model: string,
+  effort: ReasoningEffort,
+  input: string,
+  jsonSchema?: JsonSchemaFormat
+): Promise<string> {
+  const body: Record<string, unknown> = {
+    model,
+    reasoning: { effort },
+    input: [{ role: 'user', content: input }],
+  };
+
+  if (jsonSchema) {
+    body.text = {
+      format: {
+        type: 'json_schema',
+        name: jsonSchema.name,
+        strict: true,
+        schema: jsonSchema.schema,
+      },
+    };
+  }
+
+  const response = await fetch(`${OPENAI_BASE_URL}/responses`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${BEDROCK_API_KEY}`,
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model,
-      messages,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Bedrock API error (${response.status}): ${errorText}`);
+    throw new Error(`OpenAI API error (${response.status}): ${errorText}`);
   }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+
+  if (typeof data.output_text === 'string' && data.output_text.length > 0) {
+    return data.output_text;
+  }
+
+  const message = data.output?.find((item: any) => item.type === 'message');
+  const textPart = message?.content?.find((part: any) => part.type === 'output_text');
+  if (textPart?.text) {
+    return textPart.text;
+  }
+
+  throw new Error('OpenAI API returned no output text');
 }
 
-export class GeminiService {
+export class OpenAIService {
   // setApiKey is kept for backward compatibility but is no longer needed
   setApiKey(_apiKey: string) {
-    // No-op: Bedrock uses a fixed API key
+    // No-op: the API key is sourced from VITE_OPENAI_API_KEY
   }
 
   async getHint(experimentJSON: ExperimentJSON, userQuestion: string): Promise<string> {
@@ -71,7 +130,7 @@ Keep your response conversational, encouraging, friendly, and under 120 words. U
 `;
 
     try {
-      return await bedrockChat([{ role: 'user', content: prompt }]);
+      return await callOpenAI(MODEL_FAST, 'low', prompt);
     } catch (error) {
       throw new Error(`Failed to get hint: ${error}`);
     }
@@ -89,34 +148,30 @@ The experiment is represented as a node-based graph where:
 Experiment JSON:
 ${JSON.stringify(experimentJSON, null, 2)}
 
-Please analyze this experiment and provide a JSON response with the following structure:
-{
-  "success": boolean, // true if the experiment is valid and produces a result, false if it fails or is incomplete
-  "title": string, // "Experiment Success!" or "Experiment Failed"
-  "message": string, // A short, concise summary of the result (1-2 sentences)
-  "mistake": string | null, // If failed, describe the mistake clearly. DO NOT provide the solution. If success, null.
-  "explanation": string, // A detailed explanation of what happened and why.
-  "svg": string | null // If success, generate a simple SVG string (starting with <svg... and ending with </svg>) that visualizes the output (e.g., a graph, a chemical reaction, a circuit diagram, or a visual representation of the result). Make it colorful, modern, and self-contained. If failed, null.
-}
-
-Ensure the response is valid JSON. Do not include any markdown formatting or code blocks outside the JSON.
+Analyze this experiment and determine:
+- Whether it is valid and produces a result (success), or fails / is incomplete
+- A short title: "Experiment Success!" or "Experiment Failed"
+- A concise 1-2 sentence summary message
+- If failed, a clear description of the mistake WITHOUT giving away the solution (null if success)
+- A detailed explanation of what happened and why
+- If success, a colorful, modern, self-contained SVG string (starting with <svg... and ending with </svg>) visualizing the output (a graph, chemical reaction, circuit diagram, or similar). Null if failed.
 `;
 
     try {
-      const text = await bedrockChat([{ role: 'user', content: prompt }], 'deepseek.v3.2');
+      const text = await callOpenAI(MODEL_REASONING, 'high', prompt, {
+        name: 'experiment_analysis',
+        schema: ANALYSIS_RESULT_SCHEMA,
+      });
 
-      // Clean up potential markdown code blocks
-      const cleanText = text.replace(/```json\n?|\n?```/g, '').trim();
-
-      return JSON.parse(cleanText) as AnalysisResult;
+      return JSON.parse(text) as AnalysisResult;
     } catch (error) {
-      console.error("Bedrock Analysis Error:", error);
+      console.error('OpenAI Analysis Error:', error);
       return {
         success: false,
-        title: "Analysis Error",
-        message: "Failed to analyze the experiment.",
-        mistake: "There was an error communicating with the AI service.",
-        explanation: `Error details: ${error}`
+        title: 'Analysis Error',
+        message: 'Failed to analyze the experiment.',
+        mistake: 'There was an error communicating with the AI service.',
+        explanation: `Error details: ${error}`,
       };
     }
   }
@@ -133,15 +188,14 @@ Only return the code, no explanations.
 `;
 
     try {
-      return await bedrockChat([{ role: 'user', content: prompt }]);
+      return await callOpenAI(MODEL_BALANCED, 'medium', prompt);
     } catch (error) {
       throw new Error(`Failed to generate visualization: ${error}`);
     }
   }
 }
 
-
-export const geminiService = new GeminiService();
+export const openaiService = new OpenAIService();
 
 export const getTheme = () => {
   if (typeof window !== 'undefined') {
@@ -187,7 +241,7 @@ export const analyzeExperiment = async (
     }
   };
 
-  return geminiService.analyzeExperiment(experimentJSON);
+  return openaiService.analyzeExperiment(experimentJSON);
 };
 
 export const getHint = async (
@@ -225,5 +279,5 @@ export const getHint = async (
     }
   };
 
-  return geminiService.getHint(experimentJSON, userMessage);
+  return openaiService.getHint(experimentJSON, userMessage);
 };

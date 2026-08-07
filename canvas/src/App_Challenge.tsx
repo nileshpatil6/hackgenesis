@@ -16,7 +16,7 @@ import { ComponentLibrary } from './components/ComponentLibrary';
 import { DrawingToolbar } from './components/DrawingToolbar';
 import { DrawingCanvas } from './components/DrawingCanvas';
 import { RobotAssistant } from './components/RobotAssistant';
-import { analyzeExperiment, getHint } from './utils/geminiService';
+import { analyzeExperiment, getHint } from './utils/openaiService';
 import { AnalysisResult } from './types';
 import { DrawingTool } from './types/drawing';
 import confetti from 'canvas-confetti';

@@ -24,7 +24,7 @@ import { RobotAssistant } from './components/RobotAssistant';
 import { ComponentData, AnalysisResult } from './types';
 import { DrawingTool, DrawnShape } from './types/drawing';
 import { generateExperimentJSON, downloadJSON } from './utils/jsonGenerator';
-import { geminiService } from './utils/geminiService';
+import { openaiService } from './utils/openaiService';
 import { EXAMPLE_EXPERIMENTS, EXAMPLE_LIST } from './data/exampleExperiments';
 import { shapeRecognizer } from './utils/shapeRecognition';
 import { useUndoRedo } from './hooks/useUndoRedo';
@@ -148,7 +148,7 @@ function App() {
 
     try {
       const experimentJSON = generateExperimentJSON(nodes, edges);
-      const result = await geminiService.analyzeExperiment(experimentJSON);
+      const result = await openaiService.analyzeExperiment(experimentJSON);
       setAnalysisResult(result);
 
       if (result.success) {
@@ -326,7 +326,7 @@ function App() {
   const handleRequestHint = async (userMessage: string): Promise<string> => {
     try {
       const experimentJSON = generateExperimentJSON(nodes, edges);
-      const hint = await geminiService.getHint(experimentJSON, userMessage);
+      const hint = await openaiService.getHint(experimentJSON, userMessage);
       return hint;
     } catch (error: any) {
       return "Sorry, I'm having trouble thinking right now. Can you try asking again? 🤔";
