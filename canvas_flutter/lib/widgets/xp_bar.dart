@@ -63,17 +63,19 @@ class XpBar extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final showRank =
-            constraints.maxWidth.isFinite &&
-            constraints.maxWidth >= compactBreakpoint;
-        // The badge is a fixed 38px; below that (plus its spacing) there is
-        // no way to show it without overflowing, so it drops out entirely
-        // rather than forcing the row past the space it was given.
-        final showBadge =
-            !constraints.maxWidth.isFinite || constraints.maxWidth >= 48;
-        final showStreak =
-            dayStreak > 1 &&
-            (!constraints.maxWidth.isFinite || constraints.maxWidth >= 150);
+        final double w = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : double.infinity;
+        // Every optional element below is gated by how much width is
+        // actually available, and every element that *does* render is
+        // wrapped in Expanded/Flexible rather than sized to its natural
+        // width — so however small a parent squeezes this bar to, it degrades
+        // instead of overflowing. Thresholds are rough content-width budgets,
+        // not exact: it only matters that they're ordered least-to-most.
+        final showRank = w >= compactBreakpoint;
+        final showBadge = w >= 48;
+        final showXpText = w >= 90;
+        final showStreak = dayStreak > 1 && w >= 150;
 
         return Container(
           height: height,
@@ -94,41 +96,44 @@ class XpBar extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        if (showRank)
-                          Expanded(
+                    if (showXpText)
+                      Row(
+                        children: <Widget>[
+                          if (showRank)
+                            Expanded(
+                              child: Text(
+                                rankTitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            )
+                          else
+                            const Spacer(),
+                          const SizedBox(width: 8),
+                          Flexible(
                             child: Text(
-                              rankTitle,
+                              '$xpIntoLevel / $xpForNextLevel XP',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.2,
+                                color: AppColors.textSecondary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                fontFeatures: <FontFeature>[
+                                  FontFeature.tabularFigures(),
+                                ],
                               ),
                             ),
-                          )
-                        else
-                          const Spacer(),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$xpIntoLevel / $xpForNextLevel XP',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            fontFeatures: <FontFeature>[
-                              FontFeature.tabularFigures(),
-                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
+                        ],
+                      ),
+                    if (showXpText) const SizedBox(height: 5),
                     _ProgressTrack(value: clamped),
                   ],
                 ),
