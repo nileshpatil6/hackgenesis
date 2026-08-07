@@ -10,6 +10,14 @@ const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || '';
 const MODEL_FAST = 'gpt-5.6-luna';
 const MODEL_BALANCED = 'gpt-5.6-terra';
 const MODEL_REASONING = 'gpt-5.6-sol';
+// Renders the result illustration.
+const MODEL_IMAGE = 'gpt-image-2';
+// Render quality, and the single biggest lever on how long a render takes.
+// Left unset the API defaults to `auto`, which chases fidelity and can take
+// minutes. `low` returns in seconds and is plenty for a decorative panel -
+// OpenAI rates gpt-image-2 at low quality on par with gpt-image-1-mini, so
+// this keeps the better model without the wait.
+const IMAGE_QUALITY = 'low';
 
 type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh';
 
@@ -26,9 +34,8 @@ const ANALYSIS_RESULT_SCHEMA: Record<string, unknown> = {
     message: { type: 'string' },
     mistake: { type: ['string', 'null'] },
     explanation: { type: 'string' },
-    svg: { type: ['string', 'null'] },
   },
-  required: ['success', 'title', 'message', 'mistake', 'explanation', 'svg'],
+  required: ['success', 'title', 'message', 'mistake', 'explanation'],
   additionalProperties: false,
 };
 
@@ -84,6 +91,45 @@ async function callOpenAI(
   throw new Error('OpenAI API returned no output text');
 }
 
+/**
+ * Describes an experiment as an image prompt, without calling a model.
+ *
+ * Built in plain code on purpose: it lets the illustration start rendering at
+ * the same instant the analysis request goes out, instead of waiting for the
+ * analysis to write a prompt first. The picture therefore depicts the
+ * apparatus the player assembled rather than the verdict - the outcome simply
+ * is not known yet when the render begins.
+ */
+export function buildExperimentImagePrompt(experimentJSON: ExperimentJSON): string {
+  const labels = experimentJSON.nodes.map((n) => n.data.label);
+  const fields = [...new Set(experimentJSON.nodes.map((n) => n.data.component.category))];
+
+  const byId = new Map(experimentJSON.nodes.map((n) => [n.id, n.data.label]));
+  const links = experimentJSON.edges
+    .map((e) => {
+      const from = byId.get(e.source);
+      const to = byId.get(e.target);
+      if (!from || !to) return null;
+      return e.label ? `${from} to ${to} (${e.label})` : `${from} to ${to}`;
+    })
+    .filter((l): l is string => l !== null);
+
+  let prompt =
+    'A clean, modern scientific diagram on a plain white background, ' +
+    'illustrating this experiment setup. ' +
+    `Components: ${labels.join(', ')}. `;
+
+  if (links.length) prompt += `Connected as: ${links.join('; ')}. `;
+  if (fields.length) prompt += `Subject areas: ${fields.join(', ')}. `;
+
+  prompt +=
+    'Draw the real apparatus and how the parts wire together, with small neat ' +
+    'labels. Flat vector textbook style, soft shadows, a restrained palette ' +
+    'with orange accents, no photorealism, no text paragraphs.';
+
+  return prompt;
+}
+
 export class OpenAIService {
   // setApiKey is kept for backward compatibility but is no longer needed
   setApiKey(_apiKey: string) {
@@ -97,7 +143,7 @@ export class OpenAIService {
     const componentLabels = experimentJSON.nodes.map(n => n.data.label).join(', ');
 
     const prompt = `
-You are a friendly lab assistant robot 🤖 helping a student with their experiment.
+You are a friendly lab assistant helping a student with their experiment.
 
 CURRENT EXPERIMENT CONTEXT:
 - Total Components: ${nodeCount}
@@ -126,7 +172,7 @@ DO:
 - Reference specific components they've added by name
 - Help them think critically about what's missing or incorrect
 
-Keep your response conversational, encouraging, friendly, and under 120 words. Use emojis occasionally! 🔬✨
+Keep your response conversational, encouraging, friendly, and under 120 words. Do not use emojis.
 `;
 
     try {
@@ -154,7 +200,6 @@ Analyze this experiment and determine:
 - A concise 1-2 sentence summary message
 - If failed, a clear description of the mistake WITHOUT giving away the solution (null if success)
 - A detailed explanation of what happened and why
-- If success, a colorful, modern, self-contained SVG string (starting with <svg... and ending with </svg>) visualizing the output (a graph, chemical reaction, circuit diagram, or similar). Null if failed.
 `;
 
     try {
@@ -174,6 +219,44 @@ Analyze this experiment and determine:
         explanation: `Error details: ${error}`,
       };
     }
+  }
+
+  /**
+   * Renders `prompt` with the image model and returns a PNG data URL.
+   */
+  async generateImage(prompt: string): Promise<string> {
+    const response = await fetch(`${OPENAI_BASE_URL}/images/generations`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: MODEL_IMAGE,
+        prompt,
+        size: '1024x1024',
+        quality: IMAGE_QUALITY,
+        n: 1,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Image generation failed (${response.status}): ${errorText.slice(0, 300)}`);
+    }
+
+    const data = await response.json();
+    const first = data?.data?.[0];
+
+    if (first?.b64_json) {
+      return `data:image/png;base64,${first.b64_json}`;
+    }
+    // Some deployments hand back a URL instead of inline base64.
+    if (first?.url) {
+      return first.url as string;
+    }
+
+    throw new Error('The image service returned no image data.');
   }
 
   async generateVisualization(experimentJSON: ExperimentJSON): Promise<string> {

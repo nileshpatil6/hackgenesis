@@ -328,12 +328,20 @@ function App_Challenge() {
             setNodes((nds) => nds.concat(newNode));
             setSelectedTool(null);
           }}
+          onRequestLabel={(_title, defaultValue, onConfirm) => {
+            const label = window.prompt(_title, defaultValue);
+            if (label !== null) onConfirm(label);
+          }}
+          onUnrecognizedShape={() => {}}
+          onCancel={() => setSelectedTool(null)}
         />
 
         <ComponentLibrary
           onDragStart={() => {
             // Handle drag start if needed
           }}
+          collapsed={false}
+          onToggleCollapse={() => {}}
         />
 
         <DrawingToolbar
@@ -394,9 +402,13 @@ function App_Challenge() {
               </div>
             )}
 
-            {analysisResult.svg && (
-              <div className="bg-white dark:bg-zinc-950 border border-zinc-800 rounded-xl p-6 mb-6">
-                <div dangerouslySetInnerHTML={{ __html: analysisResult.svg }} />
+            {analysisResult.imageUrl && (
+              <div className="bg-white dark:bg-zinc-950 border border-zinc-800 rounded-xl p-6 mb-6 flex items-center justify-center">
+                <img
+                  src={analysisResult.imageUrl}
+                  alt="AI-rendered illustration of the experiment outcome"
+                  className="max-w-full max-h-[360px] object-contain"
+                />
               </div>
             )}
 
