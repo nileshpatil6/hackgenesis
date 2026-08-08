@@ -1,0 +1,26 @@
+
+> nextjs-app@0.1.0 dev
+> next dev -p 3000
+
+  ▲ Next.js 14.2.33
+  - Local:        http://localhost:3000
+  - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 1420ms
+ ○ Compiling /login ...
+(node:67429) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ Compiled /login in 1601ms (1431 modules)
+ GET /login 200 in 1729ms
+ ✓ Compiled /dashboard in 226ms (1453 modules)
+ ✓ Compiled /challenges in 196ms (1457 modules)
+ ✓ Compiled /api/generate-questions in 199ms (943 modules)
+ POST /api/generate-questions 200 in 9602ms
+ ✓ Compiled /hackathons in 177ms (1626 modules)
+ ✓ Compiled /api/hackathons/problems in 54ms (963 modules)
+ GET /api/hackathons/problems 200 in 66ms
+ GET /api/hackathons/problems 200 in 2ms
+ GET /login 200 in 125ms
+ GET /login 200 in 23ms
+[?25h
