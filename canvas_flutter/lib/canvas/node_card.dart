@@ -42,6 +42,10 @@ const Map<String, Color> _kCategoryColors = <String, Color>{
   'music': Color(0xFFDB2777),
   'robotics': Color(0xFF4B5563),
   'ai_ml': Color(0xFF7C3AED),
+  // Player-authored blocks. Deliberately outside the science palette above so
+  // a drawn or custom block is distinguishable at a glance from a library one.
+  'drawing': Color(0xFF0EA5E9),
+  'custom': Color(0xFF64748B),
 };
 
 /// Resolves the accent colour for a component [categoryId].
@@ -71,6 +75,8 @@ const Map<String, IconData> _kCategoryIcons = <String, IconData>{
   'music': Icons.music_note,
   'robotics': Icons.smart_toy,
   'ai_ml': Icons.psychology,
+  'drawing': Icons.gesture,
+  'custom': Icons.extension_outlined,
 };
 
 /// Resolves the vector icon for a component [categoryId].

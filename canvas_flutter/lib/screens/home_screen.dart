@@ -7,6 +7,9 @@ import 'package:provider/provider.dart';
 
 import '../canvas/canvas_controller.dart';
 import '../canvas/canvas_view.dart';
+import '../canvas/drawing_overlay.dart';
+import '../canvas/node_card.dart' show kNodeHeight, kNodeWidth;
+import '../canvas/shape_recognition.dart';
 import '../data/example_experiments.dart';
 import '../game/achievements.dart';
 import '../game/game_state.dart';
@@ -19,6 +22,7 @@ import '../theme/app_theme.dart';
 import '../widgets/assistant_panel.dart';
 import '../widgets/celebration_overlay.dart';
 import '../widgets/component_library_panel.dart';
+import '../widgets/custom_component_dialog.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/result_sheet.dart';
 import '../widgets/xp_bar.dart';
@@ -62,6 +66,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _assistantOpen = false;
   bool _assistantLoading = false;
+
+  /// The armed drawing tool, or null when the canvas is in its normal
+  /// pan-and-zoom mode. While this is set, [DrawingOverlay] covers the canvas
+  /// and swallows every gesture.
+  DrawingTool? _tool;
 
   /// Live state of the current experiment run.
   ///
@@ -177,6 +186,44 @@ class _HomeScreenState extends State<HomeScreen> {
       (_controller.nodes.length % 3) * 26.0 - 26,
     );
     _controller.addComponent(component, center + jitter);
+  }
+
+  // ----------------------------------------------------------------- drawing
+
+  /// Arms [tool], or disarms it when it is already the active one.
+  void _selectTool(DrawingTool tool) {
+    setState(() => _tool = _tool == tool ? null : tool);
+  }
+
+  /// Turns a finished drawing into a node.
+  ///
+  /// [localBounds] is in the canvas viewport's own coordinates, which is what
+  /// the overlay reports. Converting the centre through the controller means a
+  /// shape lands where it was drawn at any pan and zoom.
+  Future<void> _onShapeDrawn(ShapeKind kind, Rect localBounds) async {
+    // Disarm first: the label dialog takes focus, and leaving the overlay
+    // armed underneath it means a stray tap on dismiss starts a new stroke.
+    setState(() => _tool = null);
+
+    final String? label = await showShapeLabelDialog(context, kind);
+    if (!mounted || label == null || label.isEmpty) return;
+
+    final Offset worldCentre = _controller.screenToWorld(localBounds.center);
+    // Node cards are a fixed size, so the drawn box sets the position rather
+    // than the dimensions. Centring the card on it keeps the block where the
+    // player put it instead of hanging off the corner.
+    _controller.addComponent(
+      drawnComponent(kind: kind, label: label),
+      worldCentre - const Offset(kNodeWidth / 2, kNodeHeight / 2),
+    );
+  }
+
+  /// Opens the custom-block builder and drops the result on the canvas.
+  Future<void> _addCustomComponent() async {
+    setState(() => _tool = null);
+    final component = await CustomComponentDialog.show(context);
+    if (!mounted || component == null) return;
+    _quickAdd(component);
   }
 
   Future<void> _runExperiment() async {
@@ -549,6 +596,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCanvasArea() {
+    final DrawingTool? tool = _tool;
+
     return Stack(
       children: [
         Positioned.fill(
@@ -559,10 +608,102 @@ class _HomeScreenState extends State<HomeScreen> {
                 showEdgeLabelDialog(context, current),
           ),
         ),
+        // Above the canvas so it takes every gesture, below the toolbars so
+        // they stay tappable while a tool is armed.
+        if (tool != null)
+          Positioned.fill(
+            child: DrawingOverlay(
+              tool: tool,
+              onShapeDrawn: _onShapeDrawn,
+              onUnrecognised: () => _toast(
+                'That one did not read as a shape. Try a clearer rectangle, '
+                'circle, triangle or line.',
+              ),
+              onCancel: () => setState(() => _tool = null),
+            ),
+          ),
         Positioned(left: 12, bottom: 12, child: _buildCanvasToolbar()),
+        Positioned(right: 12, top: 0, bottom: 0, child: _buildDrawToolbar()),
       ],
     );
   }
+
+  /// The drawing palette, pinned to the right edge of the canvas.
+  Widget _buildDrawToolbar() {
+    const tools = <(DrawingTool, IconData, String)>[
+      (DrawingTool.freehand, Icons.gesture, 'Draw freehand'),
+      (DrawingTool.rectangle, Icons.crop_square, 'Rectangle'),
+      (DrawingTool.circle, Icons.circle_outlined, 'Circle'),
+      (DrawingTool.triangle, Icons.change_history, 'Triangle'),
+      (DrawingTool.line, Icons.remove, 'Line'),
+      (DrawingTool.arrow, Icons.arrow_outward, 'Arrow'),
+    ];
+
+    return Center(
+      child: SingleChildScrollView(
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.surface.withValues(alpha: 0.94),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _toolbarButton(
+                icon: Icons.add_box_outlined,
+                tooltip: 'Create a custom block',
+                onPressed: _addCustomComponent,
+              ),
+              _horizontalDivider(),
+              for (final (tool, icon, tooltip) in tools)
+                _drawToolButton(tool: tool, icon: icon, tooltip: tooltip),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _drawToolButton({
+    required DrawingTool tool,
+    required IconData icon,
+    required String tooltip,
+  }) {
+    final bool active = _tool == tool;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Tooltip(
+        message: tooltip,
+        child: Material(
+          color: active ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => _selectTool(tool),
+            child: SizedBox(
+              width: 36,
+              height: 34,
+              child: Icon(
+                icon,
+                size: 18,
+                color: active ? Colors.white : AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _horizontalDivider() => Container(
+    width: 20,
+    height: 1,
+    margin: const EdgeInsets.symmetric(vertical: 4),
+    color: AppColors.border,
+  );
 
   Widget _buildCanvasToolbar() {
     return ListenableBuilder(

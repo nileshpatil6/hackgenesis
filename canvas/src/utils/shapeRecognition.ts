@@ -174,6 +174,12 @@ export class ShapeRecognizer {
 
     if (closedRatio > 0.15) return 0;
 
+    // A closed outline ends where it started, so the repeated point does not
+    // count: a rectangle simplifies to five entries and a triangle to four.
+    // Without this a triangle in a squarish box scores 0.76 here against 0.75
+    // as a triangle, and is recognised as a rectangle.
+    if (simplified.length - 1 < 4) return 0.35;
+
     return 0.7 + (1 - aspectRatio) * 0.3;
   }
 
