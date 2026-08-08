@@ -41,7 +41,7 @@ start_app() {
 start_app "canvas"             "$ROOT_DIR/canvas"             "npm run dev"
 start_app "website-frontend"   "$ROOT_DIR/website-frontend"   "npm run dev"
 start_app "main"                "$ROOT_DIR/main"                "npm run dev"
-start_app "learning-platform"   "$ROOT_DIR/learning-platform"   "npm run dev"
+start_app "learning-platform"   "$ROOT_DIR/learning-platform"   "npm install && npx prisma db push && npm run dev"
 
 echo
 echo "All services starting. Tailing logs (Ctrl+C to stop everything)..."
