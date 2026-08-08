@@ -12,6 +12,50 @@ import '../models/calendar.dart';
 import '../models/chat_message.dart';
 
 class SupabaseService {
+  /// Upserts [data] into [table], recovering from columns the schema lacks.
+  ///
+  /// The app adds a `user_id` to some payloads, but not every table has that
+  /// column: the notes table links to its owner through `subject_id`, so the
+  /// insert failed with PGRST204 ("Could not find the 'user_id' column") and
+  /// every note silently stayed local. Rather than hardcode which table has
+  /// which column, drop whatever the server says it does not know and retry
+  /// once, so a schema that drifts costs a round trip instead of the write.
+  static Future<bool> _upsert(String table, Map<String, dynamic> data,
+      {String? label}) async {
+    try {
+      await client.from(table).upsert(data);
+      if (label != null) print('✅ $label');
+      return true;
+    } catch (e) {
+      final unknown = _unknownColumn(e);
+      if (unknown != null && data.containsKey(unknown)) {
+        final trimmed = Map<String, dynamic>.from(data)..remove(unknown);
+        try {
+          await client.from(table).upsert(trimmed);
+          print('⚠️  $table has no "$unknown" column; saved without it');
+          return true;
+        } catch (retryError) {
+          print('❌ Error saving to $table: $retryError');
+          return false;
+        }
+      }
+      print('❌ Error saving to $table: $e');
+      return false;
+    }
+  }
+
+  /// Extracts the column name from a PostgREST schema-cache error.
+  ///
+  /// Visible for testing.
+  static String? unknownColumnOf(Object error) => _unknownColumn(error);
+
+  /// Extracts the column name from a PostgREST schema-cache error.
+  static String? _unknownColumn(Object error) {
+    final match = RegExp(r"Could not find the '([^']+)' column")
+        .firstMatch(error.toString());
+    return match?.group(1);
+  }
+
   static final SupabaseClient client = Supabase.instance.client;
 
   // Tables
@@ -99,9 +143,8 @@ class SupabaseService {
       if (data['user_id'] == null) {
         print('⚠️ Warning: No user ID available when saving subject!');
       }
-      await client.from(subjectsTable).upsert(data);
-      print('✅ Subject saved: ${subject.name}');
-      return true;
+      return await _upsert(subjectsTable, data,
+          label: 'Subject saved: ${subject.name}');
     } catch (e) {
       print('❌ Error saving subject to Supabase: $e');
       return false;
@@ -216,9 +259,8 @@ class SupabaseService {
     try {
       final data = note.toJson();
       data['user_id'] = _firebaseUserId;
-      await client.from(notesTable).upsert(data);
-      print('✅ Note saved: ${note.title}');
-      return true;
+      return await _upsert(notesTable, data,
+          label: 'Note saved: ${note.title}');
     } catch (e) {
       print('❌ Error saving note to Supabase: $e');
       return false;
@@ -237,8 +279,7 @@ class SupabaseService {
 
   static Future<bool> saveLesson(Lesson lesson) async {
     try {
-      await client.from(lessonsTable).upsert(lesson.toJson());
-      return true;
+      return await _upsert(lessonsTable, lesson.toJson());
     } catch (e) {
       print('Error saving lesson to Supabase: $e');
       return false;
@@ -257,8 +298,7 @@ class SupabaseService {
 
   static Future<bool> saveQuiz(Quiz quiz) async {
     try {
-      await client.from(quizzesTable).upsert(quiz.toJson());
-      return true;
+      return await _upsert(quizzesTable, quiz.toJson());
     } catch (e) {
       print('Error saving quiz to Supabase: $e');
       return false;
@@ -297,8 +337,7 @@ class SupabaseService {
     try {
       final data = achievement.toJson();
       data['user_id'] = _firebaseUserId;
-      await client.from(achievementsTable).upsert(data);
-      return true;
+      return await _upsert(achievementsTable, data);
     } catch (e) {
       print('Error saving achievement to Supabase: $e');
       return false;
@@ -307,8 +346,7 @@ class SupabaseService {
 
   static Future<bool> saveStudyPlan(StudyPlan plan) async {
     try {
-      await client.from(studyPlansTable).upsert(plan.toJson());
-      return true;
+      return await _upsert(studyPlansTable, plan.toJson());
     } catch (e) {
       print('Error saving study plan to Supabase: $e');
       return false;
@@ -325,8 +363,7 @@ class SupabaseService {
 
   static Future<bool> savePlaylist(StudyPlaylist playlist) async {
     try {
-      await client.from(playlistsTable).upsert(playlist.toJson());
-      return true;
+      return await _upsert(playlistsTable, playlist.toJson());
     } catch (e) {
       print('Error saving playlist to Supabase: $e');
       return false;
@@ -345,8 +382,7 @@ class SupabaseService {
     try {
       final data = event.toJson();
       data['user_id'] = client.auth.currentUser?.id;
-      await client.from(calendarEventsTable).upsert(data);
-      return true;
+      return await _upsert(calendarEventsTable, data);
     } catch (e) {
       print('Error saving calendar event to Supabase: $e');
       return false;
@@ -517,8 +553,7 @@ class SupabaseService {
       // But message.userId is usually passed from caller.
       // Just in case, ensure consistent user_id logic if needed.
       // But local message object should strictly be saved.
-      await client.from(chatMessagesTable).upsert(data);
-      return true;
+      return await _upsert(chatMessagesTable, data);
     } catch (e) {
       print('Error saving chat message to Supabase: $e');
       return false;

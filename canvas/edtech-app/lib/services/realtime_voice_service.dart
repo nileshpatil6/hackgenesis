@@ -31,7 +31,7 @@ class RealtimeVoiceService {
   RealtimeVoiceService({
     required this.apiKey,
     this.model = _defaultModel,
-    this.voice = 'cedar',
+    this.voice = 'marin',
   });
 
   static const String _defaultModel = 'gpt-realtime-2.1';
@@ -98,7 +98,8 @@ class RealtimeVoiceService {
         uri,
         headers: <String, dynamic>{
           'Authorization': 'Bearer $apiKey',
-          'OpenAI-Beta': 'realtime=v1',
+          // No OpenAI-Beta header. Sending it selects the beta wire format,
+          // which the server now refuses outright with beta_api_shape_disabled.
         },
         pingInterval: const Duration(seconds: 20),
       );
@@ -129,23 +130,26 @@ class RealtimeVoiceService {
     }
     if (_closed || _channel == null) return;
 
+    // GA session shape. The beta form put the audio settings at the top of
+    // `session`; the GA form nests them under `audio.input` / `audio.output`
+    // and requires the explicit session type.
     _send({
       'type': 'session.update',
       'session': {
+        'type': 'realtime',
         'instructions': instructions,
-        'voice': voice,
-        // Audio formats are left at their defaults (24 kHz mono PCM16), which
-        // is the only combination the API accepts anyway. Naming them
-        // explicitly is what differs between API versions, so it is the most
-        // likely thing to get the session rejected.
-        'input_audio_transcription': {'model': 'whisper-1'},
-        // Server-side VAD means the model decides when the user has finished
-        // speaking, so there is no push-to-talk button to hold.
-        'turn_detection': {
-          'type': 'server_vad',
-          'threshold': 0.5,
-          'silence_duration_ms': 600,
-          'prefix_padding_ms': 300,
+        'audio': {
+          'input': {
+            'format': {'type': 'audio/pcm', 'rate': sampleRate},
+            // Semantic VAD decides when the student has actually finished a
+            // thought rather than just paused, so there is no button to hold.
+            'turn_detection': {'type': 'semantic_vad'},
+            'transcription': {'model': 'whisper-1'},
+          },
+          'output': {
+            'format': {'type': 'audio/pcm'},
+            'voice': voice,
+          },
         },
       },
     });
