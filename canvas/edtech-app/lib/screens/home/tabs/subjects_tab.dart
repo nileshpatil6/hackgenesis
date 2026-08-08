@@ -23,14 +23,9 @@ class _SubjectsTabState extends State<SubjectsTab> {
     super.dispose();
   }
 
-  final List<Color> subjectColors = [
-    const Color(0xFF6C63FF),
-    const Color(0xFF4ECDC4),
-    const Color(0xFFFF6584),
-    const Color(0xFFFED330),
-    const Color(0xFF26DE81),
-    const Color(0xFFFC5C65),
-  ];
+  /// Swatches offered when creating a subject. Drawn from the shared
+  /// palette so user-picked colours stay in family with the rest of the app.
+  final List<Color> subjectColors = AppTheme.subjectPalette;
 
   void _showCreateSubjectDialog() {
     final nameController = TextEditingController();
@@ -42,8 +37,12 @@ class _SubjectsTabState extends State<SubjectsTab> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: Theme.of(context).cardTheme.color,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text('Create New Subject', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.bold)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text('Create New Subject',
+              style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                  fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -51,11 +50,13 @@ class _SubjectsTabState extends State<SubjectsTab> {
               children: [
                 TextField(
                   controller: nameController,
-                  style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+                  style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color),
                   decoration: InputDecoration(
                     labelText: 'Subject Name',
                     hintText: 'e.g., Mathematics, Physics',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     filled: true,
                     fillColor: Theme.of(context).scaffoldBackgroundColor,
                   ),
@@ -63,17 +64,22 @@ class _SubjectsTabState extends State<SubjectsTab> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: descriptionController,
-                  style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+                  style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color),
                   decoration: InputDecoration(
                     labelText: 'Description (Optional)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     filled: true,
                     fillColor: Theme.of(context).scaffoldBackgroundColor,
                   ),
                   maxLines: 3,
                 ),
                 const SizedBox(height: 24),
-                Text('Choose Color', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.w600)),
+                Text('Choose Color',
+                    style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        fontWeight: FontWeight.w600)),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 12,
@@ -106,7 +112,8 @@ class _SubjectsTabState extends State<SubjectsTab> {
                           ],
                         ),
                         child: selectedColor == color
-                            ? const Icon(Icons.check, color: Colors.white, size: 24)
+                            ? const Icon(Icons.check,
+                                color: Colors.white, size: 24)
                             : null,
                       ),
                     );
@@ -118,24 +125,32 @@ class _SubjectsTabState extends State<SubjectsTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
+              child: Text('Cancel',
+                  style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyMedium?.color)),
             ),
             ElevatedButton(
               onPressed: () async {
                 if (nameController.text.isNotEmpty) {
-                  final subjectProvider = Provider.of<SubjectProvider>(context, listen: false);
+                  final subjectProvider =
+                      Provider.of<SubjectProvider>(context, listen: false);
                   final subject = await subjectProvider.createSubject(
                     name: nameController.text,
-                    description: descriptionController.text.isEmpty ? null : descriptionController.text,
+                    description: descriptionController.text.isEmpty
+                        ? null
+                        : descriptionController.text,
                     color: selectedColor.value.toRadixString(16),
                   );
-                  final userProvider = Provider.of<UserProvider>(context, listen: false);
+                  final userProvider =
+                      Provider.of<UserProvider>(context, listen: false);
                   await userProvider.unlockAchievement('first_subject');
                   if (mounted) {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => SubjectDetailScreen(subject: subject)),
+                      MaterialPageRoute(
+                          builder: (_) =>
+                              SubjectDetailScreen(subject: subject)),
                     );
                   }
                 }
@@ -143,8 +158,10 @@ class _SubjectsTabState extends State<SubjectsTab> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryAccent,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
               child: const Text('Create'),
             ),
@@ -184,7 +201,10 @@ class _SubjectsTabState extends State<SubjectsTab> {
                               controller: _searchController,
                               autofocus: true,
                               style: TextStyle(
-                                  color: Theme.of(context).textTheme.bodyLarge?.color),
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.color),
                               decoration: InputDecoration(
                                 hintText: 'Search subjects...',
                                 border: InputBorder.none,
@@ -235,13 +255,14 @@ class _SubjectsTabState extends State<SubjectsTab> {
                           child: IconButton(
                             icon: Icon(Icons.search,
                                 color: Theme.of(context).iconTheme.color),
-                            onPressed: () => setState(() => _isSearching = true),
+                            onPressed: () =>
+                                setState(() => _isSearching = true),
                           ),
                         ),
                       ],
                     ),
             ),
-            
+
             Expanded(
               child: Consumer<SubjectProvider>(
                 builder: (context, subjectProvider, child) {
@@ -258,8 +279,8 @@ class _SubjectsTabState extends State<SubjectsTab> {
                           .toList();
 
                   if (subjects.isEmpty) {
-                    final isFilteredEmpty =
-                        _searchQuery.isNotEmpty && subjectProvider.subjects.isNotEmpty;
+                    final isFilteredEmpty = _searchQuery.isNotEmpty &&
+                        subjectProvider.subjects.isNotEmpty;
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -279,24 +300,37 @@ class _SubjectsTabState extends State<SubjectsTab> {
                           ),
                           const SizedBox(height: 24),
                           Text(
-                            isFilteredEmpty ? 'No matching subjects' : 'No subjects yet',
+                            isFilteredEmpty
+                                ? 'No matching subjects'
+                                : 'No subjects yet',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).textTheme.bodyLarge?.color,
+                              color:
+                                  Theme.of(context).textTheme.bodyLarge?.color,
                             ),
                           ),
                           const SizedBox(height: 8),
                           if (isFilteredEmpty)
                             Text(
                               'Try a different search term',
-                              style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6)),
+                              style: TextStyle(
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color
+                                      ?.withOpacity(0.6)),
                             )
                           else
-                          Text(
-                            'Create your first subject to start learning!',
-                            style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6)),
-                          ),
+                            Text(
+                              'Create your first subject to start learning!',
+                              style: TextStyle(
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color
+                                      ?.withOpacity(0.6)),
+                            ),
                           const SizedBox(height: 32),
                           ElevatedButton.icon(
                             onPressed: _showCreateSubjectDialog,
@@ -305,8 +339,10 @@ class _SubjectsTabState extends State<SubjectsTab> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.primaryAccent,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 32, vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
                             ),
                           ),
                         ],
@@ -316,7 +352,8 @@ class _SubjectsTabState extends State<SubjectsTab> {
 
                   return GridView.builder(
                     padding: const EdgeInsets.all(24),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
@@ -325,14 +362,16 @@ class _SubjectsTabState extends State<SubjectsTab> {
                     itemCount: subjects.length,
                     itemBuilder: (context, index) {
                       final subject = subjects[index];
-                      final color = Color(int.parse('0xFF${subject.color.replaceAll('#', '')}'));
+                      final color = Color(int.parse(
+                          '0xFF${subject.color.replaceAll('#', '')}'));
 
                       return GestureDetector(
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => SubjectDetailScreen(subject: subject),
+                              builder: (_) =>
+                                  SubjectDetailScreen(subject: subject),
                             ),
                           );
                         },
@@ -341,11 +380,15 @@ class _SubjectsTabState extends State<SubjectsTab> {
                             color: Theme.of(context).cardTheme.color,
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
-                              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.05)
+                                  : Colors.black.withOpacity(0.03),
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: isDark ? Colors.black.withOpacity(0.2) : Colors.grey.withOpacity(0.05),
+                                color: isDark
+                                    ? Colors.black.withOpacity(0.2)
+                                    : Colors.grey.withOpacity(0.05),
                                 blurRadius: 15,
                                 offset: const Offset(0, 5),
                               ),
@@ -362,7 +405,8 @@ class _SubjectsTabState extends State<SubjectsTab> {
                                     color: color.withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
-                                  child: Icon(Icons.book_rounded, color: color, size: 28),
+                                  child: Icon(Icons.book_rounded,
+                                      color: color, size: 28),
                                 ),
                                 const Spacer(),
                                 Text(
@@ -370,7 +414,10 @@ class _SubjectsTabState extends State<SubjectsTab> {
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.color,
                                   ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -379,7 +426,11 @@ class _SubjectsTabState extends State<SubjectsTab> {
                                 Text(
                                   '${subject.totalNotes} notes',
                                   style: TextStyle(
-                                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color
+                                        ?.withOpacity(0.6),
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                   ),

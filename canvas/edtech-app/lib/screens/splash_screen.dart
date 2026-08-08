@@ -117,9 +117,8 @@ class _SplashScreenState extends State<SplashScreen>
         // A plain cross-fade: the default zoom transition briefly renders the
         // outgoing page inset from the edge, which reads as a misaligned
         // splash in a screenshot.
-        transitionsBuilder:
-            (context, animation, secondaryAnimation, child) =>
-                FadeTransition(opacity: animation, child: child),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            FadeTransition(opacity: animation, child: child),
       ),
     );
   }
@@ -139,18 +138,18 @@ class _SplashScreenState extends State<SplashScreen>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Color(0xFF0B0E14),
-                      Color(0xFF141B2B),
-                      Color(0xFF1B1440),
+                      AppTheme.inkBackground,
+                      Color(0xFF17172A),
+                      Color(0xFF1E1838),
                     ],
                   )
                 : const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Color(0xFFF7F8FF),
-                      Color(0xFFFFFBF6),
-                      Color(0xFFF6F2FF),
+                      Color(0xFFF4F2FE),
+                      Color(0xFFFDF7F2),
+                      Color(0xFFF2F5FB),
                     ],
                   ),
           ),
@@ -226,7 +225,7 @@ class _SplashScreenState extends State<SplashScreen>
             height: 1.4,
             fontWeight: FontWeight.w500,
             letterSpacing: 0.1,
-            color: isDark ? Colors.white70 : const Color(0xFF64748B),
+            color: isDark ? Colors.white70 : AppTheme.ink500,
           ),
         ),
       ],
@@ -245,7 +244,7 @@ class _SplashScreenState extends State<SplashScreen>
               minHeight: 3,
               backgroundColor: isDark
                   ? Colors.white.withValues(alpha: 0.10)
-                  : const Color(0xFF6366F1).withValues(alpha: 0.12),
+                  : AppTheme.brand500.withValues(alpha: 0.12),
               valueColor: const AlwaysStoppedAnimation(AppTheme.primaryAccent),
             ),
           ),
@@ -257,7 +256,7 @@ class _SplashScreenState extends State<SplashScreen>
             fontSize: 12.5,
             fontWeight: FontWeight.w500,
             letterSpacing: 0.2,
-            color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+            color: isDark ? Colors.white38 : AppTheme.ink300,
           ),
         ),
       ],

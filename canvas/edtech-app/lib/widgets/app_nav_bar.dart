@@ -54,7 +54,7 @@ class AppNavBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6),
         decoration: BoxDecoration(
           color: isDark
-              ? const Color(0xFF151A23).withValues(alpha: 0.96)
+              ? AppTheme.inkSurface.withValues(alpha: 0.96)
               : Colors.white,
           borderRadius: BorderRadius.circular(kNavBarHeight / 2),
           border: Border.all(
@@ -66,7 +66,7 @@ class AppNavBar extends StatelessWidget {
             BoxShadow(
               color: isDark
                   ? Colors.black.withValues(alpha: 0.4)
-                  : const Color(0xFF6366F1).withValues(alpha: 0.13),
+                  : AppTheme.brand500.withValues(alpha: 0.13),
               blurRadius: 24,
               offset: const Offset(0, 8),
             ),
@@ -107,7 +107,7 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inactive = isDark ? Colors.white54 : const Color(0xFF94A3B8);
+    final inactive = isDark ? Colors.white54 : AppTheme.ink300;
 
     return Semantics(
       selected: selected,

@@ -53,7 +53,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadData() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final subjectProvider = Provider.of<SubjectProvider>(context, listen: false);
+    final subjectProvider =
+        Provider.of<SubjectProvider>(context, listen: false);
 
     if (userProvider.currentUser != null) {
       await subjectProvider.loadSubjects(userProvider.currentUser!.id);

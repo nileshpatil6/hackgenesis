@@ -38,7 +38,8 @@ class Subject extends HiveObject {
   double progressPercentage;
 
   @HiveField(11)
-  String? fileSearchStoreId; // AI vector store ID for this subject (unused; store id is cached in-memory per session instead)
+  String?
+      fileSearchStoreId; // AI vector store ID for this subject (unused; store id is cached in-memory per session instead)
 
   Subject({
     required this.id,

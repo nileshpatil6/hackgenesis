@@ -50,10 +50,10 @@ class DefaultFirebaseOptions {
 
   // TODO: Replace with your actual iOS configuration from Firebase Console
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_IOS_API_KEY',      // From GoogleService-Info.plist
-    appId: 'YOUR_IOS_APP_ID',        // From GoogleService-Info.plist
-    messagingSenderId: 'YOUR_SENDER_ID',  // From GoogleService-Info.plist
-    projectId: 'YOUR_PROJECT_ID',    // From Firebase Console
+    apiKey: 'YOUR_IOS_API_KEY', // From GoogleService-Info.plist
+    appId: 'YOUR_IOS_APP_ID', // From GoogleService-Info.plist
+    messagingSenderId: 'YOUR_SENDER_ID', // From GoogleService-Info.plist
+    projectId: 'YOUR_PROJECT_ID', // From Firebase Console
     storageBucket: 'YOUR_PROJECT_ID.appspot.com',
     iosBundleId: 'com.example.edtechApp',
   );

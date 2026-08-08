@@ -28,32 +28,86 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String aiPersonality = 'Professor';
 
   final List<String> educationLevels = [
-    'Class 1-5', 'Class 6-8', 'Class 9-10', 'Class 11-12',
-    'Undergraduate', 'Postgraduate', 'Professional',
+    'Class 1-5',
+    'Class 6-8',
+    'Class 9-10',
+    'Class 11-12',
+    'Undergraduate',
+    'Postgraduate',
+    'Professional',
   ];
 
   final List<String> streams = [
-    'Engineering', 'Medical', 'Commerce', 'Arts & Humanities',
-    'Law', 'Competitive Exams', 'Skill-based', 'Other',
+    'Engineering',
+    'Medical',
+    'Commerce',
+    'Arts & Humanities',
+    'Law',
+    'Competitive Exams',
+    'Skill-based',
+    'Other',
   ];
 
   final List<Map<String, dynamic>> learningStyleOptions = [
-    {'title': 'Visual', 'icon': Icons.visibility_rounded, 'value': 'Visual', 'desc': 'I learn by seeing'},
-    {'title': 'Auditory', 'icon': Icons.headphones_rounded, 'value': 'Audio', 'desc': 'I learn by listening'},
-    {'title': 'Practical', 'icon': Icons.build_rounded, 'value': 'Examples', 'desc': 'I learn by doing'},
-    {'title': 'Reading', 'icon': Icons.menu_book_rounded, 'value': 'Reading', 'desc': 'I learn by reading'},
+    {
+      'title': 'Visual',
+      'icon': Icons.visibility_rounded,
+      'value': 'Visual',
+      'desc': 'I learn by seeing'
+    },
+    {
+      'title': 'Auditory',
+      'icon': Icons.headphones_rounded,
+      'value': 'Audio',
+      'desc': 'I learn by listening'
+    },
+    {
+      'title': 'Practical',
+      'icon': Icons.build_rounded,
+      'value': 'Examples',
+      'desc': 'I learn by doing'
+    },
+    {
+      'title': 'Reading',
+      'icon': Icons.menu_book_rounded,
+      'value': 'Reading',
+      'desc': 'I learn by reading'
+    },
   ];
 
   final List<String> interestOptions = [
-    'Sports', 'Gaming', 'Tech', 'Arts', 'Music',
-    'Movies', 'Science', 'History', 'Travel', 'Coding'
+    'Sports',
+    'Gaming',
+    'Tech',
+    'Arts',
+    'Music',
+    'Movies',
+    'Science',
+    'History',
+    'Travel',
+    'Coding'
   ];
 
   final List<Map<String, String>> aiPersonalities = [
-    {'name': 'Professor', 'icon': '👨‍🏫', 'value': 'Professor', 'desc': 'Wise & Detailed'},
+    {
+      'name': 'Professor',
+      'icon': '👨‍🏫',
+      'value': 'Professor',
+      'desc': 'Wise & Detailed'
+    },
     {'name': 'Buddy', 'icon': '🤖', 'value': 'Robot', 'desc': 'Fun & Casual'},
-    {'name': 'Detective', 'icon': '🕵️', 'value': 'Detective', 'desc': 'Curious & Analytical'},
-    {'name': 'Coach', 'icon': '💪', 'value': 'Coach', 'desc': 'Motivating & Direct'},
+    {
+      'name': 'Detective',
+      'icon': '🕵️',
+      'value': 'Detective',
+      'desc': 'Curious & Analytical'
+    },
+    {
+      'name': 'Coach',
+      'icon': '💪',
+      'value': 'Coach',
+      'desc': 'Motivating & Direct'
+    },
   ];
 
   void _nextPage() {
@@ -110,24 +164,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       body: Stack(
         children: [
           // Premium Bluish-Cream Background
           Container(
             decoration: BoxDecoration(
-              gradient: isDark 
+              gradient: isDark
                   ? const LinearGradient(
-                      colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF334155)],
+                      colors: [
+                        AppTheme.inkBackground,
+                        AppTheme.inkSurface,
+                        AppTheme.inkSurfaceRaised
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
                   : const LinearGradient(
                       colors: [
-                        Color(0xFFF0F4FF), // Soft Blue-White
-                        Color(0xFFFFF8F0), // Warm Cream
-                        Color(0xFFF5F0FF), // Lavender Tint
+                        Color(0xFFF4F2FE), // brand tint
+                        Color(0xFFFDF7F2), // warm cream
+                        Color(0xFFF2F5FB), // cool tint
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -141,13 +199,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               children: [
                 // Header with Progress
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   child: Row(
                     children: [
                       if (_currentPage > 0)
                         Container(
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.7),
+                            color: isDark
+                                ? Colors.white.withOpacity(0.1)
+                                : Colors.white.withOpacity(0.7),
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
@@ -158,7 +219,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ],
                           ),
                           child: IconButton(
-                            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: isDark ? Colors.white : Colors.black87),
+                            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                                size: 18,
+                                color: isDark ? Colors.white : Colors.black87),
                             onPressed: _previousPage,
                           ),
                         ),
@@ -169,10 +232,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             borderRadius: BorderRadius.circular(8),
                             child: LinearProgressIndicator(
                               value: (_currentPage + 1) / 6,
-                              backgroundColor: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.15),
-                              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryAccent),
+                              backgroundColor: isDark
+                                  ? Colors.white.withOpacity(0.1)
+                                  : Colors.grey.withOpacity(0.15),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                  AppTheme.primaryAccent),
                               minHeight: 6,
                             ),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.white.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${_currentPage + 1} of 6',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                            color: isDark ? Colors.white70 : AppTheme.ink500,
                           ),
                         ),
                       ),
@@ -180,34 +264,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         TextButton(
                           onPressed: _completeOnboarding,
                           style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            backgroundColor: isDark ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.5),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            foregroundColor:
+                                isDark ? Colors.white60 : AppTheme.ink500,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: const Size(0, 36),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          child: Text(
+                          child: const Text(
                             'Skip',
                             style: TextStyle(
-                              color: isDark ? Colors.white : Colors.black87,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
+                                fontWeight: FontWeight.w600, fontSize: 13),
                           ),
                         ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${_currentPage + 1}/6',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -216,7 +284,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: PageView(
                     controller: _pageController,
                     physics: const NeverScrollableScrollPhysics(),
-                    onPageChanged: (index) => setState(() => _currentPage = index),
+                    onPageChanged: (index) =>
+                        setState(() => _currentPage = index),
                     children: [
                       _buildWelcomePage(isDark),
                       _buildSelectionPage(
@@ -224,14 +293,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         title: 'Education Level',
                         subtitle: 'Where are you in your journey?',
                         imagePath: 'assets/images/onboarding_learning.png',
-                        child: _buildChipGrid(educationLevels, educationLevel, (val) => setState(() => educationLevel = val), isDark),
+                        child: _buildChipGrid(
+                            educationLevels,
+                            educationLevel,
+                            (val) => setState(() => educationLevel = val),
+                            isDark),
                       ),
                       _buildSelectionPage(
                         isDark: isDark,
                         title: 'Field of Study',
                         subtitle: 'What is your main focus?',
                         imagePath: 'assets/images/onboarding_learning.png',
-                        child: _buildChipGrid(streams, stream, (val) => setState(() => stream = val), isDark),
+                        child: _buildChipGrid(streams, stream,
+                            (val) => setState(() => stream = val), isDark),
                       ),
                       _buildLearningStylePage(isDark),
                       _buildSelectionPage(
@@ -239,7 +313,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         title: 'Your Interests',
                         subtitle: 'Pick what you love!',
                         imagePath: 'assets/images/onboarding_welcome.png',
-                        child: _buildMultiSelectGrid(interestOptions, interests, isDark),
+                        child: _buildMultiSelectGrid(
+                            interestOptions, interests, isDark),
                       ),
                       _buildAIPersonalityPage(isDark),
                     ],
@@ -255,13 +330,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
                       gradient: _canProceed() ? AppTheme.primaryGradient : null,
-                      boxShadow: _canProceed() ? [
-                        BoxShadow(
-                          color: AppTheme.primaryAccent.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ] : null,
+                      boxShadow: _canProceed()
+                          ? [
+                              BoxShadow(
+                                color: AppTheme.primaryAccent.withOpacity(0.3),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ]
+                          : null,
                     ),
                     child: ElevatedButton(
                       onPressed: _canProceed() ? _nextPage : null,
@@ -270,12 +347,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shadowColor: Colors.transparent,
-                        disabledBackgroundColor: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        disabledBackgroundColor: isDark
+                            ? Colors.white.withOpacity(0.1)
+                            : Colors.grey.withOpacity(0.2),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
                       ),
                       child: Text(
                         _currentPage == 5 ? 'Start Learning' : 'Continue',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -296,13 +377,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           const SizedBox(height: 20),
           // Image with subtle shadow for depth
-          Container(
-            padding: const EdgeInsets.all(20),
-            child: Image.asset(
-              'assets/images/onboarding_welcome.png',
-              height: 260,
-              fit: BoxFit.contain,
-            ),
+          const _OnboardingArt(
+            asset: 'assets/images/onboarding_welcome.png',
+            height: 240,
           ),
           const SizedBox(height: 32),
           Text(
@@ -310,7 +387,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : const Color(0xFF1A1D2E),
+              color: isDark ? Colors.white : AppTheme.ink900,
               letterSpacing: -0.5,
             ),
           ),
@@ -325,15 +402,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
           const SizedBox(height: 40),
-          _buildTextField('Your Name', Icons.person_outline_rounded, (val) => setState(() => name = val), isDark),
+          _buildTextField('Your Name', Icons.person_outline_rounded,
+              (val) => setState(() => name = val), isDark),
           const SizedBox(height: 16),
-          _buildTextField('Your Age', Icons.cake_outlined, (val) => setState(() => age = int.tryParse(val) ?? 0), isDark, isNumber: true),
+          _buildTextField('Your Age', Icons.cake_outlined,
+              (val) => setState(() => age = int.tryParse(val) ?? 0), isDark,
+              isNumber: true),
         ],
       ),
     );
   }
 
-  Widget _buildSelectionPage({required bool isDark, required String title, required String subtitle, required String imagePath, required Widget child}) {
+  Widget _buildSelectionPage(
+      {required bool isDark,
+      required String title,
+      required String subtitle,
+      required String imagePath,
+      required Widget child}) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -344,7 +429,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : const Color(0xFF1A1D2E),
+              color: isDark ? Colors.white : AppTheme.ink900,
             ),
             textAlign: TextAlign.center,
           ),
@@ -370,9 +455,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         children: [
           const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(20),
-            child: Image.asset('assets/images/onboarding_learning.png', height: 200),
+          const _OnboardingArt(
+            asset: 'assets/images/onboarding_learning.png',
+            height: 190,
           ),
           const SizedBox(height: 24),
           Text(
@@ -380,7 +465,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : const Color(0xFF1A1D2E),
+              color: isDark ? Colors.white : AppTheme.ink900,
             ),
           ),
           const SizedBox(height: 8),
@@ -410,12 +495,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isSelected 
+                    color: isSelected
                         ? AppTheme.primaryAccent.withOpacity(0.15)
-                        : isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.7),
+                        : isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : Colors.white.withOpacity(0.7),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isSelected ? AppTheme.primaryAccent : Colors.transparent,
+                      color: isSelected
+                          ? AppTheme.primaryAccent
+                          : Colors.transparent,
                       width: 2,
                     ),
                     boxShadow: [
@@ -431,10 +520,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppTheme.primaryAccent : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey[100]),
+                          color: isSelected
+                              ? AppTheme.primaryAccent
+                              : (isDark
+                                  ? Colors.white.withOpacity(0.1)
+                                  : Colors.grey[100]),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(option['icon'], color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.grey[600])),
+                        child: Icon(option['icon'],
+                            color: isSelected
+                                ? Colors.white
+                                : (isDark ? Colors.white70 : Colors.grey[600])),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -459,7 +555,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ],
                         ),
                       ),
-                      if (isSelected) const Icon(Icons.check_circle_rounded, color: AppTheme.primaryAccent),
+                      if (isSelected)
+                        const Icon(Icons.check_circle_rounded,
+                            color: AppTheme.primaryAccent),
                     ],
                   ),
                 ),
@@ -477,9 +575,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         children: [
           const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(20),
-            child: Image.asset('assets/images/onboarding_ai.png', height: 220),
+          const _OnboardingArt(
+            asset: 'assets/images/onboarding_ai.png',
+            height: 200,
           ),
           const SizedBox(height: 24),
           Text(
@@ -487,7 +585,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : const Color(0xFF1A1D2E),
+              color: isDark ? Colors.white : AppTheme.ink900,
             ),
           ),
           const SizedBox(height: 8),
@@ -513,16 +611,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               final personality = aiPersonalities[index];
               final isSelected = aiPersonality == personality['value'];
               return InkWell(
-                onTap: () => setState(() => aiPersonality = personality['value']!),
+                onTap: () =>
+                    setState(() => aiPersonality = personality['value']!),
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: isSelected ? AppTheme.primaryGradient : null,
-                    color: isSelected ? null : (isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.7)),
+                    color: isSelected
+                        ? null
+                        : (isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : Colors.white.withOpacity(0.7)),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: isSelected ? AppTheme.primaryAccent.withOpacity(0.3) : Colors.black.withOpacity(0.03),
+                        color: isSelected
+                            ? AppTheme.primaryAccent.withOpacity(0.3)
+                            : Colors.black.withOpacity(0.03),
                         blurRadius: 15,
                         offset: const Offset(0, 8),
                       ),
@@ -531,14 +636,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(personality['icon']!, style: const TextStyle(fontSize: 48)),
+                      Text(personality['icon']!,
+                          style: const TextStyle(fontSize: 48)),
                       const SizedBox(height: 16),
                       Text(
                         personality['name']!,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                          color: isSelected
+                              ? Colors.white
+                              : (isDark ? Colors.white : Colors.black87),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -547,7 +655,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 12,
-                          color: isSelected ? Colors.white.withOpacity(0.9) : (isDark ? Colors.white60 : Colors.black54),
+                          color: isSelected
+                              ? Colors.white.withOpacity(0.9)
+                              : (isDark ? Colors.white60 : Colors.black54),
                         ),
                       ),
                     ],
@@ -561,10 +671,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildTextField(String label, IconData icon, Function(String) onChanged, bool isDark, {bool isNumber = false}) {
+  Widget _buildTextField(
+      String label, IconData icon, Function(String) onChanged, bool isDark,
+      {bool isNumber = false}) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.7),
+        color: isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.white.withOpacity(0.7),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -580,7 +694,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         style: TextStyle(color: isDark ? Colors.white : Colors.black87),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
+          labelStyle:
+              TextStyle(color: isDark ? Colors.white60 : Colors.black54),
           prefixIcon: Icon(icon, color: AppTheme.primaryAccent),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
@@ -593,7 +708,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildChipGrid(List<String> options, String selectedValue, Function(String) onSelect, bool isDark) {
+  Widget _buildChipGrid(List<String> options, String selectedValue,
+      Function(String) onSelect, bool isDark) {
     return Wrap(
       spacing: 12,
       runSpacing: 12,
@@ -606,14 +722,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           onSelected: (selected) => onSelect(selected ? option : ''),
           selectedColor: AppTheme.primaryAccent,
           labelStyle: TextStyle(
-            color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87),
+            color: isSelected
+                ? Colors.white
+                : (isDark ? Colors.white : Colors.black87),
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
-          backgroundColor: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.7),
+          backgroundColor: isDark
+              ? Colors.white.withOpacity(0.05)
+              : Colors.white.withOpacity(0.7),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
-            side: BorderSide(color: isSelected ? Colors.transparent : Colors.transparent),
+            side: BorderSide(
+                color: isSelected ? Colors.transparent : Colors.transparent),
           ),
           elevation: isSelected ? 4 : 0,
         );
@@ -621,7 +742,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildMultiSelectGrid(List<String> options, List<String> selectedValues, bool isDark) {
+  Widget _buildMultiSelectGrid(
+      List<String> options, List<String> selectedValues, bool isDark) {
     return Wrap(
       spacing: 12,
       runSpacing: 12,
@@ -642,14 +764,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           },
           selectedColor: AppTheme.primaryAccent,
           labelStyle: TextStyle(
-            color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87),
+            color: isSelected
+                ? Colors.white
+                : (isDark ? Colors.white : Colors.black87),
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
-          backgroundColor: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.7),
+          backgroundColor: isDark
+              ? Colors.white.withOpacity(0.05)
+              : Colors.white.withOpacity(0.7),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
-            side: BorderSide(color: isSelected ? Colors.transparent : Colors.transparent),
+            side: BorderSide(
+                color: isSelected ? Colors.transparent : Colors.transparent),
           ),
           elevation: isSelected ? 4 : 0,
           showCheckmark: false,
@@ -660,13 +787,70 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   bool _canProceed() {
     switch (_currentPage) {
-      case 0: return name.isNotEmpty && age > 0;
-      case 1: return educationLevel.isNotEmpty;
-      case 2: return stream.isNotEmpty;
-      case 3: return learningPreferences.isNotEmpty;
-      case 4: return interests.isNotEmpty;
-      case 5: return aiPersonality.isNotEmpty;
-      default: return false;
+      case 0:
+        return name.isNotEmpty && age > 0;
+      case 1:
+        return educationLevel.isNotEmpty;
+      case 2:
+        return stream.isNotEmpty;
+      case 3:
+        return learningPreferences.isNotEmpty;
+      case 4:
+        return interests.isNotEmpty;
+      case 5:
+        return aiPersonality.isNotEmpty;
+      default:
+        return false;
     }
+  }
+}
+
+/// Illustration block used across the onboarding pages.
+///
+/// The artwork now has a genuine alpha channel, so it needs something behind
+/// it: a soft radial wash grounds the subject instead of leaving it floating
+/// on the page gradient.
+class _OnboardingArt extends StatelessWidget {
+  const _OnboardingArt({required this.asset, required this.height});
+
+  final String asset;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return SizedBox(
+      height: height + 28,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: height * 0.92,
+            height: height * 0.92,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  AppTheme.brand500.withValues(alpha: isDark ? 0.22 : 0.13),
+                  AppTheme.brand500.withValues(alpha: 0),
+                ],
+              ),
+            ),
+          ),
+          Image.asset(
+            asset,
+            height: height,
+            fit: BoxFit.contain,
+            // A missing asset must not take the whole onboarding flow down.
+            errorBuilder: (context, error, stack) => Icon(
+              Icons.image_outlined,
+              size: height * 0.4,
+              color: AppTheme.ink300,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -68,7 +68,11 @@ class DashboardTab extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 15,
-                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                      color: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.color
+                          ?.withOpacity(0.7),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -105,7 +109,9 @@ class DashboardTab extends StatelessWidget {
                       ),
                     ),
                     child: Icon(
-                      isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                      isDark
+                          ? Icons.light_mode_rounded
+                          : Icons.dark_mode_rounded,
                       color: AppTheme.primaryAccent,
                       size: 20,
                     ),
@@ -162,27 +168,16 @@ class DashboardTab extends StatelessWidget {
               width: double.infinity,
               decoration: BoxDecoration(
                 // User Requested: Blue -> Purple -> Cream (Low accent, pastel)
-                gradient: isDark 
-                    ? const LinearGradient(
-                        colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : const LinearGradient(
-                        colors: [
-                          Color(0xFFE0F2FE), // Soft Blue
-                          Color(0xFFF3E8FF), // Soft Purple
-                          Color(0xFFFFF7ED), // Soft Cream
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                gradient: isDark
+                    ? AppTheme.streakGradientDark
+                    : AppTheme.streakGradientLight,
                 borderRadius: BorderRadius.circular(32),
                 boxShadow: [
                   BoxShadow(
-                    color: isDark 
-                        ? Colors.black.withOpacity(0.3) 
-                        : const Color(0xFF6366F1).withOpacity(0.1), // Soft indigo shadow
+                    color: isDark
+                        ? Colors.black.withOpacity(0.3)
+                        : AppTheme.brand500
+                            .withOpacity(0.1), // Soft indigo shadow
                     blurRadius: 30,
                     offset: const Offset(0, 10),
                   ),
@@ -197,7 +192,7 @@ class DashboardTab extends StatelessWidget {
                       painter: _BackgroundPatternPainter(isDark: isDark),
                       size: Size.infinite,
                     ),
-                    
+
                     Padding(
                       padding: const EdgeInsets.all(20),
                       child: Column(
@@ -207,22 +202,32 @@ class DashboardTab extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.5),
+                                  color: isDark
+                                      ? Colors.white.withOpacity(0.05)
+                                      : Colors.white.withOpacity(0.5),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.6),
+                                    color: isDark
+                                        ? Colors.white.withOpacity(0.05)
+                                        : Colors.white.withOpacity(0.6),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.local_fire_department_rounded, color: Color(0xFFFF6B6B), size: 16),
+                                    const Icon(
+                                        Icons.local_fire_department_rounded,
+                                        color: AppTheme.secondaryAccent,
+                                        size: 16),
                                     const SizedBox(width: 4),
                                     Text(
                                       'Daily Streak',
                                       style: TextStyle(
-                                        color: isDark ? Colors.white : const Color(0xFF2D3436),
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppTheme.ink900,
                                         fontWeight: FontWeight.w600,
                                         fontSize: 12,
                                       ),
@@ -230,10 +235,10 @@ class DashboardTab extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              Icon(
-                                Icons.arrow_outward_rounded, 
-                                color: isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF2D3436).withOpacity(0.3)
-                              ),
+                              Icon(Icons.arrow_outward_rounded,
+                                  color: isDark
+                                      ? Colors.white.withOpacity(0.5)
+                                      : AppTheme.ink900.withOpacity(0.3)),
                             ],
                           ),
                           const Spacer(),
@@ -245,7 +250,8 @@ class DashboardTab extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 52,
                                   fontWeight: FontWeight.w900,
-                                  color: isDark ? Colors.white : const Color(0xFF2D3436),
+                                  color:
+                                      isDark ? Colors.white : AppTheme.ink900,
                                   height: 1,
                                 ),
                               ),
@@ -256,7 +262,9 @@ class DashboardTab extends StatelessWidget {
                                   'days',
                                   style: TextStyle(
                                     fontSize: 18,
-                                    color: isDark ? Colors.white70 : const Color(0xFF636E72),
+                                    color: isDark
+                                        ? Colors.white70
+                                        : AppTheme.ink500,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -267,7 +275,9 @@ class DashboardTab extends StatelessWidget {
                           Text(
                             'Keep the flame alive!',
                             style: TextStyle(
-                              color: isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF636E72),
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.6)
+                                  : AppTheme.ink500,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -286,7 +296,11 @@ class DashboardTab extends StatelessWidget {
               child: ShaderMask(
                 shaderCallback: (Rect bounds) {
                   return const LinearGradient(
-                    colors: [Color(0xFFFF512F), Color(0xFFDD2476), Color(0xFFFF9068)],
+                    colors: [
+                      Color(0xFFF5A93F),
+                      AppTheme.ember,
+                      Color(0xFFDE6E4B),
+                    ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ).createShader(bounds);
@@ -304,7 +318,6 @@ class DashboardTab extends StatelessWidget {
       },
     );
   }
-
 
   Widget _buildQuickActions(BuildContext context) {
     return Column(
@@ -334,7 +347,7 @@ class DashboardTab extends StatelessWidget {
               title: 'New Subject',
               subtitle: 'Create & Organize',
               icon: Icons.add_circle_outline_rounded,
-              color: const Color(0xFF6C63FF),
+              color: AppTheme.brand500,
               onTap: () => onNavigateToTab?.call(1),
             ),
             _buildActionCard(
@@ -342,35 +355,39 @@ class DashboardTab extends StatelessWidget {
               title: 'Upload Notes',
               subtitle: 'Scan or Import',
               icon: Icons.upload_file_rounded,
-              color: const Color(0xFF4ECDC4),
-              onTap: () => _navigateToSubjectAction(context, initialTabIndex: 0),
+              color: AppTheme.tertiaryAccent,
+              onTap: () =>
+                  _navigateToSubjectAction(context, initialTabIndex: 0),
             ),
             _buildActionCard(
               context,
               title: 'Learn AI',
               subtitle: 'Ask & Explore',
               icon: Icons.auto_awesome_rounded,
-              color: const Color(0xFFFF6B6B),
-              onTap: () => _navigateToSubjectAction(context, initialTabIndex: 1),
+              color: AppTheme.secondaryAccent,
+              onTap: () =>
+                  _navigateToSubjectAction(context, initialTabIndex: 1),
             ),
             _buildActionCard(
               context,
               title: 'Take Quiz',
               subtitle: 'Test Knowledge',
               icon: Icons.quiz_rounded,
-              color: const Color(0xFFFFE66D),
-              onTap: () => _navigateToSubjectAction(context, initialTabIndex: 2),
+              color: AppTheme.warning,
+              onTap: () =>
+                  _navigateToSubjectAction(context, initialTabIndex: 2),
             ),
             _buildActionCard(
               context,
               title: 'Calendar',
               subtitle: 'Plan Schedule',
               icon: Icons.calendar_month_rounded,
-              color: const Color(0xFF3B82F6),
+              color: AppTheme.info,
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const CalendarScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const CalendarScreen()),
                 );
               },
             ),
@@ -379,11 +396,12 @@ class DashboardTab extends StatelessWidget {
               title: 'Playlists',
               subtitle: 'Study Lists',
               icon: Icons.playlist_play_rounded,
-              color: const Color(0xFF8B5CF6),
+              color: AppTheme.brand400,
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const PlaylistsScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const PlaylistsScreen()),
                 );
               },
             ),
@@ -523,7 +541,9 @@ class DashboardTab extends StatelessWidget {
                       color: Theme.of(context).cardTheme.color,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: Color(int.parse('0xFF${subject.color.replaceAll('#', '')}')).withOpacity(0.3),
+                        color: Color(int.parse(
+                                '0xFF${subject.color.replaceAll('#', '')}'))
+                            .withOpacity(0.3),
                         width: 1,
                       ),
                     ),
@@ -534,13 +554,16 @@ class DashboardTab extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(9),
                           decoration: BoxDecoration(
-                            color: Color(int.parse('0xFF${subject.color.replaceAll('#', '')}')).withOpacity(0.1),
+                            color: Color(int.parse(
+                                    '0xFF${subject.color.replaceAll('#', '')}'))
+                                .withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.auto_stories_rounded,
                             size: 20,
-                            color: Color(int.parse('0xFF${subject.color.replaceAll('#', '')}')),
+                            color: Color(int.parse(
+                                '0xFF${subject.color.replaceAll('#', '')}')),
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -570,9 +593,11 @@ class DashboardTab extends StatelessWidget {
                                     child: LinearProgressIndicator(
                                       value: subject.progressPercentage / 100,
                                       minHeight: 5,
-                                      backgroundColor: Colors.grey.withOpacity(0.15),
+                                      backgroundColor:
+                                          Colors.grey.withOpacity(0.15),
                                       valueColor: AlwaysStoppedAnimation(
-                                        Color(int.parse('0xFF${subject.color.replaceAll('#', '')}')),
+                                        Color(int.parse(
+                                            '0xFF${subject.color.replaceAll('#', '')}')),
                                       ),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
@@ -638,7 +663,11 @@ class DashboardTab extends StatelessWidget {
                 Text(
                   '30/50 mins completed',
                   style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withOpacity(0.6),
                   ),
                 ),
               ],
@@ -705,13 +734,12 @@ class DashboardTab extends StatelessWidget {
       );
     }
   }
-  }
-
+}
 
 // Custom Painter for Background Pattern
 class _BackgroundPatternPainter extends CustomPainter {
   final bool isDark;
-  
+
   _BackgroundPatternPainter({this.isDark = true});
 
   @override
@@ -722,8 +750,10 @@ class _BackgroundPatternPainter extends CustomPainter {
 
     final path = Path();
     path.moveTo(0, size.height * 0.7);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.6, size.width * 0.5, size.height * 0.8);
-    path.quadraticBezierTo(size.width * 0.75, size.height * 1.0, size.width, size.height * 0.7);
+    path.quadraticBezierTo(size.width * 0.25, size.height * 0.6,
+        size.width * 0.5, size.height * 0.8);
+    path.quadraticBezierTo(
+        size.width * 0.75, size.height * 1.0, size.width, size.height * 0.7);
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);
     path.close();
@@ -733,9 +763,11 @@ class _BackgroundPatternPainter extends CustomPainter {
     final circlePaint = Paint()
       ..color = Colors.white.withOpacity(isDark ? 0.05 : 0.1)
       ..style = PaintingStyle.fill;
-      
-    canvas.drawCircle(Offset(size.width * 0.8, size.height * 0.2), 40, circlePaint);
-    canvas.drawCircle(Offset(size.width * 0.2, size.height * 0.8), 20, circlePaint);
+
+    canvas.drawCircle(
+        Offset(size.width * 0.8, size.height * 0.2), 40, circlePaint);
+    canvas.drawCircle(
+        Offset(size.width * 0.2, size.height * 0.8), 20, circlePaint);
   }
 
   @override
@@ -766,7 +798,8 @@ class _SubjectPickerSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.2) : Colors.grey[300],
+                color:
+                    isDark ? Colors.white.withOpacity(0.2) : Colors.grey[300],
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -784,7 +817,8 @@ class _SubjectPickerSheet extends StatelessWidget {
             Flexible(
               child: ListView.builder(
                 shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: subjects.length,
                 itemBuilder: (context, index) {
                   final subject = subjects[index];

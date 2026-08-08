@@ -149,7 +149,8 @@ class _OpenAIApiKeyScreenState extends State<OpenAIApiKeyScreen> {
                           child: Text(
                             'AI chat, quiz and flashcard generation need your own OpenAI API key. It is stored only on this device and used only to call the OpenAI API directly.',
                             style: TextStyle(
-                              color: Theme.of(context).textTheme.bodyMedium?.color,
+                              color:
+                                  Theme.of(context).textTheme.bodyMedium?.color,
                               height: 1.4,
                             ),
                           ),
@@ -172,12 +173,14 @@ class _OpenAIApiKeyScreenState extends State<OpenAIApiKeyScreen> {
                     onChanged: (_) {
                       if (_errorText != null) setState(() => _errorText = null);
                     },
-                    style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+                    style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyLarge?.color),
                     decoration: InputDecoration(
                       hintText: 'sk-...',
                       filled: true,
                       fillColor: Theme.of(context).cardTheme.color,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       errorText: _errorText,
                       errorMaxLines: 3,
                       suffixIcon: IconButton(
@@ -192,7 +195,8 @@ class _OpenAIApiKeyScreenState extends State<OpenAIApiKeyScreen> {
                   TextButton.icon(
                     onPressed: _openApiKeysPage,
                     icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                    label: const Text('Get an API key from platform.openai.com'),
+                    label:
+                        const Text('Get an API key from platform.openai.com'),
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
                   ),
                   const SizedBox(height: 32),
@@ -213,7 +217,8 @@ class _OpenAIApiKeyScreenState extends State<OpenAIApiKeyScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation(Colors.white),
                               ),
                             )
                           : const Text('Save'),

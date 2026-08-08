@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      backgroundColor: isDark ? AppTheme.inkBackground : Colors.white,
       body: Stack(
         children: [
           // Background Elements
@@ -259,7 +259,7 @@ class _LoginScreenState extends State<LoginScreen>
                           padding: const EdgeInsets.all(32),
                           decoration: BoxDecoration(
                             color: isDark
-                                ? const Color(0xFF1E293B)
+                                ? AppTheme.inkSurface
                                 : Colors.white.withOpacity(0.8),
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(40),
@@ -289,9 +289,8 @@ class _LoginScreenState extends State<LoginScreen>
                                   fontSize: 36,
                                   fontWeight: FontWeight.bold,
                                   height: 1.1,
-                                  color: isDark
-                                      ? Colors.white
-                                      : const Color(0xFF1A1D2E),
+                                  color:
+                                      isDark ? Colors.white : AppTheme.ink900,
                                   letterSpacing: -1,
                                 ),
                               ),
@@ -341,7 +340,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: isDark
                                               ? Colors.white
-                                              : const Color(0xFF1A1D2E),
+                                              : AppTheme.ink900,
                                           foregroundColor: isDark
                                               ? Colors.black
                                               : Colors.white,

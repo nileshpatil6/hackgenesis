@@ -63,7 +63,8 @@ class ProfileTab extends StatelessWidget {
                           ),
                           child: CircleAvatar(
                             radius: 60,
-                            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                            backgroundColor:
+                                Theme.of(context).scaffoldBackgroundColor,
                             backgroundImage: user?.photoUrl != null
                                 ? NetworkImage(user!.photoUrl!)
                                 : null,
@@ -94,7 +95,11 @@ class ProfileTab extends StatelessWidget {
                         Text(
                           user?.email ?? '',
                           style: TextStyle(
-                            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                            color: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.color
+                                ?.withOpacity(0.6),
                             fontSize: 14,
                           ),
                         ),
@@ -109,7 +114,7 @@ class ProfileTab extends StatelessWidget {
                                 'XP Points',
                                 '${user?.xpPoints ?? 0}',
                                 Icons.stars_rounded,
-                                const Color(0xFF6C63FF),
+                                AppTheme.brand500,
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -119,7 +124,7 @@ class ProfileTab extends StatelessWidget {
                                 'Streak',
                                 '${user?.dailyStreak ?? 0} days',
                                 Icons.local_fire_department_rounded,
-                                const Color(0xFFFF6B6B),
+                                AppTheme.secondaryAccent,
                               ),
                             ),
                           ],
@@ -165,7 +170,8 @@ class ProfileTab extends StatelessWidget {
                               context,
                               icon: Icons.vpn_key_rounded,
                               title: 'OpenAI API Key',
-                              subtitle: 'Required for AI chat, quiz & flashcards',
+                              subtitle:
+                                  'Required for AI chat, quiz & flashcards',
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -228,7 +234,8 @@ class ProfileTab extends StatelessWidget {
                               backgroundColor: Colors.red,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
                               elevation: 0,
                             ),
                           ),
@@ -261,18 +268,23 @@ class ProfileTab extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuCard(BuildContext context, {required List<Widget> children}) {
+  Widget _buildMenuCard(BuildContext context,
+      {required List<Widget> children}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+          color: isDark
+              ? Colors.white.withOpacity(0.05)
+              : Colors.black.withOpacity(0.03),
         ),
         boxShadow: [
           BoxShadow(
-            color: isDark ? Colors.black.withOpacity(0.2) : Colors.grey.withOpacity(0.05),
+            color: isDark
+                ? Colors.black.withOpacity(0.2)
+                : Colors.grey.withOpacity(0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -310,13 +322,18 @@ class ProfileTab extends StatelessWidget {
           ? Text(
               subtitle,
               style: TextStyle(
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                color: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.color
+                    ?.withOpacity(0.6),
                 fontSize: 12,
               ),
             )
           : null,
       trailing: onTap != null
-          ? Icon(Icons.chevron_right_rounded, color: Theme.of(context).iconTheme.color?.withOpacity(0.5))
+          ? Icon(Icons.chevron_right_rounded,
+              color: Theme.of(context).iconTheme.color?.withOpacity(0.5))
           : null,
       onTap: onTap,
     );
@@ -332,7 +349,8 @@ class ProfileTab extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(BuildContext context, String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(BuildContext context, String label, String value,
+      IconData icon, Color color) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
@@ -340,11 +358,15 @@ class ProfileTab extends StatelessWidget {
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+          color: isDark
+              ? Colors.white.withOpacity(0.05)
+              : Colors.black.withOpacity(0.03),
         ),
         boxShadow: [
           BoxShadow(
-            color: isDark ? Colors.black.withOpacity(0.2) : Colors.grey.withOpacity(0.05),
+            color: isDark
+                ? Colors.black.withOpacity(0.2)
+                : Colors.grey.withOpacity(0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -373,7 +395,11 @@ class ProfileTab extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+              color: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.color
+                  ?.withOpacity(0.6),
               fontSize: 12,
             ),
           ),
@@ -388,19 +414,27 @@ class ProfileTab extends StatelessWidget {
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).cardTheme.color,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('Logout', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.bold)),
-        content: Text('Are you sure you want to logout?', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
+        title: Text('Logout',
+            style: TextStyle(
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+                fontWeight: FontWeight.bold)),
+        content: Text('Are you sure you want to logout?',
+            style: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
+            child: Text('Cancel',
+                style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Logout'),
           ),
@@ -430,7 +464,8 @@ class ProfileTab extends StatelessWidget {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
           backgroundColor: Theme.of(dialogContext).cardTheme.color,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text('Notifications',
               style: TextStyle(
                   color: Theme.of(dialogContext).textTheme.bodyLarge?.color,
@@ -478,8 +513,13 @@ class ProfileTab extends StatelessWidget {
     String learningPace = user.learningPace;
 
     const educationLevels = [
-      'Class 1-5', 'Class 6-8', 'Class 9-10', 'Class 11-12',
-      'Undergraduate', 'Postgraduate', 'Professional',
+      'Class 1-5',
+      'Class 6-8',
+      'Class 9-10',
+      'Class 11-12',
+      'Undergraduate',
+      'Postgraduate',
+      'Professional',
     ];
     const paces = ['slow', 'normal', 'fast'];
 
@@ -488,7 +528,8 @@ class ProfileTab extends StatelessWidget {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
           backgroundColor: Theme.of(dialogContext).cardTheme.color,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text('Edit Profile',
               style: TextStyle(
                   color: Theme.of(dialogContext).textTheme.bodyLarge?.color,
@@ -502,44 +543,51 @@ class ProfileTab extends StatelessWidget {
                   controller: nameController,
                   decoration: InputDecoration(
                     labelText: 'Name',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  initialValue:
-                      educationLevels.contains(educationLevel) ? educationLevel : null,
+                  initialValue: educationLevels.contains(educationLevel)
+                      ? educationLevel
+                      : null,
                   decoration: InputDecoration(
                     labelText: 'Education Level',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   items: educationLevels
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                       .toList(),
-                  onChanged: (value) =>
-                      setDialogState(() => educationLevel = value ?? educationLevel),
+                  onChanged: (value) => setDialogState(
+                      () => educationLevel = value ?? educationLevel),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: streamController,
                   decoration: InputDecoration(
                     labelText: 'Stream',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  initialValue: paces.contains(learningPace) ? learningPace : 'normal',
+                  initialValue:
+                      paces.contains(learningPace) ? learningPace : 'normal',
                   decoration: InputDecoration(
                     labelText: 'Learning Pace',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   items: paces
                       .map((p) => DropdownMenuItem(
-                          value: p, child: Text(p[0].toUpperCase() + p.substring(1))))
+                          value: p,
+                          child: Text(p[0].toUpperCase() + p.substring(1))))
                       .toList(),
-                  onChanged: (value) =>
-                      setDialogState(() => learningPace = value ?? learningPace),
+                  onChanged: (value) => setDialogState(
+                      () => learningPace = value ?? learningPace),
                 ),
               ],
             ),

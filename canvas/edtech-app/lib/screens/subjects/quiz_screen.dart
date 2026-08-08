@@ -31,7 +31,8 @@ class _QuizScreenState extends State<QuizScreen> {
       if (question.type == QuestionType.mcq) {
         // correctAnswer stores the option TEXT, and userAnswer (set in
         // _buildAnswerOptions) is also the selected option TEXT.
-        if (userAnswer != null && question.correctAnswer == userAnswer.toString()) {
+        if (userAnswer != null &&
+            question.correctAnswer == userAnswer.toString()) {
           isCorrect = true;
         }
       } else {

@@ -55,14 +55,14 @@ class ProgressTab extends StatelessWidget {
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0xFF6C63FF), Color(0xFF4834D4)],
+                              colors: [AppTheme.brand500, AppTheme.brand700],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(32),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF6C63FF).withOpacity(0.3),
+                                color: AppTheme.brand500.withOpacity(0.3),
                                 blurRadius: 20,
                                 offset: const Offset(0, 10),
                               ),
@@ -200,8 +200,7 @@ class ProgressTab extends StatelessWidget {
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
                                         color: isUnlocked
-                                            ? const Color(0xFFFED330)
-                                                .withOpacity(0.15)
+                                            ? AppTheme.ember.withOpacity(0.15)
                                             : (isDark
                                                 ? Colors.white.withOpacity(0.05)
                                                 : Colors.grey.withOpacity(0.1)),
@@ -211,7 +210,7 @@ class ProgressTab extends StatelessWidget {
                                         Icons.emoji_events_rounded,
                                         size: 26,
                                         color: isUnlocked
-                                            ? const Color(0xFFFED330)
+                                            ? AppTheme.ember
                                             : Colors.grey,
                                       ),
                                     ),

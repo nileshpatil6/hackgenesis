@@ -6,6 +6,7 @@ import '../../services/openai_config_service.dart';
 import '../../services/database_service.dart';
 import '../../models/flashcard.dart';
 import '../settings/openai_api_key_screen.dart';
+import '../../utils/app_theme.dart';
 
 class FlashcardGenerationScreen extends StatefulWidget {
   final String subjectId;
@@ -158,10 +159,9 @@ class _FlashcardGenerationScreenState extends State<FlashcardGenerationScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor:
-          isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? AppTheme.inkBackground : AppTheme.paperSunken,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? AppTheme.inkSurface : Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded,
@@ -191,7 +191,8 @@ class _FlashcardGenerationScreenState extends State<FlashcardGenerationScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.vpn_key_off_rounded, size: 64, color: widget.subjectColor),
+            Icon(Icons.vpn_key_off_rounded,
+                size: 64, color: widget.subjectColor),
             const SizedBox(height: 24),
             Text(
               'OpenAI API Key Required',
@@ -213,8 +214,10 @@ class _FlashcardGenerationScreenState extends State<FlashcardGenerationScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: widget.subjectColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
               ),
               child: const Text('Add API Key'),
             ),
@@ -387,7 +390,7 @@ class _FlashcardGenerationScreenState extends State<FlashcardGenerationScreen> {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: isDark ? AppTheme.inkSurface : Colors.white,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -462,7 +465,7 @@ class _FlashcardGenerationScreenState extends State<FlashcardGenerationScreen> {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? AppTheme.inkSurface : Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(

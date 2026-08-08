@@ -5,6 +5,7 @@ import '../../services/openai_config_service.dart';
 import '../../services/database_service.dart';
 import '../../models/quiz.dart';
 import '../settings/openai_api_key_screen.dart';
+import '../../utils/app_theme.dart';
 
 class QuizGenerationScreen extends StatefulWidget {
   final String subjectId;
@@ -186,10 +187,9 @@ class _QuizGenerationScreenState extends State<QuizGenerationScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor:
-          isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? AppTheme.inkBackground : AppTheme.paperSunken,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? AppTheme.inkSurface : Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded,
@@ -219,7 +219,8 @@ class _QuizGenerationScreenState extends State<QuizGenerationScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.vpn_key_off_rounded, size: 64, color: widget.subjectColor),
+            Icon(Icons.vpn_key_off_rounded,
+                size: 64, color: widget.subjectColor),
             const SizedBox(height: 24),
             Text(
               'OpenAI API Key Required',
@@ -241,8 +242,10 @@ class _QuizGenerationScreenState extends State<QuizGenerationScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: widget.subjectColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
               ),
               child: const Text('Add API Key'),
             ),
@@ -451,9 +454,7 @@ class _QuizGenerationScreenState extends State<QuizGenerationScreen> {
                         decoration: BoxDecoration(
                           color: isSelected
                               ? widget.subjectColor.withOpacity(0.1)
-                              : (isDark
-                                  ? const Color(0xFF1E293B)
-                                  : Colors.white),
+                              : (isDark ? AppTheme.inkSurface : Colors.white),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isSelected
@@ -509,7 +510,7 @@ class _QuizGenerationScreenState extends State<QuizGenerationScreen> {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: isDark ? AppTheme.inkSurface : Colors.white,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -647,7 +648,7 @@ class _QuizGenerationScreenState extends State<QuizGenerationScreen> {
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                color: isDark ? AppTheme.inkSurface : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: isCorrect ? Colors.green : Colors.red,

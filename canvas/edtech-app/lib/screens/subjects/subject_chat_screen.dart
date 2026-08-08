@@ -6,6 +6,7 @@ import '../../services/database_service.dart';
 import '../../services/supabase_service.dart';
 import '../../models/chat_message.dart' as model;
 import '../settings/openai_api_key_screen.dart';
+import '../../utils/app_theme.dart';
 
 class SubjectChatScreen extends StatefulWidget {
   final String subjectId;
@@ -110,7 +111,8 @@ class _SubjectChatScreenState extends State<SubjectChatScreen> {
     if (_ragService == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Add your OpenAI API key to chat with your AI tutor.'),
+          content:
+              const Text('Add your OpenAI API key to chat with your AI tutor.'),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
@@ -235,10 +237,9 @@ class _SubjectChatScreenState extends State<SubjectChatScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor:
-          isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? AppTheme.inkBackground : AppTheme.paperSunken,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? AppTheme.inkSurface : Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded,
@@ -352,7 +353,7 @@ class _SubjectChatScreenState extends State<SubjectChatScreen> {
               decoration: BoxDecoration(
                 color: message.isUser
                     ? widget.subjectColor
-                    : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                    : (isDark ? AppTheme.inkSurface : Colors.white),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -398,7 +399,7 @@ class _SubjectChatScreenState extends State<SubjectChatScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? AppTheme.inkSurface : Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -413,9 +414,7 @@ class _SubjectChatScreenState extends State<SubjectChatScreen> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF0F172A)
-                      : const Color(0xFFF8FAFC),
+                  color: isDark ? AppTheme.inkBackground : AppTheme.paperSunken,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: TextField(

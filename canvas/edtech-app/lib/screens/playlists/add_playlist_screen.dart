@@ -97,7 +97,7 @@ class _AddPlaylistScreenState extends State<AddPlaylistScreen> {
               ? const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                  colors: [AppTheme.inkBackground, AppTheme.inkSurface],
                 )
               : AppTheme.backgroundGradient,
         ),
@@ -347,7 +347,7 @@ class _AddPlaylistScreenState extends State<AddPlaylistScreen> {
               ),
               child: DropdownButtonFormField<String>(
                 initialValue: _selectedSubjectId,
-                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                dropdownColor: isDark ? AppTheme.inkSurface : Colors.white,
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.book_rounded,

@@ -152,14 +152,14 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
       margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFDC2626).withValues(alpha: 0.10),
+        color: AppTheme.danger.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFDC2626).withValues(alpha: 0.3)),
+        border: Border.all(color: AppTheme.danger.withValues(alpha: 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, size: 18, color: Color(0xFFB91C1C)),
+          const Icon(Icons.error_outline, size: 18, color: AppTheme.danger),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -167,7 +167,7 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
               style: const TextStyle(
                 fontSize: 12.5,
                 height: 1.4,
-                color: Color(0xFFB91C1C),
+                color: AppTheme.danger,
               ),
             ),
           ),
@@ -215,7 +215,7 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
               style: TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : const Color(0xFF1A1D2E),
+                color: isDark ? Colors.white : AppTheme.ink900,
               ),
             ),
             const SizedBox(height: 8),
@@ -229,7 +229,7 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
               style: TextStyle(
                 fontSize: 13.5,
                 height: 1.5,
-                color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                color: isDark ? Colors.white60 : AppTheme.ink500,
               ),
             ),
           ],
@@ -259,7 +259,7 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
             style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white54 : const Color(0xFF94A3B8),
+              color: isDark ? Colors.white54 : AppTheme.ink300,
             ),
           ),
           const SizedBox(height: 16),
@@ -271,7 +271,7 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
                   : _toggleSession,
               style: FilledButton.styleFrom(
                 backgroundColor:
-                    _isLive ? const Color(0xFFDC2626) : AppTheme.primaryAccent,
+                    _isLive ? AppTheme.danger : AppTheme.primaryAccent,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -319,7 +319,7 @@ class _TurnBubble extends StatelessWidget {
         decoration: BoxDecoration(
           color: mine
               ? AppTheme.primaryAccent
-              : (isDark ? const Color(0xFF1E293B) : Colors.white),
+              : (isDark ? AppTheme.inkSurface : Colors.white),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -339,9 +339,8 @@ class _TurnBubble extends StatelessWidget {
           style: TextStyle(
             fontSize: 13.5,
             height: 1.45,
-            color: mine
-                ? Colors.white
-                : (isDark ? Colors.white : const Color(0xFF1A1D2E)),
+            color:
+                mine ? Colors.white : (isDark ? Colors.white : AppTheme.ink900),
           ),
         ),
       ),
@@ -359,8 +358,7 @@ class _MicOrb extends StatefulWidget {
   State<_MicOrb> createState() => _MicOrbState();
 }
 
-class _MicOrbState extends State<_MicOrb>
-    with SingleTickerProviderStateMixin {
+class _MicOrbState extends State<_MicOrb> with SingleTickerProviderStateMixin {
   late final AnimationController _pulse = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1400),
@@ -378,7 +376,7 @@ class _MicOrbState extends State<_MicOrb>
         widget.state == VoiceSessionState.speaking;
     final colour = switch (widget.state) {
       VoiceSessionState.speaking => AppTheme.tertiaryAccent,
-      VoiceSessionState.error => const Color(0xFFDC2626),
+      VoiceSessionState.error => AppTheme.danger,
       _ => AppTheme.primaryAccent,
     };
 

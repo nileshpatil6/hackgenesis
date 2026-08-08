@@ -125,7 +125,8 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
       final isAuthError = _isAuthError(_ragService?.lastError);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_ragService?.lastError ?? 'Could not connect to OpenAI.'),
+          content:
+              Text(_ragService?.lastError ?? 'Could not connect to OpenAI.'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
@@ -293,8 +294,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
         Color(int.parse('0xFF${widget.subject.color.replaceAll('#', '')}'));
 
     return Scaffold(
-      backgroundColor:
-          isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? AppTheme.inkBackground : AppTheme.paperSunken,
       body: SafeArea(
         child: Column(
           children: [
@@ -484,7 +484,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? AppTheme.inkSurface : Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -633,7 +633,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? AppTheme.inkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -766,7 +766,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? AppTheme.inkSurface : Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: SafeArea(
@@ -837,8 +837,9 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
       builder: (dialogContext) {
         final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
         return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: isDark ? AppTheme.inkSurface : Colors.white,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text('Edit Subject',
               style: TextStyle(
                   color: isDark ? Colors.white : Colors.black87,
@@ -849,19 +850,23 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
               children: [
                 TextField(
                   controller: nameController,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  style:
+                      TextStyle(color: isDark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
                     labelText: 'Subject Name',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: descriptionController,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  style:
+                      TextStyle(color: isDark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
                     labelText: 'Description (Optional)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   maxLines: 3,
                 ),
@@ -877,9 +882,10 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
               onPressed: () async {
                 if (nameController.text.trim().isEmpty) return;
                 widget.subject.name = nameController.text.trim();
-                widget.subject.description = descriptionController.text.trim().isEmpty
-                    ? null
-                    : descriptionController.text.trim();
+                widget.subject.description =
+                    descriptionController.text.trim().isEmpty
+                        ? null
+                        : descriptionController.text.trim();
 
                 final subjectProvider =
                     Provider.of<SubjectProvider>(context, listen: false);
@@ -939,7 +945,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: isDark ? AppTheme.inkSurface : Colors.white,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
@@ -1136,7 +1142,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        color: isDark ? AppTheme.inkSurface : Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
@@ -1273,7 +1279,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        color: isDark ? AppTheme.inkSurface : Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
