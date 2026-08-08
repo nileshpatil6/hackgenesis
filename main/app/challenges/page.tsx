@@ -106,8 +106,23 @@ export default function ChallengesPage() {
       const challengeData = JSON.parse(storedData);
       challengeData.currentIndex = questionIndex;
       localStorage.setItem("challengeData", JSON.stringify(challengeData));
+
+      const question = challengeData.questions?.[questionIndex];
+      if (question) {
+        localStorage.setItem("currentChallengeQuestion", JSON.stringify({
+          questionIndex,
+          question: question.question,
+          description: question.description,
+          difficulty: question.difficulty,
+          category: question.category,
+          canvasType: question.canvasType,
+          hints: question.hints,
+        }));
+      }
     }
-    router.push(`/challenges/solve?index=${questionIndex}`);
+
+    // Open the real drawing canvas app, same as the Voom room flow
+    window.open("http://localhost:5000", "_blank");
   }
 
   return (
