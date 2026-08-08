@@ -40,6 +40,8 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
   const streamRef = useRef<MediaStream | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const subjectRef = useRef(subjectId)
+  // Tool calls surface on more than one event, so track which ones we answered
+  const handledCallsRef = useRef<Set<string>>(new Set())
 
   subjectRef.current = subjectId
 
@@ -68,7 +70,11 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
   /** Runs the search_notes tool against our RAG endpoint. */
   const handleToolCall = useCallback(
     async (callId: string, name: string, argsJson: string) => {
-      if (name !== "search_notes") return
+      if (name !== "search_notes" || !callId) return
+
+      // The same call arrives on several event types, answer it exactly once
+      if (handledCallsRef.current.has(callId)) return
+      handledCallsRef.current.add(callId)
 
       let output: string
       setSearching(true)
@@ -177,10 +183,27 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
           )
           break
 
+        // Fires as soon as the model finishes emitting the arguments, which is
+        // the earliest we can start the lookup.
+        case "response.function_call_arguments.done":
+          handleToolCall(event.call_id, event.name, event.arguments)
+          break
+
+        // Same call, wrapped in `item`. Some versions only send this one.
+        case "response.output_item.done":
+          if (event.item?.type === "function_call") {
+            handleToolCall(
+              event.item.call_id,
+              event.item.name,
+              event.item.arguments
+            )
+          }
+          break
+
         case "response.done": {
           setIsAssistantSpeaking(false)
-          const outputs = event.response?.output || []
-          for (const item of outputs) {
+          // Backstop in case neither event above arrived
+          for (const item of event.response?.output || []) {
             if (item.type === "function_call") {
               handleToolCall(item.call_id, item.name, item.arguments)
             }
@@ -213,6 +236,8 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
 
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
+
+    handledCallsRef.current.clear()
 
     if (audioRef.current) {
       audioRef.current.srcObject = null
