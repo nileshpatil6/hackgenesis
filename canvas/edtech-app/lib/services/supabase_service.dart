@@ -70,12 +70,14 @@ class SupabaseService {
 
   // ============= USER PROFILE =============
 
-  static Future<void> saveUserProfile(UserProfile profile) async {
+  static Future<bool> saveUserProfile(UserProfile profile) async {
     try {
       await client.from(usersTable).upsert(profile.toJson());
       print('✅ User profile saved: ${profile.id}');
+      return true;
     } catch (e) {
       print('❌ Error saving user profile to Supabase: $e');
+      return false;
     }
   }
 
@@ -89,7 +91,7 @@ class SupabaseService {
 
   // ============= SUBJECTS =============
 
-  static Future<void> saveSubject(Subject subject) async {
+  static Future<bool> saveSubject(Subject subject) async {
     try {
       final data = subject.toJson();
       // Use Firebase user ID, not Supabase auth
@@ -99,8 +101,10 @@ class SupabaseService {
       }
       await client.from(subjectsTable).upsert(data);
       print('✅ Subject saved: ${subject.name}');
+      return true;
     } catch (e) {
       print('❌ Error saving subject to Supabase: $e');
+      return false;
     }
   }
 
@@ -208,14 +212,16 @@ class SupabaseService {
     }
   }
 
-  static Future<void> saveNote(Note note) async {
+  static Future<bool> saveNote(Note note) async {
     try {
       final data = note.toJson();
       data['user_id'] = _firebaseUserId;
       await client.from(notesTable).upsert(data);
       print('✅ Note saved: ${note.title}');
+      return true;
     } catch (e) {
       print('❌ Error saving note to Supabase: $e');
+      return false;
     }
   }
 
@@ -229,12 +235,15 @@ class SupabaseService {
 
   // ============= LESSONS =============
 
-  static Future<void> saveLesson(Lesson lesson) async {
+  static Future<bool> saveLesson(Lesson lesson) async {
     try {
       await client.from(lessonsTable).upsert(lesson.toJson());
+      return true;
     } catch (e) {
       print('Error saving lesson to Supabase: $e');
+      return false;
     }
+    return false;
   }
 
   static Future<void> deleteLesson(String lessonId) async {
@@ -247,12 +256,15 @@ class SupabaseService {
 
   // ============= QUIZZES =============
 
-  static Future<void> saveQuiz(Quiz quiz) async {
+  static Future<bool> saveQuiz(Quiz quiz) async {
     try {
       await client.from(quizzesTable).upsert(quiz.toJson());
+      return true;
     } catch (e) {
       print('Error saving quiz to Supabase: $e');
+      return false;
     }
+    return false;
   }
 
   static Future<void> deleteQuiz(String quizId) async {
@@ -265,12 +277,15 @@ class SupabaseService {
 
   // ============= INTERACTIVE =============
 
-  static Future<void> saveFlashcardDeck(FlashcardDeck deck) async {
+  static Future<bool> saveFlashcardDeck(FlashcardDeck deck) async {
     try {
       await client.from(flashcardsTable).upsert(deck.toJson());
+      return true;
     } catch (e) {
       print('Error saving flashcard deck to Supabase: $e');
+      return false;
     }
+    return false;
   }
 
   static Future<void> deleteFlashcardDeck(String deckId) async {
@@ -281,22 +296,28 @@ class SupabaseService {
     }
   }
 
-  static Future<void> saveAchievement(Achievement achievement) async {
+  static Future<bool> saveAchievement(Achievement achievement) async {
     try {
       final data = achievement.toJson();
       data['user_id'] = _firebaseUserId;
       await client.from(achievementsTable).upsert(data);
+      return true;
     } catch (e) {
       print('Error saving achievement to Supabase: $e');
+      return false;
     }
+    return false;
   }
 
-  static Future<void> saveStudyPlan(StudyPlan plan) async {
+  static Future<bool> saveStudyPlan(StudyPlan plan) async {
     try {
       await client.from(studyPlansTable).upsert(plan.toJson());
+      return true;
     } catch (e) {
       print('Error saving study plan to Supabase: $e');
+      return false;
     }
+    return false;
   }
 
   static Future<void> deleteStudyPlan(String planId) async {
@@ -307,12 +328,15 @@ class SupabaseService {
     }
   }
 
-  static Future<void> savePlaylist(StudyPlaylist playlist) async {
+  static Future<bool> savePlaylist(StudyPlaylist playlist) async {
     try {
       await client.from(playlistsTable).upsert(playlist.toJson());
+      return true;
     } catch (e) {
       print('Error saving playlist to Supabase: $e');
+      return false;
     }
+    return false;
   }
 
   static Future<void> deletePlaylist(String playlistId) async {
@@ -323,14 +347,17 @@ class SupabaseService {
     }
   }
 
-  static Future<void> saveCalendarEvent(CalendarEvent event) async {
+  static Future<bool> saveCalendarEvent(CalendarEvent event) async {
     try {
       final data = event.toJson();
       data['user_id'] = client.auth.currentUser?.id;
       await client.from(calendarEventsTable).upsert(data);
+      return true;
     } catch (e) {
       print('Error saving calendar event to Supabase: $e');
+      return false;
     }
+    return false;
   }
 
   static Future<void> deleteCalendarEvent(String eventId) async {
@@ -489,7 +516,7 @@ class SupabaseService {
     }
   }
 
-  static Future<void> saveChatMessage(ChatMessage message) async {
+  static Future<bool> saveChatMessage(ChatMessage message) async {
     try {
       final data = message.toJson();
       // Ensure user_id is set
@@ -498,9 +525,12 @@ class SupabaseService {
       // Just in case, ensure consistent user_id logic if needed.
       // But local message object should strictly be saved.
       await client.from(chatMessagesTable).upsert(data);
+      return true;
     } catch (e) {
       print('Error saving chat message to Supabase: $e');
+      return false;
     }
+    return false;
   }
 
   static Future<void> deleteChatMessagesForSubject(String subjectId) async {

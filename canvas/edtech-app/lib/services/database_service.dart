@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/user_profile.dart';
 import '../models/subject.dart';
@@ -86,19 +89,34 @@ class DatabaseService {
   // ============= USER PROFILE =============
 
   Future<UserProfile?> getUserProfile(String userId) async {
-    try {
-      final profile = await SupabaseService.getUserProfile(userId);
-      if (profile != null) {
-        final box = Hive.box<UserProfile>(userProfileBox);
-        await box.put(profile.id, profile);
-        return profile;
-      }
-    } catch (e) {
-      print('Error fetching user profile from Supabase: $e');
-    }
-    // Fallback
     final box = Hive.box<UserProfile>(userProfileBox);
-    return box.get(userId);
+    final local = box.get(userId);
+
+    UserProfile? remote;
+    try {
+      remote = await SupabaseService.getUserProfile(userId);
+    } catch (e) {
+      debugPrint('Error fetching user profile from Supabase: $e');
+    }
+
+    if (remote == null) return local;
+    if (local == null) {
+      await box.put(remote.id, remote);
+      return remote;
+    }
+
+    // A remote row can exist without onboarding data: the row is created at
+    // sign-in, and the upsert that fills it in can fail silently. Preferring
+    // it blindly sent the user back through onboarding on every launch even
+    // though the answers were saved locally. Keep whichever copy is complete,
+    // and push the local one back up so the remote stops being wrong.
+    if (local.educationLevel.isNotEmpty && remote.educationLevel.isEmpty) {
+      unawaited(SupabaseService.saveUserProfile(local));
+      return local;
+    }
+
+    await box.put(remote.id, remote);
+    return remote;
   }
 
   Future<void> saveUserProfile(UserProfile profile) async {
@@ -127,17 +145,20 @@ class DatabaseService {
       // A null result means the remote was unreachable, which is not the
       // same as it having no rows. Returning the empty list here would
       // wipe locally-saved subjects from the UI while offline.
-      if (subjects == null) {
-        final box = Hive.box<Subject>(subjectsBox);
-        return box.values.toList();
-      }
       final box = Hive.box<Subject>(subjectsBox);
+      final local = box.values.toList();
+      if (subjects == null) return local;
 
       // Update local cache
       for (var subject in subjects) {
         await box.put(subject.id, subject);
       }
-      return subjects;
+      final remoteIds = subjects.map((e) => e.id).toSet();
+      final localOnly = local.where((e) => !remoteIds.contains(e.id)).toList();
+      for (final item in localOnly) {
+        unawaited(SupabaseService.saveSubject(item));
+      }
+      return [...subjects, ...localOnly];
     } catch (e) {
       print('Error fetching subjects from Supabase: $e');
       final box = Hive.box<Subject>(subjectsBox);
@@ -191,20 +212,30 @@ class DatabaseService {
       // A null result means the remote was unreachable, which is not the
       // same as it having no rows. Returning the empty list here would
       // wipe locally-saved notes from the UI while offline.
-      if (notes == null) {
-        final box = Hive.box<Note>(notesBox);
-        return box.values.where((note) => note.subjectId == subjectId).toList();
-      }
       final box = Hive.box<Note>(notesBox);
+      final local =
+          box.values.where((note) => note.subjectId == subjectId).toList();
+
+      if (notes == null) return local;
 
       // Update local cache
       for (var note in notes) {
         await box.put(note.id, note);
       }
 
-      return notes;
+      // Union, not replace. A note whose remote write failed still lives in
+      // Hive, and returning the remote list alone made it vanish on the next
+      // launch even though it was never actually lost. Re-push those so they
+      // stop being local-only.
+      final remoteIds = notes.map((n) => n.id).toSet();
+      final localOnly = local.where((n) => !remoteIds.contains(n.id)).toList();
+      for (final note in localOnly) {
+        unawaited(SupabaseService.saveNote(note));
+      }
+
+      return [...notes, ...localOnly];
     } catch (e) {
-      print('Error fetching notes from Supabase: $e');
+      debugPrint('Error fetching notes from Supabase: $e');
       // Fallback to local
       final box = Hive.box<Note>(notesBox);
       return box.values.where((note) => note.subjectId == subjectId).toList();
@@ -353,18 +384,22 @@ class DatabaseService {
       // A null result means the remote was unreachable, which is not the
       // same as it having no rows. Returning the empty list here would
       // wipe locally-saved quizzes from the UI while offline.
-      if (quizzes == null) {
-        final box = Hive.box<Quiz>(quizzesBox);
-        return box.values.where((quiz) => quiz.subjectId == subjectId).toList();
-      }
       final box = Hive.box<Quiz>(quizzesBox);
+      final local =
+          box.values.where((quiz) => quiz.subjectId == subjectId).toList();
+      if (quizzes == null) return local;
 
       // Update local cache
       for (var quiz in quizzes) {
         await box.put(quiz.id, quiz);
       }
 
-      return quizzes;
+      final remoteIds = quizzes.map((e) => e.id).toSet();
+      final localOnly = local.where((e) => !remoteIds.contains(e.id)).toList();
+      for (final item in localOnly) {
+        unawaited(SupabaseService.saveQuiz(item));
+      }
+      return [...quizzes, ...localOnly];
     } catch (e) {
       print('Error fetching quizzes from Supabase: $e');
       // Fallback to local

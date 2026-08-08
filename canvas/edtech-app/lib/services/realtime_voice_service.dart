@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_pcm_sound/flutter_pcm_sound.dart';
 import 'package:record/record.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// Connection state of a live voice session.
@@ -77,18 +78,22 @@ class RealtimeVoiceService {
     }
 
     try {
-      _channel = WebSocketChannel.connect(
-        Uri.parse('wss://api.openai.com/v1/realtime?model=$model'),
-        // The Realtime API authenticates with the same key as the REST API.
-        protocols: [
-          'realtime',
-          'openai-insecure-api-key.$apiKey',
-          'openai-beta.realtime-v1',
-        ],
+      final uri = Uri.parse('wss://api.openai.com/v1/realtime?model=$model');
+      // Real headers, not the subprotocol trick. Passing the key as a
+      // WebSocket subprotocol is a browser-only workaround, because the web
+      // WebSocket API cannot set headers. On mobile it authenticates nothing
+      // and the handshake is rejected, which is why the session never opened.
+      _channel = IOWebSocketChannel.connect(
+        uri,
+        headers: <String, dynamic>{
+          'Authorization': 'Bearer $apiKey',
+          'OpenAI-Beta': 'realtime=v1',
+        },
+        pingInterval: const Duration(seconds: 20),
       );
       await _channel!.ready;
     } catch (e) {
-      _fail('Could not reach the voice service: $e');
+      _fail(_readableConnectError(e));
       return;
     }
 
@@ -215,6 +220,22 @@ class RealtimeVoiceService {
 
   void _emit(VoiceSessionState value) {
     if (!_stateController.isClosed) _stateController.add(value);
+  }
+
+  /// Turns a handshake failure into something a user can act on.
+  String _readableConnectError(Object e) {
+    final text = e.toString();
+    if (text.contains('401') || text.contains('403')) {
+      return 'OpenAI rejected the API key. Check it in Settings, and that '
+          'your account has Realtime API access.';
+    }
+    if (text.contains('404')) {
+      return 'The voice model "$model" is not available on this account.';
+    }
+    if (text.contains('SocketException') || text.contains('Failed host')) {
+      return 'No internet connection.';
+    }
+    return 'Could not start the voice session: $text';
   }
 
   void _fail(String message) {
