@@ -32,9 +32,13 @@ class RealtimeVoiceService {
     required this.apiKey,
     this.model = _defaultModel,
     this.voice = 'marin',
+    this.onSearchNotes,
   });
 
   static const String _defaultModel = 'gpt-realtime-2.1';
+
+  /// Name of the retrieval function exposed to the model.
+  static const String _searchToolName = 'search_notes';
 
   /// Mandated by the Realtime API. Do not change without changing both the
   /// recorder config and the player setup.
@@ -45,6 +49,13 @@ class RealtimeVoiceService {
 
   /// Realtime voice name. Not all voices exist on every model.
   final String voice;
+
+  /// Answers a question from the student's own uploaded material.
+  ///
+  /// Supplied by the caller so this service stays independent of how
+  /// retrieval is done. When null the tutor has no access to the notes and
+  /// falls back to general knowledge, which is what it did before.
+  final Future<String> Function(String query)? onSearchNotes;
 
   /// Completes when the server confirms the session is open.
   Completer<void> _sessionCreated = Completer<void>();
@@ -143,6 +154,29 @@ class RealtimeVoiceService {
       'session': {
         'type': 'realtime',
         'instructions': instructions,
+        if (onSearchNotes != null) ...{
+          'tools': [
+            {
+              'type': 'function',
+              'name': _searchToolName,
+              'description': 'Search the study material this student uploaded for '
+                  'this subject. Always call this before answering a question '
+                  'about the subject, so the answer comes from their material '
+                  'rather than general knowledge.',
+              'parameters': {
+                'type': 'object',
+                'properties': {
+                  'query': {
+                    'type': 'string',
+                    'description': 'What to look for in the notes.',
+                  },
+                },
+                'required': ['query'],
+              },
+            },
+          ],
+          'tool_choice': 'auto',
+        },
         'audio': {
           'input': {
             'format': {'type': 'audio/pcm', 'rate': sampleRate},
@@ -257,6 +291,11 @@ class RealtimeVoiceService {
           _userTranscriptController.add(text.trim());
         }
 
+      // Both spellings appear across versions of the tool-calling events.
+      case 'response.function_call_arguments.done':
+      case 'response.output_item.done':
+        _maybeHandleToolCall(event);
+
       case 'session.created':
       case 'session.updated':
         if (!_sessionCreated.isCompleted) _sessionCreated.complete();
@@ -288,6 +327,62 @@ class RealtimeVoiceService {
           message ?? 'The voice service reported a problem.',
         );
     }
+  }
+
+  /// Runs a retrieval call the model asked for and hands back the result.
+  ///
+  /// Without this the tutor only ever had the instructions to work from, so it
+  /// answered from general knowledge even though the student's documents were
+  /// already indexed.
+  Future<void> _maybeHandleToolCall(Map<String, dynamic> event) async {
+    final search = onSearchNotes;
+    if (search == null) return;
+
+    String? callId;
+    String? name;
+    String? argsJson;
+
+    if (event['type'] == 'response.function_call_arguments.done') {
+      callId = event['call_id'] as String?;
+      name = event['name'] as String?;
+      argsJson = event['arguments'] as String?;
+    } else {
+      // response.output_item.done wraps the same fields in `item`.
+      final item = event['item'] as Map?;
+      if (item?['type'] != 'function_call') return;
+      callId = item?['call_id'] as String?;
+      name = item?['name'] as String?;
+      argsJson = item?['arguments'] as String?;
+    }
+
+    if (callId == null || name != _searchToolName) return;
+
+    var query = '';
+    try {
+      final decoded = jsonDecode(argsJson ?? '{}');
+      if (decoded is Map) query = decoded['query'] as String? ?? '';
+    } catch (_) {
+      // Fall through with an empty query rather than dropping the call: the
+      // model is waiting on output and will stall without a reply.
+    }
+
+    String output;
+    try {
+      output = await search(query);
+    } catch (e) {
+      output = 'The notes could not be searched: $e';
+    }
+
+    _send({
+      'type': 'conversation.item.create',
+      'item': {
+        'type': 'function_call_output',
+        'call_id': callId,
+        'output': output,
+      },
+    });
+    // The model does not continue on its own after a tool result.
+    _send({'type': 'response.create'});
   }
 
   void _playChunk(String? base64Audio) {

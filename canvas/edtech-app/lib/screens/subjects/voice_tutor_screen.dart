@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/subject.dart';
 import '../../services/openai_config_service.dart';
+import '../../services/openai_rag_service.dart';
 import '../../services/realtime_voice_service.dart';
 import '../../utils/app_theme.dart';
 
@@ -61,7 +62,18 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
       return;
     }
 
-    final service = RealtimeVoiceService(apiKey: key);
+    // Retrieval over the student's own uploaded documents. Without this the
+    // tutor only had its instructions and answered from general knowledge.
+    final rag = OpenAIRagService(key);
+    await rag.initializeSubjectStore(widget.subject.id, widget.subject.name);
+
+    final service = RealtimeVoiceService(
+      apiKey: key,
+      onSearchNotes: (query) => rag.chatWithSubject(
+        subjectId: widget.subject.id,
+        userMessage: query,
+      ),
+    );
     _service = service;
     setState(() {
       _error = null;
@@ -92,10 +104,16 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
     await service.start(
       instructions:
           'You are a warm, encouraging voice tutor helping a student study '
-          '"${widget.subject.name}". Keep answers short and conversational, '
-          'usually two or three sentences, because they are being spoken '
-          'aloud. Ask a follow-up question to check understanding. Guide the '
-          'student towards the answer rather than simply stating it.',
+          '"${widget.subject.name}". '
+          'The student has uploaded their own notes for this subject. Call '
+          'the search_notes function before answering any question about the '
+          'subject, and base your answer on what it returns. If the notes do '
+          'not cover something, say so plainly and then answer from general '
+          'knowledge, making the difference clear. '
+          'Keep answers short and conversational, usually two or three '
+          'sentences, because they are spoken aloud. Ask a follow-up question '
+          'to check understanding, and guide the student towards the answer '
+          'rather than simply stating it.',
     );
   }
 
