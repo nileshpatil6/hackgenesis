@@ -2,7 +2,8 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth/config"
 import { prisma } from "@/lib/prisma"
-import { generateFlashcardsWithFileSearch } from "@/lib/gemini"
+import { generateFlashcardsWithFileSearch } from "@/lib/openai"
+import { buildSubjectContext } from "@/lib/rag"
 
 export async function POST(req: Request) {
   try {
@@ -56,14 +57,6 @@ export async function POST(req: Request) {
       notesCount: subject.notes.length,
     })
 
-    if (!subject.fileSearchStoreId) {
-      console.log("No fileSearchStoreId for subject:", subject.id)
-      return NextResponse.json(
-        { error: "No File Search store found. Please upload PDF notes first." },
-        { status: 400 }
-      )
-    }
-
     if (subject.notes.length === 0) {
       console.log("No notes found for subject:", subject.id)
       return NextResponse.json(
@@ -72,10 +65,16 @@ export async function POST(req: Request) {
       )
     }
 
-    // Generate flashcards using Gemini File Search
+    const { context } = await buildSubjectContext(
+      subject.id,
+      user.id,
+      topicName
+    )
+
     const flashcardsData = await generateFlashcardsWithFileSearch(
       topicName,
-      subject.fileSearchStoreId
+      subject.fileSearchStoreId,
+      context
     )
 
     // Create flashcard set

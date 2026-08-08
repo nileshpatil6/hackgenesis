@@ -333,7 +333,7 @@ export default function AITeacherPage() {
           <div className="mt-3 flex items-center justify-between text-sm text-gray-500">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
-              <span>Powered by Gemini AI</span>
+              <span>Powered by OpenAI</span>
             </div>
             <span className="text-xs">
               Press Enter to send, Shift+Enter for new line

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth/config"
-import { speechToText } from "@/lib/deepgram"
+import { speechToText } from "@/lib/openai"
 
 export async function POST(req: Request) {
   try {
@@ -11,27 +11,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { audio } = await req.json()
+    const { audio, language, mimeType } = await req.json()
 
     if (!audio) {
       return NextResponse.json({ error: "No audio provided" }, { status: 400 })
     }
 
-    // Convert base64 to buffer
-    const base64Data = audio.split(",")[1] || audio
+    // Accepts either a raw base64 string or a data URL. When it is a data URL
+    // the media type in the prefix wins, since that is what was recorded.
+    const isDataUrl = audio.startsWith("data:")
+    const base64Data = isDataUrl ? audio.slice(audio.indexOf(",") + 1) : audio
+    const detectedMime = isDataUrl
+      ? audio.slice(5, audio.indexOf(";") > 0 ? audio.indexOf(";") : audio.indexOf(","))
+      : undefined
+
     const audioBuffer = Buffer.from(base64Data, "base64")
 
-    // Transcribe using DeepGram
-    const { text, error } = await speechToText(audioBuffer)
+    const { text, error } = await speechToText(audioBuffer, {
+      language,
+      mimeType: mimeType || detectedMime,
+    })
 
     if (error) {
       throw error
     }
 
-    return NextResponse.json({
-      text,
-      success: true,
-    })
+    return NextResponse.json({ text, success: true })
   } catch (error) {
     console.error("Error transcribing audio:", error)
     return NextResponse.json(

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth/config"
 import { prisma } from "@/lib/prisma"
-import { generateQuizWithFileSearch } from "@/lib/gemini"
+import { generateQuizWithFileSearch } from "@/lib/openai"
+import { buildSubjectContext } from "@/lib/rag"
 
 export async function POST(req: Request) {
   try {
@@ -48,13 +49,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Subject not found" }, { status: 404 })
     }
 
-    if (!subject.fileSearchStoreId) {
-      return NextResponse.json(
-        { error: "No File Search store found. Please upload PDF notes first." },
-        { status: 400 }
-      )
-    }
-
     if (subject.notes.length === 0) {
       return NextResponse.json(
         { error: "No notes found. Please upload notes first." },
@@ -62,11 +56,17 @@ export async function POST(req: Request) {
       )
     }
 
-    // Generate quiz using Gemini File Search
+    const { context } = await buildSubjectContext(
+      subject.id,
+      user.id,
+      topicTitle
+    )
+
     const quizQuestions = await generateQuizWithFileSearch(
       topicTitle,
       difficulty,
-      subject.fileSearchStoreId
+      subject.fileSearchStoreId,
+      context
     )
 
     // Find or create topic

@@ -2,8 +2,8 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth/config"
 import { prisma } from "@/lib/prisma"
-import { queryWithRAG } from "@/lib/gemini"
-import { textToSpeech } from "@/lib/deepgram"
+import { queryWithRAG, textToSpeech } from "@/lib/openai"
+import { retrieveContext } from "@/lib/rag"
 
 export async function POST(req: Request) {
   try {
@@ -27,61 +27,60 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No message provided" }, { status: 400 })
     }
 
-    // Build context from notes (if subject selected)
-    let context = ""
-    if (subjectId) {
-      const subject = await prisma.subject.findUnique({
-        where: { id: subjectId },
-        include: {
-          notes: {
-            orderBy: { uploadedAt: "desc" },
-            take: 5,
-          },
-        },
-      })
+    const normalizedSubjectId =
+      subjectId && subjectId !== "all" ? subjectId : null
 
-      if (subject) {
-        context = subject.notes
-          .map(
-            (note: any) =>
-              `File: ${note.displayName}\nContent: [Note content placeholder]`
-          )
-          .join("\n\n")
-      }
+    // Retrieve the relevant note passages for this question
+    const { context, citations } = await retrieveContext(message, {
+      userId: user.id,
+      subjectId: normalizedSubjectId,
+      topK: 6,
+    })
+
+    let vectorStoreId: string | null = null
+    if (normalizedSubjectId) {
+      const subject = await prisma.subject.findFirst({
+        where: { id: normalizedSubjectId, userId: user.id },
+        select: { fileSearchStoreId: true },
+      })
+      vectorStoreId = subject?.fileSearchStoreId ?? null
     }
 
-    // Get user profile for personalization
     const userProfile = {
       learningStyle: user.learningStyle,
       pace: user.pace,
       interests: user.interests,
       aiPersona: user.aiPersona,
+      name: user.name,
     }
 
-    // Get AI response
-    const responseText = await queryWithRAG(message, context, userProfile)
+    const responseText = await queryWithRAG(
+      `${message}\n\n(Answer conversationally, as this will be read aloud. Keep it under about 120 words and avoid markdown formatting.)`,
+      context,
+      userProfile,
+      vectorStoreId
+    )
 
-    // Generate audio using DeepGram TTS
     const { audio, error } = await textToSpeech(responseText, {
-      voice: voice || "aura-asteria-en",
+      voice: voice || "marin",
+      instructions:
+        "Speak warmly and clearly, like a patient tutor explaining something to a student.",
     })
 
     if (error || !audio) {
-      // Return text response even if audio fails
+      // Text still works even when TTS fails
       return NextResponse.json({
         text: responseText,
         audioUrl: null,
+        citations,
         success: true,
       })
     }
 
-    // Convert audio buffer to base64 data URL
-    const audioBase64 = audio.toString("base64")
-    const audioUrl = `data:audio/wav;base64,${audioBase64}`
-
     return NextResponse.json({
       text: responseText,
-      audioUrl,
+      audioUrl: `data:audio/mp3;base64,${audio.toString("base64")}`,
+      citations,
       success: true,
     })
   } catch (error) {

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth/config"
 import { prisma } from "@/lib/prisma"
-import { generateSlidesWithFileSearch } from "@/lib/gemini"
+import { generateSlidesWithFileSearch } from "@/lib/openai"
+import { buildSubjectContext } from "@/lib/rag"
 
 export async function POST(req: Request) {
   try {
@@ -46,13 +47,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Subject not found" }, { status: 404 })
     }
 
-    if (!subject.fileSearchStoreId) {
-      return NextResponse.json(
-        { error: "No File Search store found. Please upload PDF notes first." },
-        { status: 400 }
-      )
-    }
-
     if (subject.notes.length === 0) {
       return NextResponse.json(
         { error: "No notes found in this subject. Please upload notes first." },
@@ -60,7 +54,13 @@ export async function POST(req: Request) {
       )
     }
 
-    // Generate slides using Gemini File Search
+    // Retrieve the most relevant note content for this topic
+    const { context } = await buildSubjectContext(
+      subject.id,
+      user.id,
+      topicName
+    )
+
     const userProfile = {
       learningStyle: user.learningStyle,
       interests: user.interests,
@@ -70,7 +70,8 @@ export async function POST(req: Request) {
     const slidesData = await generateSlidesWithFileSearch(
       topicName,
       subject.fileSearchStoreId,
-      userProfile
+      userProfile,
+      context
     )
 
     // Create or find topic

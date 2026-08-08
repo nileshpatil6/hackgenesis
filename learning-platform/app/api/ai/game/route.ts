@@ -2,7 +2,8 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth/config"
 import { prisma } from "@/lib/prisma"
-import { generateGameWithFileSearch } from "@/lib/gemini"
+import { generateGameWithFileSearch } from "@/lib/openai"
+import { buildSubjectContext } from "@/lib/rag"
 
 export async function POST(req: Request) {
   try {
@@ -49,11 +50,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
-    // Generate game HTML using AI with File Search
+    // Retrieve note content so the game questions come from the student's material
+    const { context } = await buildSubjectContext(subject.id, user.id, topic, {
+      maxChars: 15000,
+    })
+
     const htmlContent = await generateGameWithFileSearch(
       topic,
       gameType,
-      subject.fileSearchStoreId
+      subject.fileSearchStoreId,
+      context
     )
 
     // Create or find topic
@@ -105,9 +111,9 @@ export async function POST(req: Request) {
     let errorMessage = "Failed to generate game"
 
     if (error.message?.includes("fetch failed")) {
-      errorMessage = "Network error: Unable to connect to Gemini API. Please check your internet connection or try again later."
+      errorMessage = "Network error: Unable to connect to the OpenAI API. Please check your internet connection or try again later."
     } else if (error.message?.includes("API key")) {
-      errorMessage = "Invalid or missing Gemini API key. Please check your configuration."
+      errorMessage = "Invalid or missing OpenAI API key. Please check your configuration."
     } else if (error.message?.includes("quota")) {
       errorMessage = "API quota exceeded. Please try again later."
     }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth/config"
 import { prisma } from "@/lib/prisma"
-import { generateStudyPlan } from "@/lib/gemini"
+import { generateStudyPlan } from "@/lib/openai"
 
 export async function GET() {
   try {
@@ -154,36 +154,56 @@ export async function POST(req: Request) {
       },
     })
 
+    // The model occasionally invents a subject id, so map anything unknown back
+    // onto a real one rather than failing the whole request on a FK error.
+    const validSubjectIds = new Set(subjectDetails.map((s: any) => s.id))
+    const fallbackSubjectId = subjectDetails[0]?.id
+
+    const resolveSubjectId = (candidate: unknown) =>
+      typeof candidate === "string" && validSubjectIds.has(candidate)
+        ? candidate
+        : fallbackSubjectId
+
     // Create sessions
-    const sessionsToCreate = generatedPlan.weeklySchedule.flatMap((day: any) =>
-      day.sessions.map((session: any) => ({
-        planId: studyPlan.id,
-        subjectId: session.subjectId,
-        day: day.day,
-        topic: session.topic,
-        duration: session.duration,
-        timeSlot: session.timeSlot,
-        activities: session.activities,
-        completed: false,
-      }))
+    const sessionsToCreate = (generatedPlan.weeklySchedule || []).flatMap(
+      (day: any) =>
+        (day.sessions || []).map((session: any) => ({
+          planId: studyPlan.id,
+          subjectId: resolveSubjectId(session.subjectId),
+          day: day.day,
+          topic: session.topic,
+          duration: Number(session.duration) || 60,
+          timeSlot: session.timeSlot || "Morning",
+          activities: session.activities || [],
+          completed: false,
+        }))
     )
 
-    await prisma.studySession.createMany({
-      data: sessionsToCreate,
-    })
+    if (sessionsToCreate.length > 0) {
+      await prisma.studySession.createMany({
+        data: sessionsToCreate,
+      })
+    }
 
     // Create milestones
     if (generatedPlan.milestones && generatedPlan.milestones.length > 0) {
-      await prisma.milestone.createMany({
-        data: generatedPlan.milestones.map((milestone: any) => ({
-          planId: studyPlan.id,
-          subjectId: milestone.subjectId,
-          title: milestone.title,
-          description: milestone.description,
-          dueDate: new Date(milestone.dueDate),
-          completed: false,
-        })),
-      })
+      const milestonesToCreate = generatedPlan.milestones.map(
+        (milestone: any) => {
+          const dueDate = new Date(milestone.dueDate)
+          return {
+            planId: studyPlan.id,
+            subjectId: resolveSubjectId(milestone.subjectId),
+            title: milestone.title,
+            description: milestone.description || "",
+            dueDate: isNaN(dueDate.getTime())
+              ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+              : dueDate,
+            completed: false,
+          }
+        }
+      )
+
+      await prisma.milestone.createMany({ data: milestonesToCreate })
     }
 
     // Fetch complete plan with relations

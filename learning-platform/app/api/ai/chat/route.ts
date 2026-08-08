@@ -2,7 +2,8 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth/config"
 import { prisma } from "@/lib/prisma"
-import { queryWithRAG } from "@/lib/gemini"
+import { chat, buildTutorSystemPrompt } from "@/lib/openai"
+import { retrieveContext } from "@/lib/rag"
 
 export async function POST(req: Request) {
   try {
@@ -26,67 +27,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 })
     }
 
-    // Build context from notes
-    let context = ""
-    let citations: string[] = []
+    const normalizedSubjectId =
+      subjectId && subjectId !== "all" ? subjectId : null
 
-    if (subjectId) {
-      // Get notes from the selected subject
-      const subject = await prisma.subject.findFirst({
-        where: {
-          id: subjectId,
-          userId: user.id,
-        },
-        include: {
-          notes: {
-            take: 10, // Limit to most recent 10 notes
-            orderBy: { uploadedAt: "desc" },
-          },
-        },
-      })
+    // Semantic retrieval over the student's indexed notes
+    const { context, citations } = await retrieveContext(message, {
+      userId: user.id,
+      subjectId: normalizedSubjectId,
+      topK: 8,
+    })
 
-      if (subject && subject.notes && subject.notes.length > 0) {
-        context = subject.notes
-          .map((note: any) => {
-            citations.push(note.displayName)
-            // In a real implementation, you would:
-            // 1. Fetch actual file content from storage
-            // 2. Use Gemini File Search for semantic retrieval
-            // For now, using metadata
-            return `Document: ${note.displayName}\nType: ${note.fileType}\nUploaded: ${note.uploadedAt}`
-          })
-          .join("\n\n")
-      }
-    } else {
-      // Get notes from all subjects
-      const subjects = await prisma.subject.findMany({
-        where: { userId: user.id },
-        include: {
-          notes: {
-            take: 5,
-            orderBy: { uploadedAt: "desc" },
-          },
-        },
-      })
-
-      context = subjects
-        .flatMap((subject: any) =>
-          (subject.notes || []).map((note: any) => {
-            citations.push(`${subject.displayName}: ${note.displayName}`)
-            return `Subject: ${subject.displayName}\nDocument: ${note.displayName}\nType: ${note.fileType}`
-          })
-        )
-        .join("\n\n")
-    }
-
-    // Add conversation history to context
-    const conversationContext = conversationHistory
-      ? conversationHistory
-        .map((msg: any) => `${msg.role === "user" ? "Student" : "AI Teacher"}: ${msg.content}`)
-        .join("\n")
-      : ""
-
-    // Build user profile for personalization
     const userProfile = {
       aiPersona: user.aiPersona,
       learningStyle: user.learningStyle,
@@ -95,19 +45,35 @@ export async function POST(req: Request) {
       name: user.name,
     }
 
-    // Generate response using RAG
-    const fullContext = `
-${conversationContext}
+    const systemPrompt = `${buildTutorSystemPrompt(userProfile)}
 
-Available Notes/Documents:
-${context || "No notes have been uploaded yet."}
-    `.trim()
+When note excerpts are provided, ground your answer in them and reference the source document by name. If the excerpts do not cover the question, say so before giving general guidance.`
 
-    const response = await queryWithRAG(message, fullContext, userProfile)
+    const messages: Array<{
+      role: "system" | "user" | "assistant"
+      content: string
+    }> = [{ role: "system", content: systemPrompt }]
+
+    if (Array.isArray(conversationHistory)) {
+      for (const item of conversationHistory.slice(-10)) {
+        if (item?.role === "user" || item?.role === "assistant") {
+          messages.push({ role: item.role, content: String(item.content ?? "") })
+        }
+      }
+    }
+
+    messages.push({
+      role: "user",
+      content: context
+        ? `Relevant excerpts from my notes:\n\n${context}\n\n---\n\nMy question: ${message}`
+        : message,
+    })
+
+    const response = await chat(messages)
 
     return NextResponse.json({
       response,
-      citations: context ? citations.slice(0, 5) : [], // Limit citations
+      citations: citations.slice(0, 5),
     })
   } catch (error) {
     console.error("Error in AI chat:", error)

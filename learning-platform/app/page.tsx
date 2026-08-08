@@ -211,7 +211,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t mt-20">
         <div className="container mx-auto px-4 py-8 text-center text-gray-600">
-          <p>© 2024 AI Learning Platform. Built with Next.js, Gemini AI & DeepGram.</p>
+          <p>© 2026 AI Learning Platform. Built with Next.js and OpenAI.</p>
           <p className="text-sm mt-2">100% Free Forever • Open Source</p>
         </div>
       </footer>
