@@ -12,7 +12,7 @@ import ReactFlow, {
   Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { X, CheckCircle, AlertCircle, Zap, FlaskConical, Atom, Code2, PartyPopper, XCircle } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Zap, FlaskConical, Atom, Code2, PartyPopper, XCircle, Target, Trophy } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -38,6 +38,20 @@ import { useToasts } from './hooks/useToasts';
 const nodeTypes: NodeTypes = {
   custom: CustomNode,
 };
+
+const MAIN_APP_ORIGIN = import.meta.env.VITE_MAIN_APP_ORIGIN || 'http://localhost:3000';
+
+interface ActiveChallenge {
+  source: 'voom' | 'challenge';
+  roomId?: string;
+  questionId?: string;
+  questionIndex?: number;
+  title: string;
+  description?: string;
+  difficulty?: string;
+  category?: string;
+  points?: number;
+}
 
 function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -77,6 +91,8 @@ function App() {
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [activeChallenge, setActiveChallenge] = useState<ActiveChallenge | null>(null);
+  const [challengeSolved, setChallengeSolved] = useState(false);
 
   const selectedNode = useMemo(
     () => nodes.find((n) => n.id === selectedNodeId) || null,
@@ -106,6 +122,63 @@ function App() {
     localStorage.setItem('aiexp-visited', 'true');
     setShowWelcomeModal(false);
   };
+
+  // Pick up a question handed off from the Voom room or Challenges flow
+  useEffect(() => {
+    const voomRaw = localStorage.getItem('currentVoomQuestion');
+    if (voomRaw) {
+      try {
+        const q = JSON.parse(voomRaw);
+        setActiveChallenge({
+          source: 'voom',
+          roomId: q.roomId,
+          questionId: q.questionId,
+          title: q.questionText,
+          points: q.points,
+        });
+      } catch {
+        // ignore malformed handoff data
+      }
+      localStorage.removeItem('currentVoomQuestion');
+      return;
+    }
+
+    const challengeRaw = localStorage.getItem('currentChallengeQuestion');
+    if (challengeRaw) {
+      try {
+        const q = JSON.parse(challengeRaw);
+        setActiveChallenge({
+          source: 'challenge',
+          questionIndex: q.questionIndex,
+          title: q.question,
+          description: q.description,
+          difficulty: q.difficulty,
+          category: q.category,
+        });
+      } catch {
+        // ignore malformed handoff data
+      }
+      localStorage.removeItem('currentChallengeQuestion');
+    }
+  }, []);
+
+  const notifyChallengeSolved = useCallback(() => {
+    if (!activeChallenge || challengeSolved) return;
+    setChallengeSolved(true);
+    if (window.opener) {
+      window.opener.postMessage(
+        {
+          type: 'canvas-challenge-solved',
+          source: activeChallenge.source,
+          roomId: activeChallenge.roomId,
+          questionId: activeChallenge.questionId,
+          questionIndex: activeChallenge.questionIndex,
+          points: activeChallenge.points,
+        },
+        MAIN_APP_ORIGIN
+      );
+    }
+  }, [activeChallenge, challengeSolved]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -260,6 +333,7 @@ function App() {
           origin: { y: 0.6 },
           colors: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899']
         });
+        notifyChallengeSolved();
       }
 
       const image = await imagePromise;
@@ -468,6 +542,46 @@ function App() {
         onImportJSON={handleImportJSON}
         onClearCanvas={handleClearCanvas}
       />
+
+      {activeChallenge && (
+        <div
+          className={`flex items-center gap-3 px-6 py-3 border-b text-sm ${
+            challengeSolved
+              ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20'
+              : 'bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/20'
+          }`}
+        >
+          {challengeSolved ? (
+            <CheckCircle size={18} className="text-emerald-500 flex-shrink-0" />
+          ) : (
+            <Target size={18} className="text-orange-500 flex-shrink-0" />
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+              {activeChallenge.title}
+            </div>
+            {activeChallenge.description && (
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                {activeChallenge.description}
+              </div>
+            )}
+          </div>
+          {activeChallenge.difficulty && (
+            <span className="px-2.5 py-1 rounded-lg text-xs font-semibold uppercase bg-white/70 dark:bg-white/10 text-zinc-600 dark:text-zinc-300 flex-shrink-0">
+              {activeChallenge.difficulty}
+            </span>
+          )}
+          {typeof activeChallenge.points === 'number' && (
+            <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-white/70 dark:bg-white/10 text-orange-600 dark:text-orange-400 flex-shrink-0">
+              <Trophy size={12} />
+              {activeChallenge.points} pts
+            </span>
+          )}
+          <span className="text-xs font-medium flex-shrink-0 text-zinc-500 dark:text-zinc-400">
+            {challengeSolved ? 'Solved! You can return to the other tab.' : 'Run Experiment to submit'}
+          </span>
+        </div>
+      )}
 
       <div className="flex flex-1 min-h-0">
         {/* Component Library Sidebar */}
