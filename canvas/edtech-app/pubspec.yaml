@@ -74,6 +74,9 @@ dependencies:
   flutter_markdown: ^0.6.18+2
   google_fonts: ^6.3.3
   flip_card: ^0.7.0
+  record: ^6.2.1
+  web_socket_channel: ^3.0.3
+  flutter_pcm_sound: ^3.3.3
 
 dev_dependencies:
   flutter_test:

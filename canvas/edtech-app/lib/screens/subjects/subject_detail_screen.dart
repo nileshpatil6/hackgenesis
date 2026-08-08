@@ -16,6 +16,7 @@ import '../subjects/quiz_screen.dart';
 import '../subjects/flashcard_screen.dart';
 import 'subject_chat_screen.dart';
 import 'quiz_generation_screen.dart';
+import 'voice_tutor_screen.dart';
 import 'flashcard_generation_screen.dart';
 
 class SubjectDetailScreen extends StatefulWidget {
@@ -365,7 +366,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
                     title: 'Voice Tutor',
                     message: 'Have a conversation with your AI tutor.',
                     buttonText: 'Start Session',
-                    onPressed: () => _showVoiceComingSoon(context),
+                    onPressed: _openVoiceTutor,
                     color: subjectColor,
                     isDark: isDark,
                   ),
@@ -421,11 +422,11 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
     );
   }
 
-  void _showVoiceComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Voice Tutor is coming soon!'),
-        behavior: SnackBarBehavior.floating,
+  void _openVoiceTutor() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VoiceTutorScreen(subject: widget.subject),
       ),
     );
   }
@@ -474,7 +475,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
         _loadSubjectData();
         break;
       default:
-        _showVoiceComingSoon(context);
+        _openVoiceTutor();
     }
   }
 
