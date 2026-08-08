@@ -3,7 +3,6 @@
 import { useAuth } from "../../../context/AuthContext";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getRoomById, Question, Room } from "@/lib/voomData";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -27,6 +26,28 @@ import {
   Zap,
   Users,
 } from "lucide-react";
+
+interface Question {
+  id: string;
+  question_text: string;
+  difficulty: "easy" | "medium" | "hard";
+  points: number;
+  category: string;
+}
+
+interface Room {
+  id: string;
+  topic: string;
+  description: string;
+  difficulty: "Easy" | "Medium" | "Hard";
+  total_questions: number;
+  active_users: number;
+  starts_at: string;
+  ends_at: string;
+  status: "upcoming" | "active" | "ended";
+  icon: string;
+  questions: Question[];
+}
 
 interface LeaderboardEntry {
   rank: number;
@@ -58,13 +79,18 @@ export default function RoomPage() {
   useEffect(() => {
     if (roomId) {
       loadRoomData();
-      loadProgress();
       const interval = setInterval(() => {
         calculateTimeRemaining();
       }, 1000);
       return () => clearInterval(interval);
     }
   }, [roomId]);
+
+  useEffect(() => {
+    if (roomId && user) {
+      loadUserProgress();
+    }
+  }, [roomId, user]);
 
   // Listen for the canvas app reporting back that the active question was solved
   useEffect(() => {
@@ -77,70 +103,49 @@ export default function RoomPage() {
     }
     window.addEventListener("message", handleCanvasMessage);
     return () => window.removeEventListener("message", handleCanvasMessage);
-  }, [roomId, solvedQuestions, userProgress]);
+  }, [roomId, solvedQuestions, userProgress, user]);
 
-  function loadRoomData() {
-    const roomData = getRoomById(roomId);
-    if (roomData) {
-      setRoom(roomData);
-      setQuestions(roomData.questions);
+  async function loadRoomData() {
+    try {
+      const res = await fetch(`/api/voom/rooms/${roomId}`);
+      const data = await res.json();
+      if (data.success) {
+        setRoom(data.room);
+        setQuestions(data.room.questions);
+      }
+    } catch (err) {
+      console.error("Failed to load room:", err);
     }
     loadLeaderboard();
   }
 
-  function loadProgress() {
+  async function loadUserProgress() {
     if (!user) return;
-    const storageKey = `voom_progress_${roomId}_${user.uid}`;
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      const data = JSON.parse(saved);
-      setSolvedQuestions(new Set(data.solved || []));
-      setUserProgress({
-        questionsSolved: data.solved?.length || 0,
-        totalPoints: data.totalPoints || 0
-      });
+    try {
+      const res = await fetch(`/api/voom/progress?roomId=${roomId}&userId=${user.uid}`);
+      const data = await res.json();
+      if (data.success && data.progress) {
+        setSolvedQuestions(new Set(data.progress.questionsSolved));
+        setUserProgress({
+          questionsSolved: data.progress.questionsSolved.length,
+          totalPoints: data.progress.totalPoints
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load progress:", err);
     }
   }
 
-  function loadLeaderboard() {
-    const allProgress: LeaderboardEntry[] = [];
-    
-    // Load all user progress from localStorage
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(`voom_progress_${roomId}_`)) {
-        const data = JSON.parse(localStorage.getItem(key) || "{}");
-        if (data.userName) {
-          allProgress.push({
-            rank: 0,
-            user_id: data.userId,
-            user_name: data.userName,
-            questions_solved: data.solved?.length || 0,
-            total_points: data.totalPoints || 0,
-            last_solved_at: data.lastSolvedAt || new Date().toISOString()
-          });
-        }
+  async function loadLeaderboard() {
+    try {
+      const res = await fetch(`/api/voom/leaderboard?roomId=${roomId}`);
+      const data = await res.json();
+      if (data.success) {
+        setLeaderboard(data.leaderboard);
       }
+    } catch (err) {
+      console.error("Failed to load leaderboard:", err);
     }
-
-    // Sort by questions solved, then by points, then by time
-    allProgress.sort((a, b) => {
-      if (b.questions_solved !== a.questions_solved) {
-        return b.questions_solved - a.questions_solved;
-      }
-      if (b.total_points !== a.total_points) {
-        return b.total_points - a.total_points;
-      }
-      return new Date(a.last_solved_at).getTime() - new Date(b.last_solved_at).getTime();
-    });
-
-    // Assign ranks
-    const rankedLeaderboard = allProgress.map((entry, index) => ({
-      ...entry,
-      rank: index + 1
-    }));
-
-    setLeaderboard(rankedLeaderboard);
   }
 
   function calculateTimeRemaining() {
@@ -175,31 +180,39 @@ export default function RoomPage() {
     window.open("http://localhost:5000", "_blank");
   }
 
-  function markQuestionSolved(questionId: string, points: number) {
+  async function markQuestionSolved(questionId: string, points: number) {
     if (!user) return;
+
+    try {
+      const res = await fetch("/api/voom/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomId,
+          questionId,
+          userId: user.uid,
+          userName: user.email?.split("@")[0] || "User",
+          pointsEarned: points
+        })
+      });
+      const data = await res.json();
+      if (!data.success) return;
+    } catch (err) {
+      console.error("Failed to submit solution:", err);
+      return;
+    }
 
     const newSolved = new Set(solvedQuestions);
     newSolved.add(questionId);
     setSolvedQuestions(newSolved);
 
-    const newProgress = {
+    setUserProgress({
       questionsSolved: newSolved.size,
       totalPoints: userProgress.totalPoints + points
-    };
-    setUserProgress(newProgress);
+    });
 
-    // Save to localStorage
-    const storageKey = `voom_progress_${roomId}_${user.uid}`;
-    localStorage.setItem(storageKey, JSON.stringify({
-      userId: user.uid,
-      userName: user.email?.split('@')[0] || 'User',
-      solved: Array.from(newSolved),
-      totalPoints: newProgress.totalPoints,
-      lastSolvedAt: new Date().toISOString()
-    }));
-
-    // Reload leaderboard
-    loadLeaderboard();
+    // Reload room (for the real active_users count) and leaderboard
+    loadRoomData();
   }
 
   const getDifficultyColor = (difficulty: string) => {
