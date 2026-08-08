@@ -35,7 +35,7 @@ Install and run whichever application you are working on.
 | --- | --- | --- | --- |
 | `website-frontend/` | Public marketing site for the ecosystem | React 18, Vite, Three.js, Framer Motion | Web |
 | `main/` | Community hub: hackathons, challenges, leaderboards | Next.js, Firebase Auth, Supabase | Web |
-| `learning-platform/` | Study platform: subjects, quizzes, flashcards, AI tutor | Next.js, Prisma, NextAuth, Deepgram | Web |
+| `learning-platform/` | Study platform: subjects, quizzes, flashcards, AI tutor | Next.js, Prisma, NextAuth, OpenAI | Web |
 | `canvas/` | AI experiment sandbox on an infinite canvas | React 18, Vite, React Flow, OpenAI | Web |
 | `canvas_flutter/` | The sandbox rebuilt as a game with progression | Flutter 3.35, Dart 3.9 | Windows, Web, Android |
 | `canvas/edtech-app/` | Mobile study companion with offline support | Flutter, Hive, Firebase, Supabase | Android |
@@ -160,10 +160,17 @@ decks, learning games, a study planner, achievements and a voice tutor.
 
 ```bash
 cd learning-platform
+cp .env.example .env           # then set OPENAI_API_KEY and NEXTAUTH_SECRET
 npm install                    # runs prisma generate via postinstall
-npx prisma migrate dev         # first run only, creates the SQLite database
-npm run dev                    # http://localhost:3000
+npx prisma db push             # creates or updates prisma/dev.db
+npm run dev                    # http://localhost:3001
 ```
+
+Sign in with any name. The credentials provider creates a demo account on
+first use, so there is no password and no OAuth application to register.
+
+Note that `npx prisma migrate dev` does not apply here: the project has no
+migrations directory and tracks the schema with `db push`.
 
 **Pages**
 
@@ -186,26 +193,33 @@ All authenticated pages live under `/dashboard`:
 **Architecture notes**
 
 - Persistence is Prisma over SQLite. The datasource URL is hardcoded to
-  `file:./dev.db` in `prisma/schema.prisma`, so there is no `DATABASE_URL` to
-  configure.
-- Authentication is NextAuth with the Prisma adapter.
+  `file:./dev.db` in `prisma/schema.prisma`, so the `DATABASE_URL` entry in
+  `.env.example` is inert and changing it moves nothing.
+- `prisma/dev.db` is committed, so a fresh clone starts with a working
+  database. Delete it and rerun `npx prisma db push` for an empty one.
+- Authentication is NextAuth with a credentials provider that creates a demo
+  user from whatever name is typed.
 - Spaced repetition lives in `lib/algorithms/spaced-repetition.ts`.
-- `lib/gemini.ts` is a legacy filename. Despite the `@google/*` packages still
-  listed in `package.json`, generation calls the OpenAI-compatible endpoint
-  configured below.
+- `lib/openai.ts` is the only place a model is called. Uploaded notes are
+  extracted, chunked and embedded into `NoteChunk` by `lib/rag.ts`, and
+  retrieval is exposed at `/api/rag/search`.
+- The voice tutor opens a WebRTC session against the OpenAI Realtime API. The
+  browser receives a short-lived client secret from `/api/voice/realtime` and
+  never sees the account key.
 
-**Environment.** Create `learning-platform/.env`:
+**Environment.** Copy `learning-platform/.env.example` to `.env`. Only two
+entries are required:
 
 ```bash
-NEXTAUTH_URL=http://localhost:3000
+OPENAI_API_KEY=           # drives every AI feature, including voice
 NEXTAUTH_SECRET=          # any long random string
-OPENAI_API_KEY=           # drives all AI generation
-OPENAI_BASE_URL=          # optional, defaults to an AWS Bedrock proxy
-OPENAI_MODEL_NAME=        # optional, defaults to deepseek.v3.2
-DEEPGRAM_API_KEY=         # speech-to-text for the voice tutor
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXTAUTH_URL=http://localhost:3001
 ```
+
+Everything else in the template is optional. `OPENAI_BASE_URL` points at an
+OpenAI-compatible proxy, in which case vector-store file search is skipped and
+retrieval falls back to the local embedding index. The `OPENAI_*_MODEL`
+entries override the per-task model defaults.
 
 ---
 
@@ -368,8 +382,11 @@ Two implementation details worth knowing:
   the apparatus the user assembled rather than the analysed outcome, because
   the outcome is not yet known when rendering begins.
 
-`main` and `learning-platform` call an OpenAI-compatible endpoint that defaults
-to an AWS Bedrock proxy running `deepseek.v3.2`, overridable through
+`learning-platform` calls OpenAI directly and selects the model per task: the
+heavier model for tutoring and study plans, the fast one for the short
+structured output behind flashcards, quizzes and games. Each name is an
+environment variable with a default, so a model can be swapped without a code
+change. `main` calls an OpenAI-compatible endpoint overridable through
 `OPENAI_BASE_URL` and `OPENAI_MODEL_NAME`.
 
 ---
