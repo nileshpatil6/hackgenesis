@@ -3,8 +3,20 @@
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { updateRoomStatuses, Room } from "@/lib/voomData";
 import { motion } from "framer-motion";
+
+interface Room {
+  id: string;
+  topic: string;
+  description: string;
+  difficulty: "Easy" | "Medium" | "Hard";
+  total_questions: number;
+  active_users: number;
+  starts_at: string;
+  ends_at: string;
+  status: "upcoming" | "active" | "ended";
+  icon: string;
+}
 import { 
   Binary, 
   Globe, 
@@ -54,11 +66,19 @@ export default function VoomPage() {
     loadRooms();
   }, []);
 
-  function loadRooms() {
+  async function loadRooms() {
     setLoadingRooms(true);
-    const roomsWithStatus = updateRoomStatuses();
-    setRooms(roomsWithStatus);
-    setLoadingRooms(false);
+    try {
+      const res = await fetch("/api/voom/rooms");
+      const data = await res.json();
+      if (data.success) {
+        setRooms(data.rooms);
+      }
+    } catch (err) {
+      console.error("Failed to load voom rooms:", err);
+    } finally {
+      setLoadingRooms(false);
+    }
   }
 
   const difficulties = ["All", "Easy", "Medium", "Hard"];

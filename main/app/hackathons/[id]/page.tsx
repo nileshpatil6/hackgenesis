@@ -3,7 +3,6 @@
 import { useAuth } from "../../../context/AuthContext";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -25,7 +24,8 @@ import {
   Target,
   ThumbsUp,
   Github,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Plus
 } from "lucide-react";
 
 interface Problem {
@@ -59,113 +59,6 @@ interface Submission {
   votes: number;
 }
 
-const problemsData: Record<string, Problem> = {
-  "1": {
-    id: "1",
-    title: "Climate Change Prediction Model",
-    description: "Develop a machine learning model to predict climate patterns and temperature changes based on historical data. Help scientists understand future climate scenarios.",
-    category: "Environment",
-    difficulty: "Advanced",
-    postedBy: "Dr. Sarah Johnson",
-    organization: "NASA Climate Research",
-    tags: ["Machine Learning", "Climate Science", "Data Analysis"],
-    submissions: 234,
-    prize: "₹50,000",
-    deadline: "2025-12-31",
-    detailedDescription: `Climate change is one of the most pressing challenges of our time. This project aims to develop sophisticated machine learning models that can predict future climate patterns based on historical data spanning the last century.
-
-Your solution should analyze various factors including:
-- Temperature variations across different regions
-- Greenhouse gas emissions
-- Ocean temperature changes
-- Ice cap measurements
-- Atmospheric CO2 levels
-
-The model should be able to predict climate patterns for the next 50 years with reasonable accuracy and provide insights that can help policymakers and researchers make informed decisions.`,
-    requirements: [
-      "Use at least 3 different machine learning algorithms (LSTM, Random Forest, Neural Networks recommended)",
-      "Train on historical climate data from at least 50 years",
-      "Achieve minimum 75% prediction accuracy on test data",
-      "Provide clear visualizations of predictions",
-      "Include uncertainty estimates in predictions",
-      "Document your methodology thoroughly"
-    ],
-    resources: [
-      "NOAA Climate Data: https://www.ncdc.noaa.gov/data-access",
-      "NASA Climate Data: https://climate.nasa.gov/vital-signs/",
-      "Kaggle Climate Datasets",
-      "IPCC Reports for validation"
-    ],
-    evaluationCriteria: [
-      "Model Accuracy (40%)",
-      "Innovation in Approach (25%)",
-      "Code Quality and Documentation (20%)",
-      "Visualization and Presentation (15%)"
-    ]
-  },
-  "2": {
-    id: "2",
-    title: "Water Quality Monitoring System",
-    description: "Create an IoT-based solution to monitor water quality in real-time across rural areas.",
-    category: "Environment",
-    difficulty: "Intermediate",
-    postedBy: "Prof. Rajesh Kumar",
-    organization: "Indian Institute of Science",
-    tags: ["IoT", "Sensors", "Water Management"],
-    submissions: 189,
-    prize: "₹30,000",
-    deadline: "2025-11-30",
-    detailedDescription: `Access to clean water is crucial for public health. This project requires developing an IoT-based system that can monitor water quality parameters in real-time and alert authorities when contamination is detected.
-
-The system should monitor:
-- pH levels
-- Turbidity
-- Dissolved oxygen
-- Temperature
-- Presence of harmful bacteria or chemicals
-
-The solution should be cost-effective, easy to deploy in remote areas, and provide real-time alerts through mobile applications.`,
-    requirements: [
-      "Design sensor array for water quality parameters",
-      "Implement real-time data transmission",
-      "Create mobile/web dashboard for monitoring",
-      "Set up automatic alert system",
-      "Ensure system works in low-power conditions",
-      "Make it affordable (target cost < ₹10,000 per unit)"
-    ],
-    resources: [
-      "Arduino/Raspberry Pi documentation",
-      "Water quality standards: WHO guidelines",
-      "IoT communication protocols: MQTT, LoRaWAN",
-      "Sample datasets for testing"
-    ],
-    evaluationCriteria: [
-      "Sensor Accuracy (30%)",
-      "System Reliability (25%)",
-      "Cost Effectiveness (20%)",
-      "User Interface (15%)",
-      "Scalability (10%)"
-    ]
-  },
-  // Add basic info for other problems
-  "3": {
-    id: "3",
-    title: "AI-Powered Disease Diagnosis",
-    description: "Build an AI system that can diagnose common diseases from medical images and symptoms.",
-    category: "Healthcare",
-    difficulty: "Advanced",
-    postedBy: "Dr. Priya Sharma",
-    organization: "AIIMS Research Center",
-    tags: ["AI", "Healthcare", "Computer Vision", "Medical Imaging"],
-    submissions: 312,
-    prize: "₹75,000",
-    deadline: "2026-01-15",
-    detailedDescription: "Develop an AI system to assist healthcare workers in diagnosing diseases from medical images (X-rays, CT scans) and patient symptoms, making healthcare more accessible in rural areas.",
-    requirements: ["Train on medical imaging datasets", "Achieve 85%+ accuracy", "Support multiple disease types", "Provide confidence scores", "HIPAA compliant"],
-    resources: ["NIH Medical Image Database", "Kaggle Medical Datasets", "TensorFlow/PyTorch tutorials"],
-    evaluationCriteria: ["Accuracy (40%)", "Disease Coverage (25%)", "User Interface (20%)", "Performance (15%)"]
-  }
-};
 
 export default function ProblemDetailPage() {
   const { user, loading } = useAuth();
@@ -175,7 +68,9 @@ export default function ProblemDetailPage() {
   
   const [problem, setProblem] = useState<Problem | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [showSubmitForm, setShowSubmitForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitForm, setSubmitForm] = useState({ title: "", description: "", githubLink: "", demoLink: "" });
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -183,61 +78,82 @@ export default function ProblemDetailPage() {
 
   useEffect(() => {
     if (problemId) {
-      const problemData = problemsData[problemId];
-      if (problemData) {
-        setProblem(problemData);
-        loadSubmissions(problemId);
-      }
+      loadProblem(problemId);
+      loadSubmissions(problemId);
     }
   }, [problemId]);
 
-  useEffect(() => {
-    if (user) {
-      loadUserProfile();
+  async function loadProblem(problemId: string) {
+    try {
+      const res = await fetch(`/api/hackathons/problems/${problemId}`);
+      const data = await res.json();
+      if (data.success) setProblem(data.problem);
+    } catch (err) {
+      console.error("Failed to load problem:", err);
     }
-  }, [user]);
-
-  async function loadUserProfile() {
-    if (!user) return;
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.uid)
-      .single();
-    if (data) setUserProfile(data);
   }
 
   async function loadSubmissions(problemId: string) {
-    const { data, error } = await supabase
-      .from("hackathon_submissions")
-      .select("*")
-      .eq("problem_id", problemId)
-      .order("votes", { ascending: false });
-
-    if (data) {
-      setSubmissions(data.map((sub: any) => ({
-        id: sub.id,
-        userId: sub.user_id,
-        userName: sub.user_name,
-        problemId: sub.problem_id,
-        title: sub.title,
-        description: sub.description,
-        githubLink: sub.github_link,
-        demoLink: sub.demo_link,
-        submittedAt: sub.created_at,
-        votes: sub.votes || 0
-      })));
+    try {
+      const res = await fetch(`/api/hackathons/problems/${problemId}/submissions`);
+      const data = await res.json();
+      if (data.success) {
+        setSubmissions(data.submissions.map((sub: any) => ({
+          id: sub.id,
+          userId: sub.userId,
+          userName: sub.userName,
+          problemId: sub.problemId,
+          title: sub.title,
+          description: sub.description,
+          githubLink: sub.githubLink,
+          demoLink: sub.demoLink,
+          submittedAt: sub.createdAt,
+          votes: sub.votes || 0
+        })));
+      }
+    } catch (err) {
+      console.error("Failed to load submissions:", err);
     }
   }
 
-  async function handleVote(submissionId: string, currentVotes: number) {
-    const { error } = await supabase
-      .from("hackathon_submissions")
-      .update({ votes: currentVotes + 1 })
-      .eq("id", submissionId);
+  async function handleVote(submissionId: string) {
+    try {
+      const res = await fetch(`/api/hackathons/submissions/${submissionId}/vote`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        loadSubmissions(problemId);
+      }
+    } catch (err) {
+      console.error("Failed to vote:", err);
+    }
+  }
 
-    if (!error) {
-      loadSubmissions(problemId);
+  async function handleSubmitSolution() {
+    if (!user || !submitForm.title || !submitForm.description || !submitForm.githubLink) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/hackathons/problems/${problemId}/submissions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.uid,
+          userName: user.email?.split("@")[0] || "User",
+          title: submitForm.title,
+          description: submitForm.description,
+          githubLink: submitForm.githubLink,
+          demoLink: submitForm.demoLink || undefined
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSubmitForm({ title: "", description: "", githubLink: "", demoLink: "" });
+        setShowSubmitForm(false);
+        loadSubmissions(problemId);
+      }
+    } catch (err) {
+      console.error("Failed to submit solution:", err);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -451,14 +367,71 @@ export default function ProblemDetailPage() {
               transition={{ delay: 0.5 }}
               className="bg-white/60 backdrop-blur-md border border-zinc-200 rounded-2xl p-8 shadow-lg"
             >
-              <div className="flex items-center gap-3 mb-6">
-                <Users className="w-6 h-6 text-orange-500" />
-                <h2 className="text-2xl font-serif font-bold text-zinc-900">
-                  Community Submissions
-                  <span className="ml-2 text-base font-mono text-zinc-500">({submissions.length})</span>
-                </h2>
+              <div className="flex items-center justify-between gap-3 mb-6">
+                <div className="flex items-center gap-3">
+                  <Users className="w-6 h-6 text-orange-500" />
+                  <h2 className="text-2xl font-serif font-bold text-zinc-900">
+                    Community Submissions
+                    <span className="ml-2 text-base font-mono text-zinc-500">({submissions.length})</span>
+                  </h2>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowSubmitForm((v) => !v)}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-sans font-semibold text-sm transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Submit Your Solution
+                </motion.button>
               </div>
-              
+
+              {showSubmitForm && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="mb-6 p-6 border-2 border-orange-200 bg-orange-50/50 rounded-xl space-y-4"
+                >
+                  <input
+                    type="text"
+                    placeholder="Submission title"
+                    value={submitForm.title}
+                    onChange={(e) => setSubmitForm({ ...submitForm, title: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-white border border-zinc-200 focus:border-orange-500 rounded-lg font-sans text-sm outline-none"
+                  />
+                  <textarea
+                    placeholder="Describe your solution"
+                    value={submitForm.description}
+                    onChange={(e) => setSubmitForm({ ...submitForm, description: e.target.value })}
+                    rows={3}
+                    className="w-full px-4 py-2.5 bg-white border border-zinc-200 focus:border-orange-500 rounded-lg font-sans text-sm outline-none resize-none"
+                  />
+                  <input
+                    type="url"
+                    placeholder="GitHub link"
+                    value={submitForm.githubLink}
+                    onChange={(e) => setSubmitForm({ ...submitForm, githubLink: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-white border border-zinc-200 focus:border-orange-500 rounded-lg font-sans text-sm outline-none"
+                  />
+                  <input
+                    type="url"
+                    placeholder="Demo link (optional)"
+                    value={submitForm.demoLink}
+                    onChange={(e) => setSubmitForm({ ...submitForm, demoLink: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-white border border-zinc-200 focus:border-orange-500 rounded-lg font-sans text-sm outline-none"
+                  />
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleSubmitSolution}
+                    disabled={submitting || !submitForm.title || !submitForm.description || !submitForm.githubLink}
+                    className="w-full py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white rounded-lg font-sans font-semibold text-sm transition-colors"
+                  >
+                    {submitting ? "Submitting..." : "Submit"}
+                  </motion.button>
+                </motion.div>
+              )}
+
               {submissions.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-lg font-sans text-zinc-500">
@@ -482,7 +455,7 @@ export default function ProblemDetailPage() {
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => handleVote(submission.id, submission.votes)}
+                          onClick={() => handleVote(submission.id)}
                           className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-sans font-semibold text-sm transition-colors"
                         >
                           <ThumbsUp className="w-4 h-4" />

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getLeaderboard } from "@/lib/voomStore";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,33 +13,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get leaderboard data
-    const { data, error } = await supabase
-      .from("voom_user_progress")
-      .select("*")
-      .eq("room_id", roomId)
-      .order("questions_solved", { ascending: false })
-      .order("total_points", { ascending: false })
-      .order("last_solved_at", { ascending: true });
-
-    if (error) {
-      throw error;
-    }
-
-    const leaderboard = data.map((entry: any, index: number) => ({
-      rank: index + 1,
-      user_id: entry.user_id,
-      user_name: entry.user_name,
-      questions_solved: entry.questions_solved,
-      total_points: entry.total_points,
-      last_solved_at: entry.last_solved_at
-    }));
+    const leaderboard = getLeaderboard(roomId);
 
     return NextResponse.json({
       success: true,
-      leaderboard: leaderboard
+      leaderboard,
     });
-
   } catch (error) {
     console.error("Error fetching leaderboard:", error);
     return NextResponse.json(

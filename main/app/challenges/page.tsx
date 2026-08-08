@@ -26,24 +26,47 @@ export default function ChallengesPage() {
   const [loading, setLoading] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
   const [error, setError] = useState("");
+  const [completedIndexes, setCompletedIndexes] = useState<Set<number>>(new Set());
 
   // Check for existing challenge data on mount
   useEffect(() => {
     const storedData = localStorage.getItem("challengeData");
     if (storedData) {
       const challengeData = JSON.parse(storedData);
-      
+
       // Check if data has expired
       if (Date.now() < challengeData.expiresAt) {
         setQuestions(challengeData.questions);
         setCategory(challengeData.category);
         setDifficulty(challengeData.difficulty);
+        setCompletedIndexes(new Set(challengeData.completedQuestions || []));
         setStep(2);
       } else {
         // Clear expired data
         localStorage.removeItem("challengeData");
       }
     }
+  }, []);
+
+  // Listen for the canvas app reporting back that a question was solved
+  useEffect(() => {
+    function handleCanvasMessage(event: MessageEvent) {
+      const data = event.data;
+      if (!data || data.type !== "canvas-challenge-solved" || data.source !== "challenge") return;
+
+      const stored = localStorage.getItem("challengeData");
+      if (!stored) return;
+      const challengeData = JSON.parse(stored);
+      const completed: number[] = challengeData.completedQuestions || [];
+      if (completed.includes(data.questionIndex)) return;
+
+      const updated = [...completed, data.questionIndex];
+      challengeData.completedQuestions = updated;
+      localStorage.setItem("challengeData", JSON.stringify(challengeData));
+      setCompletedIndexes(new Set(updated));
+    }
+    window.addEventListener("message", handleCanvasMessage);
+    return () => window.removeEventListener("message", handleCanvasMessage);
   }, []);
 
   const categories = [
@@ -106,8 +129,23 @@ export default function ChallengesPage() {
       const challengeData = JSON.parse(storedData);
       challengeData.currentIndex = questionIndex;
       localStorage.setItem("challengeData", JSON.stringify(challengeData));
+
+      const question = challengeData.questions?.[questionIndex];
+      if (question) {
+        localStorage.setItem("currentChallengeQuestion", JSON.stringify({
+          questionIndex,
+          question: question.question,
+          description: question.description,
+          difficulty: question.difficulty,
+          category: question.category,
+          canvasType: question.canvasType,
+          hints: question.hints,
+        }));
+      }
     }
-    router.push(`/challenges/solve?index=${questionIndex}`);
+
+    // Open the real drawing canvas app, same as the Voom room flow
+    window.open("http://localhost:5000", "_blank");
   }
 
   return (
@@ -314,7 +352,8 @@ export default function ChallengesPage() {
                 };
                 
                 const diffStyles = getDifficultyStyles(q.difficulty);
-                
+                const isSolved = completedIndexes.has(index);
+
                 return (
                   <motion.div
                     key={index}
@@ -322,7 +361,9 @@ export default function ChallengesPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                     whileHover={{ scale: 1.02 }}
-                    className="border border-zinc-200 hover:border-orange-200 bg-white rounded-xl p-6 shadow-sm transition-all cursor-pointer"
+                    className={`border rounded-xl p-6 shadow-sm transition-all ${
+                      isSolved ? "border-green-200 bg-green-50/30" : "border-zinc-200 hover:border-orange-200 bg-white"
+                    }`}
                   >
                     <div className="flex justify-between items-center mb-4">
                       <span className="font-mono text-sm font-semibold text-orange-500">
@@ -343,15 +384,22 @@ export default function ChallengesPage() {
                       </p>
                     )}
 
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => startChallenge(index)}
-                      className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Target className="w-4 h-4" />
-                      Start Challenge
-                    </motion.button>
+                    {isSolved ? (
+                      <div className="w-full py-3 bg-green-100 text-green-700 rounded-lg text-sm font-semibold flex items-center justify-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        Solved!
+                      </div>
+                    ) : (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => startChallenge(index)}
+                        className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Target className="w-4 h-4" />
+                        Start Challenge
+                      </motion.button>
+                    )}
                   </motion.div>
                 );
               })}

@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import OpenAI from "openai";
 
-const BEDROCK_API_KEY = process.env.OPENAI_API_KEY || '';
-const BEDROCK_BASE_URL = process.env.OPENAI_BASE_URL || 'https://bedrock-mantle.eu-north-1.api.aws/v1';
-const BEDROCK_MODEL = process.env.OPENAI_MODEL_NAME || 'deepseek.v3.2';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const OPENAI_MODEL = process.env.OPENAI_MODEL_NAME || 'gpt-4o-mini';
+
+const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 export async function POST(request: NextRequest) {
   try {
     const { category, difficulty, count } = await request.json();
     const normalizedCount = Number(count);
 
-    if (!BEDROCK_API_KEY) {
+    if (!OPENAI_API_KEY) {
       return NextResponse.json(
-        { error: "Bedrock API key not configured" },
+        { error: "OpenAI API key not configured" },
         { status: 500 }
       );
     }
@@ -54,30 +56,17 @@ Examples based on category:
 
 Make questions creative, educational, and suitable for canvas drawing. Return ONLY valid JSON, no additional text.`;
 
-    const response = await fetch(`${BEDROCK_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${BEDROCK_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: BEDROCK_MODEL,
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      }),
+    const completion = await openai.chat.completions.create({
+      model: OPENAI_MODEL,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
     });
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`Bedrock API error (${response.status} ${response.statusText}): ${errorBody}`);
-    }
-
-    const data = await response.json();
-    let generatedText = data.choices?.[0]?.message?.content || "";
+    let generatedText = completion.choices?.[0]?.message?.content || "";
 
     // Clean up the response - remove markdown code blocks if present
     generatedText = generatedText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
