@@ -10,6 +10,30 @@ const double kNavBarHeight = 62;
 /// Space a scrollable tab should leave at the bottom to clear the nav bar.
 const double kNavBarClearance = kNavBarHeight + 28;
 
+/// Outer margin below the bar, matching [AppNavBar]'s own margin.
+const double kNavBarBottomMargin = 14;
+
+/// Height the floating nav bar actually occupies at the bottom of the screen,
+/// including its margin and the device's bottom inset.
+///
+/// The host Scaffold sets `extendBody: true`, so each tab's own Scaffold
+/// stretches to the very bottom of the window and places its floating action
+/// button underneath the bar. Offsetting by this much lifts it clear on both
+/// button-navigation and gesture-navigation devices, where the inset differs.
+/// Space the floating bar occupies at the bottom of the screen, including
+/// its margin and the device's bottom inset.
+///
+/// Call this from a context **above** the host Scaffold, such as
+/// `HomeScreen.build`, and pass the result down. Inside a tab the value is
+/// always wrong: the host Scaffold consumes the bottom padding (and view
+/// padding) to lay out its bottomNavigationBar, so the ambient MediaQuery
+/// reports zero there and a button offset by it lands back under the bar on
+/// gesture-navigation devices.
+double navBarInset(BuildContext context) =>
+    kNavBarHeight +
+    kNavBarBottomMargin +
+    MediaQuery.viewPaddingOf(context).bottom;
+
 /// One entry in [AppNavBar].
 @immutable
 class NavDestination {

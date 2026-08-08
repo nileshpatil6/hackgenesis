@@ -7,6 +7,7 @@ import '../../../services/notification_service.dart';
 import '../../auth/login_screen.dart';
 import '../../settings/openai_api_key_screen.dart';
 import '../../../utils/app_theme.dart';
+import '../../../widgets/app_nav_bar.dart';
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
@@ -44,7 +45,8 @@ class ProfileTab extends StatelessWidget {
                   final user = userProvider.currentUser;
 
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding:
+                        const EdgeInsets.fromLTRB(24, 0, 24, kNavBarClearance),
                     child: Column(
                       children: [
                         // Profile Header

@@ -4,9 +4,15 @@ import '../../../providers/subject_provider.dart';
 import '../../../providers/user_provider.dart';
 import '../../subjects/subject_detail_screen.dart';
 import '../../../utils/app_theme.dart';
+import '../../../widgets/app_nav_bar.dart';
 
 class SubjectsTab extends StatefulWidget {
-  const SubjectsTab({super.key});
+  const SubjectsTab({super.key, this.bottomInset = 0});
+
+  /// Space to leave clear at the bottom for the host's floating nav bar.
+  /// Supplied by the host, which is the only place the device inset can be
+  /// read correctly. See `navBarInset`.
+  final double bottomInset;
 
   @override
   State<SubjectsTab> createState() => _SubjectsTabState();
@@ -351,7 +357,8 @@ class _SubjectsTabState extends State<SubjectsTab> {
                   }
 
                   return GridView.builder(
-                    padding: const EdgeInsets.all(24),
+                    padding:
+                        const EdgeInsets.fromLTRB(24, 24, 24, kNavBarClearance),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
@@ -469,10 +476,19 @@ class _SubjectsTabState extends State<SubjectsTab> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateSubjectDialog,
-        backgroundColor: AppTheme.primaryAccent,
-        child: const Icon(Icons.add, color: Colors.white),
+      // Lifted clear of the floating nav bar, which the host Scaffold
+      // draws over this one because it sets extendBody: true.
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: widget.bottomInset),
+        child: FloatingActionButton.extended(
+          onPressed: _showCreateSubjectDialog,
+          backgroundColor: AppTheme.brand500,
+          icon: const Icon(Icons.add_rounded, color: Colors.white),
+          label: const Text(
+            'New subject',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/user_provider.dart';
 import '../../../utils/app_theme.dart';
+import '../../../widgets/app_nav_bar.dart';
 
 class ProgressTab extends StatelessWidget {
   const ProgressTab({super.key});
@@ -45,7 +46,8 @@ class ProgressTab extends StatelessWidget {
                       : unlockedAchievements / achievements.length;
 
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding:
+                        const EdgeInsets.fromLTRB(24, 0, 24, kNavBarClearance),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

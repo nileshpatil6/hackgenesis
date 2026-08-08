@@ -63,6 +63,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Read here, above the Scaffold: it consumes the bottom inset for the
+    // nav bar, so the tabs themselves cannot see it.
+    final bottomInset = navBarInset(context);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       // IndexedStack keeps each tab's scroll position and state alive, so
@@ -71,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
         index: _currentIndex,
         children: [
           DashboardTab(onNavigateToTab: _navigateToTab),
-          const SubjectsTab(),
+          SubjectsTab(bottomInset: bottomInset),
           const ProgressTab(),
           const ProfileTab(),
         ],
