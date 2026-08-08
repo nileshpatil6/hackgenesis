@@ -239,13 +239,8 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
   }
 
   Widget _buildControls(bool isDark) {
-    final (label, caption) = switch (_state) {
-      VoiceSessionState.idle => ('Start session', 'Tap to begin'),
-      VoiceSessionState.connecting => ('Connecting', 'Opening the line'),
-      VoiceSessionState.listening => ('End session', 'Listening'),
-      VoiceSessionState.speaking => ('End session', 'Tutor is speaking'),
-      VoiceSessionState.error => ('Try again', 'Something went wrong'),
-    };
+    final (label, caption) =
+        voiceControlLabels(_state, hasError: _error != null);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
@@ -291,6 +286,26 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
       ),
     );
   }
+}
+
+/// Button label and status caption for a given session state.
+///
+/// Pure so the pairing can be tested. The error flag matters: a failed session
+/// ends in [VoiceSessionState.idle], and without accounting for it the screen
+/// invited the user to "Start session" with no hint that the last one broke.
+(String, String) voiceControlLabels(
+  VoiceSessionState state, {
+  required bool hasError,
+}) {
+  return switch (state) {
+    VoiceSessionState.idle => hasError
+        ? ('Try again', 'Session ended')
+        : ('Start session', 'Tap to begin'),
+    VoiceSessionState.connecting => ('Connecting', 'Opening the line'),
+    VoiceSessionState.listening => ('End session', 'Listening'),
+    VoiceSessionState.speaking => ('End session', 'Tutor is speaking'),
+    VoiceSessionState.error => ('Try again', 'Something went wrong'),
+  };
 }
 
 @immutable

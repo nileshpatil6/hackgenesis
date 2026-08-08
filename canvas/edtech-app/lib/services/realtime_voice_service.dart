@@ -28,7 +28,11 @@ enum VoiceSessionState {
 /// The Realtime API only accepts 24 kHz mono signed 16-bit PCM, which is why
 /// both the recorder and the player are pinned to [sampleRate] below.
 class RealtimeVoiceService {
-  RealtimeVoiceService({required this.apiKey, this.model = _defaultModel});
+  RealtimeVoiceService({
+    required this.apiKey,
+    this.model = _defaultModel,
+    this.voice = 'cedar',
+  });
 
   static const String _defaultModel = 'gpt-realtime-2.1';
 
@@ -38,6 +42,12 @@ class RealtimeVoiceService {
 
   final String apiKey;
   final String model;
+
+  /// Realtime voice name. Not all voices exist on every model.
+  final String voice;
+
+  /// Completes when the server confirms the session is open.
+  Completer<void> _sessionCreated = Completer<void>();
 
   final _recorder = AudioRecorder();
   WebSocketChannel? _channel;
@@ -70,6 +80,7 @@ class RealtimeVoiceService {
   Future<void> start({required String instructions}) async {
     if (_channel != null) return;
     _closed = false;
+    _sessionCreated = Completer<void>();
     _emit(VoiceSessionState.connecting);
 
     if (!await _recorder.hasPermission()) {
@@ -99,20 +110,34 @@ class RealtimeVoiceService {
 
     _socketSub = _channel!.stream.listen(
       _onServerEvent,
-      onError: (e) => _fail('Voice connection error: $e'),
-      onDone: () {
-        if (!_closed) _fail('The voice connection closed unexpectedly.');
-      },
+      onError: (e) => _failAndTeardown('Voice connection error: $e'),
+      onDone: _onSocketClosed,
     );
+
+    // Wait for the server to open the session before configuring it. Sending
+    // session.update immediately is a race: if it lands first, or carries a
+    // field this API version rejects, the server simply closes the socket,
+    // which is what "connection closed unexpectedly" was.
+    try {
+      await _sessionCreated.future.timeout(const Duration(seconds: 12));
+    } on TimeoutException {
+      await _failAndTeardown('The voice service did not start a session.');
+      return;
+    } catch (e) {
+      await _failAndTeardown('The voice service refused the session: $e');
+      return;
+    }
+    if (_closed || _channel == null) return;
 
     _send({
       'type': 'session.update',
       'session': {
-        'modalities': ['audio', 'text'],
         'instructions': instructions,
-        'voice': 'cedar',
-        'input_audio_format': 'pcm16',
-        'output_audio_format': 'pcm16',
+        'voice': voice,
+        // Audio formats are left at their defaults (24 kHz mono PCM16), which
+        // is the only combination the API accepts anyway. Naming them
+        // explicitly is what differs between API versions, so it is the most
+        // likely thing to get the session rejected.
         'input_audio_transcription': {'model': 'whisper-1'},
         // Server-side VAD means the model decides when the user has finished
         // speaking, so there is no push-to-talk button to hold.
@@ -127,7 +152,39 @@ class RealtimeVoiceService {
 
     await _startPlayback();
     await _startMicrophone();
-    _emit(VoiceSessionState.listening);
+
+    // Only now, and only if the socket survived the round trip. Emitting
+    // unconditionally is what left the UI reading "Listening" underneath an
+    // error banner.
+    if (!_closed && _channel != null) {
+      _emit(VoiceSessionState.listening);
+    }
+  }
+
+  /// Reports why the socket went away, then releases the hardware.
+  ///
+  /// The close code carries the reason the handshake or session was refused,
+  /// and without it every failure looked identical from the UI.
+  void _onSocketClosed() {
+    if (_closed) return;
+    final code = _channel?.closeCode;
+    final reason = (_channel?.closeReason ?? '').trim();
+
+    final detail = switch (code) {
+      1000 || null => reason.isEmpty ? '' : ' ($reason)',
+      1008 => ' (rejected: ${reason.isEmpty ? "policy violation" : reason})',
+      _ => ' (code $code${reason.isEmpty ? '' : ': $reason'})',
+    };
+    _failAndTeardown('The voice session ended$detail.');
+  }
+
+  /// Surfaces [message] and stops the microphone and speaker.
+  ///
+  /// Without the teardown the recorder kept running after a failed session,
+  /// holding the mic open and the recording indicator lit.
+  Future<void> _failAndTeardown(String message) async {
+    _fail(message);
+    await stop();
   }
 
   Future<void> _startPlayback() async {
@@ -186,6 +243,10 @@ class RealtimeVoiceService {
           _userTranscriptController.add(text.trim());
         }
 
+      case 'session.created':
+      case 'session.updated':
+        if (!_sessionCreated.isCompleted) _sessionCreated.complete();
+
       case 'input_audio_buffer.speech_started':
         _emit(VoiceSessionState.listening);
 
@@ -193,7 +254,15 @@ class RealtimeVoiceService {
         _emit(VoiceSessionState.listening);
 
       case 'error':
-        final message = (event['error'] as Map?)?['message'] as String?;
+        final err = event['error'] as Map?;
+        final message = err?['message'] as String?;
+        // Unblock start() so it reports this instead of the timeout.
+        if (!_sessionCreated.isCompleted) {
+          _sessionCreated.completeError(
+            StateError(message ?? 'session rejected'),
+          );
+        }
+        debugPrint('Realtime error event: $err');
         _fail(message ?? 'The voice service reported an error.');
     }
   }

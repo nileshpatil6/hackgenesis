@@ -243,7 +243,6 @@ class SupabaseService {
       print('Error saving lesson to Supabase: $e');
       return false;
     }
-    return false;
   }
 
   static Future<void> deleteLesson(String lessonId) async {
@@ -264,7 +263,6 @@ class SupabaseService {
       print('Error saving quiz to Supabase: $e');
       return false;
     }
-    return false;
   }
 
   static Future<void> deleteQuiz(String quizId) async {
@@ -285,7 +283,6 @@ class SupabaseService {
       print('Error saving flashcard deck to Supabase: $e');
       return false;
     }
-    return false;
   }
 
   static Future<void> deleteFlashcardDeck(String deckId) async {
@@ -306,7 +303,6 @@ class SupabaseService {
       print('Error saving achievement to Supabase: $e');
       return false;
     }
-    return false;
   }
 
   static Future<bool> saveStudyPlan(StudyPlan plan) async {
@@ -317,7 +313,6 @@ class SupabaseService {
       print('Error saving study plan to Supabase: $e');
       return false;
     }
-    return false;
   }
 
   static Future<void> deleteStudyPlan(String planId) async {
@@ -336,7 +331,6 @@ class SupabaseService {
       print('Error saving playlist to Supabase: $e');
       return false;
     }
-    return false;
   }
 
   static Future<void> deletePlaylist(String playlistId) async {
@@ -357,7 +351,6 @@ class SupabaseService {
       print('Error saving calendar event to Supabase: $e');
       return false;
     }
-    return false;
   }
 
   static Future<void> deleteCalendarEvent(String eventId) async {
@@ -530,7 +523,6 @@ class SupabaseService {
       print('Error saving chat message to Supabase: $e');
       return false;
     }
-    return false;
   }
 
   static Future<void> deleteChatMessagesForSubject(String subjectId) async {
