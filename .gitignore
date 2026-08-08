@@ -1,2 +1,4 @@
 
 .claude
+logs/
+learning-platform/prisma/dev.db
