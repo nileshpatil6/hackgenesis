@@ -120,12 +120,13 @@ ${
           },
           output: { voice: selectedVoice },
         },
+        tool_choice: "auto",
         tools: [
           {
             type: "function",
             name: "search_notes",
             description:
-              "Search the student's uploaded notes for passages relevant to a question or topic. Call this before answering anything about their study material.",
+              "Search the study material this student uploaded for this subject. Always call this before answering a question about the subject, so the answer comes from their material rather than general knowledge.",
             parameters: {
               type: "object",
               properties: {
