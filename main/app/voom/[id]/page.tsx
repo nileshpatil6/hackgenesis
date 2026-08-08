@@ -66,6 +66,19 @@ export default function RoomPage() {
     }
   }, [roomId]);
 
+  // Listen for the canvas app reporting back that the active question was solved
+  useEffect(() => {
+    function handleCanvasMessage(event: MessageEvent) {
+      const data = event.data;
+      if (!data || data.type !== "canvas-challenge-solved" || data.source !== "voom") return;
+      if (data.roomId !== roomId) return;
+      if (solvedQuestions.has(data.questionId)) return;
+      markQuestionSolved(data.questionId, data.points || 0);
+    }
+    window.addEventListener("message", handleCanvasMessage);
+    return () => window.removeEventListener("message", handleCanvasMessage);
+  }, [roomId, solvedQuestions, userProgress]);
+
   function loadRoomData() {
     const roomData = getRoomById(roomId);
     if (roomData) {
