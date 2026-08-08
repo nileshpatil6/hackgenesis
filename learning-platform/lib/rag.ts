@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/prisma"
-import { embed, embedOne, isConfigured } from "@/lib/openai"
+import {
+  embed,
+  embedOne,
+  isConfigured,
+  searchVectorStore,
+} from "@/lib/openai"
 
 const CHUNK_SIZE = 1200
 const CHUNK_OVERLAP = 200
@@ -7,25 +12,49 @@ const EMBED_BATCH = 64
 
 // ============ TEXT EXTRACTION ============
 
-/** Extracts plain text from an uploaded file buffer. */
+export interface ExtractionResult {
+  text: string
+  /** Why extraction produced nothing usable, if it did. */
+  error: string | null
+}
+
+/**
+ * Extracts plain text from an uploaded file buffer.
+ *
+ * Returns the reason on failure rather than an empty string. Swallowing the
+ * error here is what let a scanned or unparseable PDF look like a successful
+ * upload while leaving RAG with nothing to retrieve.
+ */
 export async function extractText(
   buffer: Buffer,
   fileType: string,
   fileName: string
-): Promise<string> {
+): Promise<ExtractionResult> {
   const type = (fileType || "").toLowerCase()
   const name = (fileName || "").toLowerCase()
 
   try {
+    let text = ""
+
     if (type.includes("pdf") || name.endsWith(".pdf")) {
       const { PDFParse } = await import("pdf-parse")
       const parser = new PDFParse({ data: new Uint8Array(buffer) })
       try {
         const result = await parser.getText()
-        return normalize(result.text || "")
+        text = normalize(result.text || "")
       } finally {
         await parser.destroy()
       }
+
+      if (!text) {
+        return {
+          text: "",
+          error:
+            "No text layer found in this PDF. If it is a scan or an image export, it needs OCR before it can be searched.",
+        }
+      }
+
+      return { text, error: null }
     }
 
     if (
@@ -35,14 +64,23 @@ export async function extractText(
     ) {
       const mammoth = await import("mammoth")
       const result = await mammoth.extractRawText({ buffer })
-      return normalize(result.value || "")
+      text = normalize(result.value || "")
+      return {
+        text,
+        error: text ? null : "The document contained no readable text.",
+      }
     }
 
     // Plain text, markdown, csv, json and friends
-    return normalize(buffer.toString("utf-8"))
+    text = normalize(buffer.toString("utf-8"))
+    return {
+      text,
+      error: text ? null : "The file contained no readable text.",
+    }
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
     console.error(`Failed to extract text from ${fileName}:`, error)
-    return ""
+    return { text: "", error: `Could not read this file: ${message}` }
   }
 }
 
@@ -177,7 +215,7 @@ export async function retrieve(
 
   const subjects = await prisma.subject.findMany({
     where: subjectFilter,
-    select: { id: true },
+    select: { id: true, fileSearchStoreId: true },
   })
 
   const subjectIds = subjects.map((subject) => subject.id)
@@ -188,7 +226,11 @@ export async function retrieve(
     include: { note: { select: { displayName: true } } },
   })
 
-  if (chunks.length === 0) return []
+  // Nothing indexed locally, usually because the file had no extractable text.
+  // OpenAI still indexed the uploaded file, so ask it instead of giving up.
+  if (chunks.length === 0) {
+    return remoteFallback(query, subjects, topK)
+  }
 
   let queryVector: number[]
   try {
@@ -204,6 +246,34 @@ export async function retrieve(
       score: cosineSimilarity(queryVector, JSON.parse(chunk.embedding)),
       noteId: chunk.noteId,
       noteName: chunk.note.displayName,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK)
+}
+
+/** Retrieval through OpenAI's vector stores, used when we have no local index. */
+async function remoteFallback(
+  query: string,
+  subjects: Array<{ id: string; fileSearchStoreId: string | null }>,
+  topK: number
+): Promise<RetrievedChunk[]> {
+  const stores = subjects.filter((subject) => subject.fileSearchStoreId)
+  if (stores.length === 0) return []
+
+  const batches = await Promise.all(
+    stores.map((subject) =>
+      searchVectorStore(subject.fileSearchStoreId as string, query, topK)
+    )
+  )
+
+  return batches
+    .flat()
+    .filter((hit) => hit.content)
+    .map((hit) => ({
+      content: hit.content,
+      score: hit.score,
+      noteId: "",
+      noteName: hit.fileName,
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, topK)
@@ -291,7 +361,7 @@ export async function buildSubjectContext(
     }
   }
 
-  // Nothing indexed - fall back to whatever raw text we stored on upload
+  // Nothing retrievable - fall back to whatever raw text we stored on upload
   const notes = await prisma.note.findMany({
     where: { subjectId, subject: { userId } },
     orderBy: { uploadedAt: "desc" },

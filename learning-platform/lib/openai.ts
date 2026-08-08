@@ -220,6 +220,40 @@ export async function deleteFileSearchStore(vectorStoreId: string) {
   }
 }
 
+/**
+ * Queries a vector store directly through OpenAI's own retrieval.
+ *
+ * This is the safety net for files we could not extract text from locally,
+ * such as PDFs whose text layer pdf-parse cannot read: OpenAI still indexed
+ * the uploaded file, so it can answer from it even when our own index is bare.
+ */
+export async function searchVectorStore(
+  vectorStoreId: string,
+  query: string,
+  topK = 8
+): Promise<Array<{ content: string; score: number; fileName: string }>> {
+  if (!fileSearchEnabled || !isConfigured() || !query) return []
+
+  try {
+    const response = await openai.vectorStores.search(vectorStoreId, {
+      query,
+      max_num_results: topK,
+    })
+
+    return (response.data || []).map((result: any) => ({
+      content: (result.content || [])
+        .map((part: any) => part.text || "")
+        .join("\n")
+        .trim(),
+      score: result.score ?? 0,
+      fileName: result.filename || "your notes",
+    }))
+  } catch (error) {
+    console.error("Vector store search failed:", error)
+    return []
+  }
+}
+
 export async function deleteFromFileSearchStore(
   vectorStoreId: string,
   fileId: string
@@ -414,17 +448,68 @@ Question mix:
 
 Each question object must have:
 {
-  "type": "mcq" | "true-false" | "short-answer",
+  "type": "multiple_choice" | "true_false" | "short_answer",
   "question": "question text",
   "options": ["A", "B", "C", "D"],
-  "correctAnswer": "the correct answer",
+  "correctAnswer": "the correct answer, matching one of the options exactly for multiple choice",
   "explanation": "why this is correct",
   "points": 10
 }
 
-Omit "options" for non-MCQ questions. Return a JSON array of question objects.`
+For true_false questions set "options" to ["True", "False"]. Omit "options" for short_answer. Return a JSON array of question objects.`
 
-  return completeJSON<any[]>(prompt, { expect: "array", vectorStoreId })
+  const questions = await completeJSON<any[]>(prompt, {
+    expect: "array",
+    vectorStoreId,
+  })
+
+  return questions.map(normalizeQuestion)
+}
+
+/**
+ * Pins every question onto the one shape the quiz UI renders.
+ *
+ * The model drifts between "mcq", "multiple-choice" and "MULTIPLE_CHOICE", and
+ * anything the page does not recognise renders as a bare question with no
+ * options to pick from.
+ */
+function normalizeQuestion(question: any) {
+  const raw = String(question?.type ?? "")
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_")
+
+  let type: "multiple_choice" | "true_false" | "short_answer"
+  if (raw === "mcq" || raw.startsWith("multiple")) {
+    type = "multiple_choice"
+  } else if (raw.startsWith("true")) {
+    type = "true_false"
+  } else if (raw.startsWith("short") || raw.startsWith("open")) {
+    type = "short_answer"
+  } else {
+    // Infer from the payload when the label is unusable
+    type = Array.isArray(question?.options) && question.options.length > 0
+      ? "multiple_choice"
+      : "short_answer"
+  }
+
+  const options = Array.isArray(question?.options)
+    ? question.options.map((option: any) => String(option))
+    : undefined
+
+  return {
+    ...question,
+    type,
+    options:
+      type === "true_false"
+        ? options && options.length === 2
+          ? options
+          : ["True", "False"]
+        : type === "multiple_choice"
+          ? options
+          : undefined,
+    correctAnswer: String(question?.correctAnswer ?? ""),
+    points: Number(question?.points) || 10,
+  }
 }
 
 export async function generateQuizWithFileSearch(

@@ -25,6 +25,19 @@ interface Quiz {
   questions: Question[]
 }
 
+/** Maps any question-type spelling the model produced onto one canonical value. */
+function normalizeType(q: any): Question["type"] {
+  const raw = String(q?.type ?? "").toLowerCase().replace(/[\s-]+/g, "_")
+
+  if (raw === "mcq" || raw.startsWith("multiple")) return "multiple_choice"
+  if (raw.startsWith("true")) return "true_false"
+  if (raw.startsWith("short") || raw.startsWith("open")) return "short_answer"
+
+  return Array.isArray(q?.options) && q.options.length > 0
+    ? "multiple_choice"
+    : "short_answer"
+}
+
 export default function QuizPage() {
   const params = useParams()
   const router = useRouter()
@@ -39,12 +52,15 @@ export default function QuizPage() {
     fetch(`/api/quizzes/${params.id}`)
       .then((res) => res.json())
       .then((data) => {
-        // Normalize the questions - add IDs if they don't exist
+        // Add IDs and pin the question type onto the shape this page renders.
+        // Quizzes saved before the types were unified still say "mcq", which
+        // matched no branch below and showed the question with no options.
         const normalizedQuestions = (Array.isArray(data.questions) ? data.questions : []).map((q: any, idx: number) => ({
           ...q,
           id: q.id || `q-${idx}`,
+          type: normalizeType(q),
         }));
-        
+
         setQuiz({
           ...data,
           questions: normalizedQuestions,

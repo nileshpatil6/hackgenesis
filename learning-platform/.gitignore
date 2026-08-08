@@ -45,3 +45,4 @@ next-env.d.ts
 
 # local test scripts
 e2e-test.mjs
+pdf-rag-test.mjs

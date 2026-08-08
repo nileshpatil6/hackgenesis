@@ -76,6 +76,9 @@ export default function SubjectDetailPage() {
     setUploading(true)
     setUploadProgress(0)
 
+    // Files that uploaded but that the AI cannot actually read
+    const unreadable: string[] = []
+
     try {
       for (let i = 0; i < acceptedFiles.length; i++) {
         const file = acceptedFiles[i]
@@ -93,6 +96,11 @@ export default function SubjectDetailPage() {
         if (response.ok) {
           const result = await response.json()
           console.log("Upload successful:", result)
+          if (!result.searchable) {
+            unreadable.push(
+              `${file.name}: ${result.warning || "no readable text found"}`
+            )
+          }
           setUploadProgress((prev) => prev + (100 / acceptedFiles.length))
         } else {
           const error = await response.json()
@@ -103,7 +111,14 @@ export default function SubjectDetailPage() {
 
       // Refresh subject data
       await fetchSubject()
-      alert(`Successfully uploaded ${acceptedFiles.length} file(s)!`)
+
+      if (unreadable.length > 0) {
+        alert(
+          `Uploaded, but the AI cannot read these yet, so they will not show up in chat, voice or quizzes:\n\n${unreadable.join("\n")}`
+        )
+      } else {
+        alert(`Successfully uploaded ${acceptedFiles.length} file(s)!`)
+      }
     } catch (error) {
       console.error("Error uploading files:", error)
       alert("Failed to upload files. Please try again.")

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth/config"
 import { prisma } from "@/lib/prisma"
-import { chat, buildTutorSystemPrompt } from "@/lib/openai"
+import { complete, buildTutorSystemPrompt } from "@/lib/openai"
 import { retrieveContext } from "@/lib/rag"
 
 export async function POST(req: Request) {
@@ -37,6 +37,17 @@ export async function POST(req: Request) {
       topK: 8,
     })
 
+    // Hand the model the subject's vector store too. Local retrieval misses
+    // files we could not extract text from, and OpenAI indexed those anyway.
+    let vectorStoreId: string | null = null
+    if (normalizedSubjectId) {
+      const subject = await prisma.subject.findFirst({
+        where: { id: normalizedSubjectId, userId: user.id },
+        select: { fileSearchStoreId: true },
+      })
+      vectorStoreId = subject?.fileSearchStoreId ?? null
+    }
+
     const userProfile = {
       aiPersona: user.aiPersona,
       learningStyle: user.learningStyle,
@@ -47,29 +58,29 @@ export async function POST(req: Request) {
 
     const systemPrompt = `${buildTutorSystemPrompt(userProfile)}
 
-When note excerpts are provided, ground your answer in them and reference the source document by name. If the excerpts do not cover the question, say so before giving general guidance.`
+Ground your answers in the student's uploaded notes and reference the source document by name. Search the attached files when the excerpts below do not already answer the question. Only say the notes do not cover something after you have actually looked.`
 
-    const messages: Array<{
-      role: "system" | "user" | "assistant"
-      content: string
-    }> = [{ role: "system", content: systemPrompt }]
+    const history = (Array.isArray(conversationHistory) ? conversationHistory : [])
+      .slice(-10)
+      .filter((item: any) => item?.role === "user" || item?.role === "assistant")
+      .map(
+        (item: any) =>
+          `${item.role === "user" ? "Student" : "Tutor"}: ${String(item.content ?? "")}`
+      )
+      .join("\n")
 
-    if (Array.isArray(conversationHistory)) {
-      for (const item of conversationHistory.slice(-10)) {
-        if (item?.role === "user" || item?.role === "assistant") {
-          messages.push({ role: item.role, content: String(item.content ?? "") })
-        }
-      }
-    }
+    const prompt = [
+      history ? `Conversation so far:\n${history}` : "",
+      context ? `Relevant excerpts from the student's notes:\n\n${context}` : "",
+      `Student's question: ${message}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n---\n\n")
 
-    messages.push({
-      role: "user",
-      content: context
-        ? `Relevant excerpts from my notes:\n\n${context}\n\n---\n\nMy question: ${message}`
-        : message,
+    const response = await complete(prompt, {
+      system: systemPrompt,
+      vectorStoreId,
     })
-
-    const response = await chat(messages)
 
     return NextResponse.json({
       response,

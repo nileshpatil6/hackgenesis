@@ -68,7 +68,15 @@ export async function POST(
     const buffer = Buffer.from(await file.arrayBuffer())
 
     // 1. Extract text so RAG always has real content to work with
-    const content = await extractText(buffer, file.type, file.name)
+    const { text: content, error: extractionError } = await extractText(
+      buffer,
+      file.type,
+      file.name
+    )
+
+    if (extractionError) {
+      console.warn(`Text extraction failed for ${file.name}: ${extractionError}`)
+    }
 
     // 2. Attach to the subject's OpenAI vector store (created lazily)
     let vectorStoreId = subject.fileSearchStoreId
@@ -115,27 +123,38 @@ export async function POST(
           openaiFileId,
           fileSearchEnabled: Boolean(openaiFileId),
           characters: content.length,
+          extractionError,
         },
       },
     })
 
     // 3. Build the local embedding index for semantic retrieval
     let chunkCount = 0
+    let indexError: string | null = null
     try {
       chunkCount = await indexNote(note.id, subject.id, content)
     } catch (error) {
+      indexError = error instanceof Error ? error.message : String(error)
       console.error("Failed to index note embeddings:", error)
     }
+
+    // Say plainly which retrieval paths this file is actually reachable through,
+    // so a file the AI cannot read never looks like a clean upload.
+    const searchable = chunkCount > 0 || Boolean(openaiFileId)
+    const warning = chunkCount > 0 ? null : extractionError || indexError
 
     return NextResponse.json({
       note,
       indexed: chunkCount > 0,
       chunks: chunkCount,
       fileSearch: Boolean(openaiFileId),
-      message:
-        chunkCount > 0 || openaiFileId
+      searchable,
+      warning,
+      message: !searchable
+        ? "File uploaded, but the AI cannot read it yet"
+        : chunkCount > 0
           ? "File uploaded and indexed for AI features"
-          : "File uploaded, but no readable text was found",
+          : "File uploaded. Local indexing failed, so answers will come from OpenAI file search only",
     })
   } catch (error) {
     console.error("Error uploading note:", error)
