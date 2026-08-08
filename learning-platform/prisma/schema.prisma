@@ -44,7 +44,7 @@ model Subject {
   displayName       String
   color             String     // Theme color
   icon              String?
-  fileSearchStoreId String     @unique // Gemini File Search store name
+  fileSearchStoreId String?    @unique // OpenAI vector store id (vs_...)
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
@@ -68,12 +68,31 @@ model Note {
   fileUrl           String     // Storage URL
   fileType          String     // pdf, image, ppt, etc.
   fileSize          Int
-  fileSearchDocId   String?    // Gemini File Search document ID
+  fileSearchDocId   String?    // OpenAI file id (file-...) attached to the vector store
+  content           String?    // Extracted plain text, used for RAG context
+  indexed           Boolean    @default(false) // Whether embeddings were generated
   metadata          Json?      // Custom metadata for filtering
   uploadedAt        DateTime   @default(now())
 
   subject           Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  chunks            NoteChunk[]
 
+  @@index([subjectId])
+}
+
+// NoteChunk model - chunked note text with OpenAI embeddings for local vector search
+model NoteChunk {
+  id                String     @id @default(cuid())
+  noteId            String
+  subjectId         String
+  order             Int
+  content           String
+  embedding         String     // JSON array of floats
+  createdAt         DateTime   @default(now())
+
+  note              Note       @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([noteId])
   @@index([subjectId])
 }
 
