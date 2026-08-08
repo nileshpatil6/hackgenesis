@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth/config"
 import { prisma } from "@/lib/prisma"
+import { deleteFileSearchStore } from "@/lib/openai"
 
 // GET single subject by ID
 export async function GET(
@@ -92,12 +93,26 @@ export async function DELETE(
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
+    const subject = await prisma.subject.findFirst({
+      where: { id, userId: user.id },
+      select: { fileSearchStoreId: true },
+    })
+
+    if (!subject) {
+      return NextResponse.json({ error: "Subject not found" }, { status: 404 })
+    }
+
     await prisma.subject.deleteMany({
       where: {
         id,
         userId: user.id,
       },
     })
+
+    // Best-effort cleanup of the subject's OpenAI vector store
+    if (subject.fileSearchStoreId) {
+      await deleteFileSearchStore(subject.fileSearchStoreId)
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

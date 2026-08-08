@@ -2,10 +2,19 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth/config"
 import { prisma } from "@/lib/prisma"
-import { createFileSearchStore, uploadToFileSearchStore } from "@/lib/gemini"
-import { writeFile, unlink } from "fs/promises"
-import { join } from "path"
-import { tmpdir } from "os"
+import {
+  createFileSearchStore,
+  uploadToFileSearchStore,
+  fileSearchEnabled,
+} from "@/lib/openai"
+import { extractText, indexNote } from "@/lib/rag"
+
+const SUPPORTED = [
+  "application/pdf",
+  "text/plain",
+  "text/markdown",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]
 
 // POST - Upload a note
 export async function POST(
@@ -29,12 +38,8 @@ export async function POST(
 
     const { id } = await params
 
-    // Verify subject belongs to user
     let subject = await prisma.subject.findFirst({
-      where: {
-        id: id,
-        userId: user.id,
-      },
+      where: { id, userId: user.id },
     })
 
     if (!subject) {
@@ -48,104 +53,90 @@ export async function POST(
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    // Validate file type
-    if (!file.type.includes("pdf")) {
+    const name = file.name.toLowerCase()
+    const isSupported =
+      SUPPORTED.some((type) => file.type.includes(type.split("/")[1])) ||
+      /\.(pdf|txt|md|docx)$/.test(name)
+
+    if (!isSupported) {
       return NextResponse.json(
-        { error: "Only PDF files are supported for AI features" },
+        { error: "Supported formats: PDF, DOCX, TXT, MD" },
         { status: 400 }
       )
     }
 
-    // Create File Search store if it doesn't exist
-    let fileSearchStoreName = subject.fileSearchStoreId
+    const buffer = Buffer.from(await file.arrayBuffer())
 
-    if (!fileSearchStoreName) {
-      try {
-        fileSearchStoreName = await createFileSearchStore(
-          `${subject.displayName}-${subject.id}`
-        )
+    // 1. Extract text so RAG always has real content to work with
+    const content = await extractText(buffer, file.type, file.name)
 
+    // 2. Attach to the subject's OpenAI vector store (created lazily)
+    let vectorStoreId = subject.fileSearchStoreId
+
+    if (!vectorStoreId && fileSearchEnabled) {
+      vectorStoreId = await createFileSearchStore(
+        `${subject.displayName}-${subject.id}`
+      )
+
+      if (vectorStoreId) {
         subject = await prisma.subject.update({
           where: { id: subject.id },
-          data: { fileSearchStoreId: fileSearchStoreName },
+          data: { fileSearchStoreId: vectorStoreId },
         })
-
-        console.log(`Created File Search store: ${fileSearchStoreName}`)
-      } catch (error) {
-        console.error("Error creating File Search store:", error)
-        // Continue without File Search for now
       }
     }
 
-    // Save file temporarily
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    let openaiFileId: string | null = null
 
-    const timestamp = Date.now()
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
-    const tempPath = join(tmpdir(), `${timestamp}-${sanitizedFileName}`)
+    if (vectorStoreId) {
+      const uploaded = await uploadToFileSearchStore(
+        file,
+        file.name,
+        vectorStoreId
+      )
+      openaiFileId = uploaded?.fileId ?? null
+    }
 
-    await writeFile(tempPath, buffer)
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
 
-    let geminiFileName = null
-    let documentId = null
-
-    try {
-      // Try to upload to File Search store if available
-      if (fileSearchStoreName) {
-        try {
-          const uploadResult = await uploadToFileSearchStore(
-            tempPath,
-            fileSearchStoreName,
-            file.name,
-            {
-              subjectId: subject.id,
-              uploadedBy: user.email,
-              uploadedAt: new Date().toISOString(),
-            }
-          )
-
-          geminiFileName = uploadResult.fileName
-          documentId = uploadResult.documentId
-          console.log(`File uploaded to File Search: ${geminiFileName}`)
-        } catch (uploadError) {
-          console.error("File Search upload failed, storing metadata only:", uploadError)
-        }
-      }
-
-      // Create note record
-      const note = await prisma.note.create({
-        data: {
-          subjectId: subject.id,
-          displayName: file.name,
-          fileName: file.name,
-          fileUrl: geminiFileName || `/uploads/${subject.id}/${sanitizedFileName}`,
-          fileType: file.type,
-          fileSize: file.size,
-          fileSearchDocId: documentId,
-          metadata: {
-            uploadedBy: user.email,
-            originalName: file.name,
-            geminiFileName: geminiFileName,
-            fileSearchEnabled: !!geminiFileName,
-          },
+    const note = await prisma.note.create({
+      data: {
+        subjectId: subject.id,
+        displayName: file.name,
+        fileName: sanitizedFileName,
+        fileUrl: `/uploads/${subject.id}/${sanitizedFileName}`,
+        fileType: file.type || "application/octet-stream",
+        fileSize: file.size,
+        fileSearchDocId: openaiFileId,
+        content: content || null,
+        metadata: {
+          uploadedBy: user.email,
+          originalName: file.name,
+          openaiFileId,
+          fileSearchEnabled: Boolean(openaiFileId),
+          characters: content.length,
         },
-      })
+      },
+    })
 
-      return NextResponse.json({
-        note,
-        message: geminiFileName
-          ? "File uploaded and indexed for AI features"
-          : "File uploaded (AI indexing pending)"
-      })
-    } finally {
-      // Clean up temporary file
-      try {
-        await unlink(tempPath)
-      } catch (error) {
-        console.error("Error deleting temp file:", error)
-      }
+    // 3. Build the local embedding index for semantic retrieval
+    let chunkCount = 0
+    try {
+      chunkCount = await indexNote(note.id, subject.id, content)
+    } catch (error) {
+      console.error("Failed to index note embeddings:", error)
     }
+
+    return NextResponse.json({
+      note,
+      indexed: chunkCount > 0,
+      chunks: chunkCount,
+      fileSearch: Boolean(openaiFileId),
+      message:
+        chunkCount > 0 || openaiFileId
+          ? "File uploaded and indexed for AI features"
+          : "File uploaded, but no readable text was found",
+    })
   } catch (error) {
     console.error("Error uploading note:", error)
     return NextResponse.json(
@@ -160,7 +151,7 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const { id } = await params
   try {
     const session = await getServerSession(authOptions)
 
@@ -178,12 +169,20 @@ export async function GET(
 
     const notes = await prisma.note.findMany({
       where: {
-        subject: {
-          id,
-          userId: user.id,
-        },
+        subject: { id, userId: user.id },
       },
       orderBy: { uploadedAt: "desc" },
+      select: {
+        id: true,
+        displayName: true,
+        fileName: true,
+        fileUrl: true,
+        fileType: true,
+        fileSize: true,
+        indexed: true,
+        uploadedAt: true,
+        metadata: true,
+      },
     })
 
     return NextResponse.json({ notes })

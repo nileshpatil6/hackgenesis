@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth/config"
 import { prisma } from "@/lib/prisma"
-import { createFileSearchStore } from "@/lib/gemini"
+import { createFileSearchStore } from "@/lib/openai"
 
 // GET all subjects for current user
 export async function GET() {
@@ -66,7 +66,8 @@ export async function POST(req: Request) {
 
     const data = await req.json()
 
-    // Create File Search store for this subject
+    // Create the OpenAI vector store for this subject. Returns null when file
+    // search is unavailable; notes still work through the local embedding index.
     const fileSearchStoreId = await createFileSearchStore(
       `${user.id}-${data.name}`
     )
