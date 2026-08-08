@@ -27,6 +27,11 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
 
   VoiceSessionState _state = VoiceSessionState.idle;
   String? _error;
+
+  /// A problem the session survived. Shown in a muted style, because the
+  /// conversation is still usable and a red banner over working audio reads
+  /// as a failure that has not happened.
+  String? _warning;
   String _pendingReply = '';
 
   bool get _isLive =>
@@ -60,6 +65,7 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
     _service = service;
     setState(() {
       _error = null;
+      _warning = null;
       _turns.clear();
       _pendingReply = '';
     });
@@ -70,6 +76,9 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
       }))
       ..add(service.errors.listen((e) {
         if (mounted) setState(() => _error = e);
+      }))
+      ..add(service.warnings.listen((w) {
+        if (mounted) setState(() => _warning = w);
       }))
       ..add(service.userTranscript.listen((text) {
         if (!mounted) return;
@@ -137,7 +146,9 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            if (_error != null) _buildError(),
+            if (_error != null) _buildNotice(_error!, fatal: true),
+            if (_error == null && _warning != null)
+              _buildNotice(_warning!, fatal: false),
             Expanded(child: _buildTranscript(isDark)),
             _buildControls(isDark),
           ],
@@ -146,29 +157,34 @@ class _VoiceTutorScreenState extends State<VoiceTutorScreen> {
     );
   }
 
-  Widget _buildError() {
+  Widget _buildNotice(String message, {required bool fatal}) {
+    final colour = fatal ? AppTheme.danger : AppTheme.ink500;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppTheme.danger.withValues(alpha: 0.10),
+        color: fatal
+            ? AppTheme.danger.withValues(alpha: 0.10)
+            : AppTheme.paperMuted,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.danger.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: fatal ? AppTheme.danger.withValues(alpha: 0.3) : AppTheme.line,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, size: 18, color: AppTheme.danger),
+          Icon(
+            fatal ? Icons.error_outline : Icons.info_outline,
+            size: 18,
+            color: colour,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              _error!,
-              style: const TextStyle(
-                fontSize: 12.5,
-                height: 1.4,
-                color: AppTheme.danger,
-              ),
+              message,
+              style: TextStyle(fontSize: 12.5, height: 1.4, color: colour),
             ),
           ),
         ],

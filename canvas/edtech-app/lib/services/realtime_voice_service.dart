@@ -60,6 +60,7 @@ class RealtimeVoiceService {
   final _userTranscriptController = StreamController<String>.broadcast();
   final _replyTranscriptController = StreamController<String>.broadcast();
   final _errorController = StreamController<String>.broadcast();
+  final _warningController = StreamController<String>.broadcast();
 
   /// Connection and turn state, for driving the UI.
   Stream<VoiceSessionState> get state => _stateController.stream;
@@ -70,8 +71,12 @@ class RealtimeVoiceService {
   /// The model's spoken reply, streamed in as it is generated.
   Stream<String> get replyTranscript => _replyTranscriptController.stream;
 
-  /// Human-readable failures worth surfacing.
+  /// Failures that ended the session.
   Stream<String> get errors => _errorController.stream;
+
+  /// Problems the session survived, such as a rejected configuration. Worth
+  /// showing quietly, but not worth stopping a conversation that still works.
+  Stream<String> get warnings => _warningController.stream;
 
   /// Opens the session and starts streaming the microphone.
   ///
@@ -147,7 +152,12 @@ class RealtimeVoiceService {
             'transcription': {'model': 'whisper-1'},
           },
           'output': {
-            'format': {'type': 'audio/pcm'},
+            // rate is required here too, not just on the input. The docs show
+            // it only on the input side, but the server rejects the session
+            // with missing_required_parameter without it, and then silently
+            // falls back to defaults, so the instructions and voice below
+            // were never actually applied.
+            'format': {'type': 'audio/pcm', 'rate': sampleRate},
             'voice': voice,
           },
         },
@@ -260,14 +270,23 @@ class RealtimeVoiceService {
       case 'error':
         final err = event['error'] as Map?;
         final message = err?['message'] as String?;
-        // Unblock start() so it reports this instead of the timeout.
+        debugPrint('Realtime error event: $err');
+
         if (!_sessionCreated.isCompleted) {
+          // Still opening: this is fatal, and unblocking start() lets it
+          // report the real reason rather than timing out.
           _sessionCreated.completeError(
             StateError(message ?? 'session rejected'),
           );
+          return;
         }
-        debugPrint('Realtime error event: $err');
-        _fail(message ?? 'The voice service reported an error.');
+
+        // The session is already live. A rejected session.update leaves the
+        // model running on defaults, so tearing everything down or flashing a
+        // red banner over a working conversation is worse than carrying on.
+        _warningController.add(
+          message ?? 'The voice service reported a problem.',
+        );
     }
   }
 
@@ -343,5 +362,6 @@ class RealtimeVoiceService {
     await _userTranscriptController.close();
     await _replyTranscriptController.close();
     await _errorController.close();
+    await _warningController.close();
   }
 }
