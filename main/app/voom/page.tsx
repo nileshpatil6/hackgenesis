@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { AppHeader } from "@/components/AppHeader";
 
 interface Room {
   id: string;
@@ -17,14 +18,14 @@ interface Room {
   status: "upcoming" | "active" | "ended";
   icon: string;
 }
-import { 
-  Binary, 
-  Globe, 
-  Brain, 
-  Code2, 
-  Database, 
-  Layout, 
-  Network, 
+import {
+  Binary,
+  Globe,
+  Brain,
+  Code2,
+  Database,
+  Layout,
+  Network,
   Cloud,
   Search,
   Filter,
@@ -33,7 +34,6 @@ import {
   Trophy,
   Target,
   Calendar,
-  ArrowLeft
 } from "lucide-react";
 
 // Topic icon mapping
@@ -89,7 +89,7 @@ export default function VoomPage() {
   ];
 
   const filteredRooms = rooms.filter(room => {
-    const matchesSearch = searchQuery === "" || 
+    const matchesSearch = searchQuery === "" ||
       room.topic.toLowerCase().includes(searchQuery.toLowerCase()) ||
       room.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDifficulty = selectedDifficulty === "All" || room.difficulty === selectedDifficulty;
@@ -97,38 +97,29 @@ export default function VoomPage() {
     return matchesSearch && matchesDifficulty && matchesStatus;
   });
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch(difficulty) {
-      case "Easy": return "#28a745";
-      case "Medium": return "#fd7e14";
-      case "Hard": return "#dc3545";
-      default: return "#6c757d";
-    }
-  };
-
   const getStatusBadge = (status: string) => {
     switch(status) {
-      case "active": return { 
-        bgClass: "bg-green-50 border-green-200", 
-        textClass: "text-green-700", 
+      case "active": return {
+        bgClass: "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30",
+        textClass: "text-green-700 dark:text-green-400",
         text: "Live Now",
         icon: Clock
       };
-      case "upcoming": return { 
-        bgClass: "bg-orange-50 border-orange-200", 
-        textClass: "text-orange-700", 
+      case "upcoming": return {
+        bgClass: "bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/30",
+        textClass: "text-orange-700 dark:text-orange-400",
         text: "Coming Soon",
         icon: Calendar
       };
-      case "ended": return { 
-        bgClass: "bg-zinc-100 border-zinc-200", 
-        textClass: "text-zinc-600", 
+      case "ended": return {
+        bgClass: "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700",
+        textClass: "text-zinc-600 dark:text-zinc-400",
         text: "Ended",
         icon: Trophy
       };
-      default: return { 
-        bgClass: "bg-zinc-100 border-zinc-200", 
-        textClass: "text-zinc-600", 
+      default: return {
+        bgClass: "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700",
+        textClass: "text-zinc-600 dark:text-zinc-400",
         text: "Unknown",
         icon: Target
       };
@@ -139,12 +130,12 @@ export default function VoomPage() {
     const now = new Date();
     const end = new Date(endTime);
     const diff = end.getTime() - now.getTime();
-    
+
     if (diff <= 0) return "Ended";
-    
+
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (hours > 24) {
       const days = Math.floor(hours / 24);
       return `${days}d ${hours % 24}h left`;
@@ -158,9 +149,9 @@ export default function VoomPage() {
   const totalChallenges = rooms.reduce((sum, r) => sum + r.total_questions, 0);
 
   if (loading) return (
-    <div className="min-h-screen flex justify-center items-center bg-white">
-      <motion.div 
-        className="p-8 bg-white/60 backdrop-blur-md border border-zinc-200 rounded-2xl shadow-lg"
+    <div className="min-h-screen flex justify-center items-center bg-white dark:bg-zinc-950">
+      <motion.div
+        className="p-8 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-lg"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
       >
@@ -170,29 +161,11 @@ export default function VoomPage() {
   );
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navigation Bar */}
-      <nav className="bg-white/60 backdrop-blur-md border-b border-zinc-200 px-8 py-4 flex justify-between items-center sticky top-0 z-50">
-        <motion.div 
-          className="text-2xl font-serif font-bold text-zinc-900 cursor-pointer hover:text-orange-500 transition-colors"
-          onClick={() => router.push("/dashboard")}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          Yukti-AI
-        </motion.div>
-        
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white border border-orange-600 rounded-lg font-sans font-semibold text-sm transition-all"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
-        </button>
-      </nav>
+    <div className="min-h-screen bg-white dark:bg-zinc-950">
+      <AppHeader />
 
       {/* Hero Header */}
-      <motion.div 
+      <motion.div
         className="py-16 px-8 text-center"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -200,43 +173,43 @@ export default function VoomPage() {
       >
         <div className="flex items-center justify-center gap-3 mb-4">
           <Target className="w-12 h-12 text-orange-500" />
-          <h1 className="text-5xl font-serif font-bold text-zinc-900">
+          <h1 className="text-5xl font-serif font-bold text-zinc-900 dark:text-white">
             Voom Challenge Rooms
           </h1>
         </div>
-        <p className="text-xl font-sans text-zinc-600 max-w-3xl mx-auto">
+        <p className="text-xl font-sans text-zinc-600 dark:text-zinc-400 max-w-3xl mx-auto">
           Join 24-hour challenge rooms, solve questions, and compete on the leaderboard!
         </p>
       </motion.div>
 
       <div className="max-w-7xl mx-auto px-8 pb-16">
         {/* Stats Section */}
-        <motion.div 
+        <motion.div
           className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <div className="bg-white/60 backdrop-blur-md border border-zinc-200 hover:border-orange-200 rounded-2xl p-6 text-center transition-all">
+          <div className="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 hover:border-orange-200 dark:hover:border-orange-500/50 rounded-2xl p-6 text-center transition-all">
             <Clock className="w-8 h-8 text-orange-500 mx-auto mb-2" />
-            <div className="text-3xl font-serif font-bold text-zinc-900">{activeRoomsCount}</div>
-            <div className="text-sm font-mono text-zinc-600 uppercase tracking-wider">Active Rooms</div>
+            <div className="text-3xl font-serif font-bold text-zinc-900 dark:text-white">{activeRoomsCount}</div>
+            <div className="text-sm font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Active Rooms</div>
           </div>
-          <div className="bg-white/60 backdrop-blur-md border border-zinc-200 hover:border-orange-200 rounded-2xl p-6 text-center transition-all">
+          <div className="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 hover:border-orange-200 dark:hover:border-orange-500/50 rounded-2xl p-6 text-center transition-all">
             <Users className="w-8 h-8 text-orange-500 mx-auto mb-2" />
-            <div className="text-3xl font-serif font-bold text-zinc-900">{totalParticipants}</div>
-            <div className="text-sm font-mono text-zinc-600 uppercase tracking-wider">Participants</div>
+            <div className="text-3xl font-serif font-bold text-zinc-900 dark:text-white">{totalParticipants}</div>
+            <div className="text-sm font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Participants</div>
           </div>
-          <div className="bg-white/60 backdrop-blur-md border border-zinc-200 hover:border-orange-200 rounded-2xl p-6 text-center transition-all">
+          <div className="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 hover:border-orange-200 dark:hover:border-orange-500/50 rounded-2xl p-6 text-center transition-all">
             <Trophy className="w-8 h-8 text-orange-500 mx-auto mb-2" />
-            <div className="text-3xl font-serif font-bold text-zinc-900">{totalChallenges}</div>
-            <div className="text-sm font-mono text-zinc-600 uppercase tracking-wider">Total Challenges</div>
+            <div className="text-3xl font-serif font-bold text-zinc-900 dark:text-white">{totalChallenges}</div>
+            <div className="text-sm font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Total Challenges</div>
           </div>
         </motion.div>
 
         {/* Search and Filters */}
-        <motion.div 
-          className="bg-white/60 backdrop-blur-md border border-zinc-200 rounded-2xl p-6 mb-8"
+        <motion.div
+          className="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
@@ -249,13 +222,13 @@ export default function VoomPage() {
               placeholder="Search rooms by topic..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 font-sans text-zinc-900 bg-white border-2 border-zinc-200 focus:border-orange-500 rounded-xl outline-none transition-colors"
+              className="w-full pl-12 pr-4 py-3 font-sans text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-800 border-2 border-zinc-200 dark:border-zinc-700 focus:border-orange-500 rounded-xl outline-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
             />
           </div>
 
           {/* Status Filter */}
           <div className="mb-6">
-            <label className="flex items-center gap-2 font-mono text-sm font-semibold text-zinc-700 uppercase tracking-wider mb-3">
+            <label className="flex items-center gap-2 font-mono text-sm font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-3">
               <Filter className="w-4 h-4" />
               Status
             </label>
@@ -269,7 +242,7 @@ export default function VoomPage() {
                     className={`flex items-center gap-2 px-4 py-2 border-2 rounded-lg font-sans font-medium text-sm transition-all ${
                       selectedStatus === status.value
                         ? "border-orange-500 bg-orange-500 text-white"
-                        : "border-zinc-200 bg-white text-zinc-700 hover:border-orange-200"
+                        : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-orange-200 dark:hover:border-orange-500/50"
                     }`}
                   >
                     <StatusIcon className="w-4 h-4" />
@@ -282,7 +255,7 @@ export default function VoomPage() {
 
           {/* Difficulty Filter */}
           <div>
-            <label className="flex items-center gap-2 font-mono text-sm font-semibold text-zinc-700 uppercase tracking-wider mb-3">
+            <label className="flex items-center gap-2 font-mono text-sm font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-3">
               <Target className="w-4 h-4" />
               Difficulty
             </label>
@@ -294,7 +267,7 @@ export default function VoomPage() {
                   className={`px-4 py-2 border-2 rounded-lg font-sans font-medium text-sm transition-all ${
                     selectedDifficulty === difficulty
                       ? "border-orange-500 bg-orange-500 text-white"
-                      : "border-zinc-200 bg-white text-zinc-700 hover:border-orange-200"
+                      : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-orange-200 dark:hover:border-orange-500/50"
                   }`}
                 >
                   {difficulty}
@@ -306,7 +279,7 @@ export default function VoomPage() {
 
         {/* Results Count */}
         <div className="text-center mb-6">
-          <p className="text-lg font-sans font-semibold text-zinc-900">
+          <p className="text-lg font-sans font-semibold text-zinc-900 dark:text-zinc-100">
             {filteredRooms.length} Room{filteredRooms.length !== 1 ? 's' : ''} Available
           </p>
         </div>
@@ -314,10 +287,10 @@ export default function VoomPage() {
         {/* Rooms Grid */}
         {loadingRooms ? (
           <div className="text-center py-12">
-            <p className="text-lg font-sans text-zinc-600">Loading rooms...</p>
+            <p className="text-lg font-sans text-zinc-600 dark:text-zinc-400">Loading rooms...</p>
           </div>
         ) : (
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             initial="hidden"
             animate="visible"
@@ -331,7 +304,7 @@ export default function VoomPage() {
               }
             }}
           >
-            {filteredRooms.map((room, index) => {
+            {filteredRooms.map((room) => {
               const statusBadge = getStatusBadge(room.status);
               const StatusIcon = statusBadge.icon;
               const TopicIcon = getTopicIcon(room.topic);
@@ -340,8 +313,8 @@ export default function VoomPage() {
               return (
                 <motion.div
                   key={room.id}
-                  className={`bg-white/60 backdrop-blur-md border border-zinc-200 rounded-2xl p-6 transition-all flex flex-col ${
-                    isClickable ? "cursor-pointer hover:border-orange-200 hover:-translate-y-2 hover:shadow-xl" : "opacity-70"
+                  className={`bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 transition-all flex flex-col ${
+                    isClickable ? "cursor-pointer hover:border-orange-200 dark:hover:border-orange-500/50 hover:-translate-y-2 hover:shadow-xl" : "opacity-70"
                   } ${room.status === "ended" ? "opacity-60" : ""}`}
                   onClick={() => isClickable && router.push(`/voom/${room.id}`)}
                   variants={{
@@ -363,7 +336,7 @@ export default function VoomPage() {
                       <TopicIcon className="w-7 h-7 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-serif font-bold text-zinc-900 mb-1">
+                      <h3 className="text-xl font-serif font-bold text-zinc-900 dark:text-white mb-1">
                         {room.topic}
                       </h3>
                       <span className={`inline-block px-3 py-1 rounded-lg text-xs font-mono font-semibold text-white ${
@@ -377,40 +350,40 @@ export default function VoomPage() {
                   </div>
 
                   {/* Description */}
-                  <p className="text-sm font-sans text-zinc-600 leading-relaxed mb-4 flex-grow">
+                  <p className="text-sm font-sans text-zinc-600 dark:text-zinc-400 leading-relaxed mb-4 flex-grow">
                     {room.description}
                   </p>
 
                   {/* Stats */}
-                  <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-zinc-50 border border-zinc-100 rounded-xl">
+                  <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 rounded-xl">
                     <div className="text-center">
                       <div className="text-2xl font-serif font-bold text-orange-500">
                         {room.total_questions}
                       </div>
-                      <div className="text-xs font-mono text-zinc-600 uppercase tracking-wider">Questions</div>
+                      <div className="text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Questions</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-serif font-bold text-orange-500">
                         {room.active_users}
                       </div>
-                      <div className="text-xs font-mono text-zinc-600 uppercase tracking-wider">Competitors</div>
+                      <div className="text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Competitors</div>
                     </div>
                   </div>
 
                   {/* Time Info */}
                   {room.status === "active" && (
-                    <div className="flex items-center justify-center gap-2 px-4 py-3 bg-orange-50 border border-orange-200 rounded-xl mb-4">
-                      <Clock className="w-4 h-4 text-orange-600" />
-                      <span className="text-sm font-sans font-semibold text-orange-700">
+                    <div className="flex items-center justify-center gap-2 px-4 py-3 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/30 rounded-xl mb-4">
+                      <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                      <span className="text-sm font-sans font-semibold text-orange-700 dark:text-orange-400">
                         {getTimeRemaining(room.ends_at)}
                       </span>
                     </div>
                   )}
 
                   {room.status === "upcoming" && (
-                    <div className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl mb-4">
-                      <Calendar className="w-4 h-4 text-blue-600" />
-                      <span className="text-sm font-sans font-semibold text-blue-700">
+                    <div className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl mb-4">
+                      <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-sm font-sans font-semibold text-blue-700 dark:text-blue-400">
                         Starts: {new Date(room.starts_at).toLocaleDateString()} {new Date(room.starts_at).toLocaleTimeString()}
                       </span>
                     </div>
@@ -422,10 +395,10 @@ export default function VoomPage() {
                     className={`w-full py-3 rounded-xl font-sans font-semibold text-sm transition-all ${
                       room.status === "active"
                         ? "bg-orange-500 hover:bg-orange-600 text-white border border-orange-600"
-                        : "bg-zinc-300 text-zinc-500 cursor-not-allowed"
+                        : "bg-zinc-300 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-500 cursor-not-allowed"
                     }`}
                   >
-                    {room.status === "active" ? "Enter Room" : 
+                    {room.status === "active" ? "Enter Room" :
                      room.status === "upcoming" ? "Not Started" : "Ended"}
                   </button>
                 </motion.div>
@@ -435,17 +408,17 @@ export default function VoomPage() {
         )}
 
         {filteredRooms.length === 0 && !loadingRooms && (
-          <motion.div 
-            className="bg-white/60 backdrop-blur-md border border-zinc-200 rounded-2xl p-12 text-center"
+          <motion.div
+            className="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 rounded-2xl p-12 text-center"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
             <Search className="w-16 h-16 text-zinc-400 mx-auto mb-4" />
-            <h3 className="text-2xl font-serif font-bold text-zinc-900 mb-2">
+            <h3 className="text-2xl font-serif font-bold text-zinc-900 dark:text-white mb-2">
               No Rooms Found
             </h3>
-            <p className="text-base font-sans text-zinc-600">
+            <p className="text-base font-sans text-zinc-600 dark:text-zinc-400">
               Try adjusting your filters or check back later for new rooms!
             </p>
           </motion.div>

@@ -16,6 +16,7 @@ import {
   Award,
   Sparkles
 } from "lucide-react";
+import { AppHeader } from "@/components/AppHeader";
 
 export default function ChallengesPage() {
   const router = useRouter();
@@ -149,34 +150,8 @@ export default function ChallengesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-zinc-200 bg-white/60 backdrop-blur-md">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-3 cursor-pointer"
-              onClick={() => router.push("/dashboard")}
-            >
-              <Trophy className="w-6 h-6 text-orange-500" />
-              <span className="font-serif text-2xl font-bold text-zinc-900">Yukti-AI</span>
-            </motion.div>
-            <motion.button 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => router.push("/dashboard")}
-              className="flex items-center gap-2 px-4 py-2 border border-zinc-200 hover:border-orange-200 rounded-lg text-sm font-medium text-zinc-900 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </motion.button>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-white dark:bg-zinc-950">
+      <AppHeader />
 
       <div className="container mx-auto px-6 py-16">
         {step === 1 ? (
@@ -186,16 +161,16 @@ export default function ChallengesPage() {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-4xl mx-auto"
           >
-            <div className="border border-zinc-200 bg-white rounded-2xl p-10 shadow-sm">
+            <div className="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-2xl p-10 shadow-sm">
               <div className="flex items-center gap-3 mb-2">
                 <Trophy className="w-8 h-8 text-orange-500" />
-                <h1 className="font-serif text-4xl font-bold text-zinc-900">Generate Challenge</h1>
+                <h1 className="font-serif text-4xl font-bold text-zinc-900 dark:text-white">Generate Challenge</h1>
               </div>
-              <p className="text-zinc-600 mb-12">Configure your challenge questions</p>
+              <p className="text-zinc-600 dark:text-zinc-400 mb-12">Configure your challenge questions</p>
 
               {/* Category Selection */}
               <div className="mb-10">
-                <label className="font-mono text-sm uppercase tracking-wider text-zinc-500 mb-4 flex items-center gap-2">
+                <label className="font-mono text-sm uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4 flex items-center gap-2">
                   <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-500 text-white text-xs font-bold">1</span>
                   Select Category
                 </label>
@@ -210,12 +185,12 @@ export default function ChallengesPage() {
                         onClick={() => setCategory(cat.id)}
                         className={`p-6 border-2 rounded-xl cursor-pointer transition-all ${
                           category === cat.id
-                            ? "border-orange-500 bg-orange-50"
-                            : "border-zinc-200 hover:border-orange-200 bg-white"
+                            ? "border-orange-500 bg-orange-50 dark:bg-orange-500/10"
+                            : "border-zinc-200 dark:border-zinc-700 hover:border-orange-200 dark:hover:border-orange-500/50 bg-white dark:bg-zinc-800"
                         }`}
                       >
                         <Icon className={`w-8 h-8 mb-3 ${category === cat.id ? "text-orange-500" : "text-zinc-400"}`} />
-                        <div className="font-sans text-sm font-semibold text-zinc-900">{cat.name}</div>
+                        <div className="font-sans text-sm font-semibold text-zinc-900 dark:text-zinc-100">{cat.name}</div>
                       </motion.div>
                     );
                   })}
@@ -224,7 +199,7 @@ export default function ChallengesPage() {
 
               {/* Difficulty Selection */}
               <div className="mb-10">
-                <label className="font-mono text-sm uppercase tracking-wider text-zinc-500 mb-4 flex items-center gap-2">
+                <label className="font-mono text-sm uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4 flex items-center gap-2">
                   <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-500 text-white text-xs font-bold">2</span>
                   Select Difficulty
                 </label>
@@ -239,12 +214,12 @@ export default function ChallengesPage() {
                         onClick={() => setDifficulty(diff.id)}
                         className={`p-6 border-2 rounded-xl cursor-pointer transition-all ${
                           difficulty === diff.id
-                            ? `${diff.borderColor} ${diff.bgColor}`
-                            : "border-zinc-200 hover:border-orange-200 bg-white"
+                            ? `${diff.borderColor} ${diff.bgColor} dark:bg-opacity-10`
+                            : "border-zinc-200 dark:border-zinc-700 hover:border-orange-200 dark:hover:border-orange-500/50 bg-white dark:bg-zinc-800"
                         }`}
                       >
                         <Icon className={`w-8 h-8 mb-3 ${difficulty === diff.id ? diff.color : "text-zinc-400"}`} />
-                        <div className={`font-sans text-base font-semibold ${difficulty === diff.id ? diff.color : "text-zinc-900"}`}>
+                        <div className={`font-sans text-base font-semibold ${difficulty === diff.id ? diff.color : "text-zinc-900 dark:text-zinc-100"}`}>
                           {diff.name}
                         </div>
                       </motion.div>
@@ -255,7 +230,7 @@ export default function ChallengesPage() {
 
               {/* Question Count */}
               <div className="mb-10">
-                <label className="font-mono text-sm uppercase tracking-wider text-zinc-500 mb-4 flex items-center gap-2">
+                <label className="font-mono text-sm uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4 flex items-center gap-2">
                   <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-500 text-white text-xs font-bold">3</span>
                   Number of Questions
                 </label>
@@ -266,7 +241,7 @@ export default function ChallengesPage() {
                     max="10"
                     value={questionCount}
                     onChange={(e) => setQuestionCount(parseInt(e.target.value))}
-                    className="flex-1 h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                    className="flex-1 h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-orange-500"
                   />
                   <div className="px-6 py-3 bg-orange-500 text-white rounded-xl text-2xl font-bold font-mono min-w-[80px] text-center">
                     {questionCount}
@@ -278,7 +253,7 @@ export default function ChallengesPage() {
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl mb-6 flex items-start gap-2"
+                  className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 rounded-xl mb-6 flex items-start gap-2"
                 >
                   <Circle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                   <span className="text-sm">{error}</span>
@@ -293,7 +268,7 @@ export default function ChallengesPage() {
                 className={`w-full py-4 rounded-xl text-base font-semibold transition-all flex items-center justify-center gap-2 ${
                   category && difficulty
                     ? "bg-orange-500 hover:bg-orange-600 text-white cursor-pointer"
-                    : "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                    : "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600 cursor-not-allowed"
                 }`}
               >
                 {loading ? (
@@ -322,16 +297,16 @@ export default function ChallengesPage() {
             animate={{ opacity: 1 }}
             className="max-w-7xl mx-auto"
           >
-            <div className="border border-zinc-200 bg-white rounded-2xl p-8 mb-8 shadow-sm">
+            <div className="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-2xl p-8 mb-8 shadow-sm">
               <div className="flex items-center gap-3 mb-2">
                 <BookOpen className="w-7 h-7 text-orange-500" />
-                <h2 className="font-serif text-3xl font-bold text-zinc-900">
+                <h2 className="font-serif text-3xl font-bold text-zinc-900 dark:text-white">
                   Generated Questions
                 </h2>
               </div>
-              <p className="text-zinc-600 font-mono text-sm">
-                Category: <strong>{categories.find(c => c.id === category)?.name}</strong> | 
-                Difficulty: <strong className="capitalize">{difficulty}</strong> | 
+              <p className="text-zinc-600 dark:text-zinc-400 font-mono text-sm">
+                Category: <strong>{categories.find(c => c.id === category)?.name}</strong> |
+                Difficulty: <strong className="capitalize">{difficulty}</strong> |
                 Total: <strong>{questions.length} questions</strong>
               </p>
             </div>
@@ -341,16 +316,16 @@ export default function ChallengesPage() {
                 const getDifficultyStyles = (difficulty: string) => {
                   switch (difficulty.toLowerCase()) {
                     case "easy":
-                      return { bg: "bg-green-50", text: "text-green-600", border: "border-green-200" };
+                      return { bg: "bg-green-50 dark:bg-green-500/10", text: "text-green-600 dark:text-green-400", border: "border-green-200" };
                     case "medium":
-                      return { bg: "bg-orange-50", text: "text-orange-600", border: "border-orange-200" };
+                      return { bg: "bg-orange-50 dark:bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", border: "border-orange-200" };
                     case "hard":
-                      return { bg: "bg-red-50", text: "text-red-600", border: "border-red-200" };
+                      return { bg: "bg-red-50 dark:bg-red-500/10", text: "text-red-600 dark:text-red-400", border: "border-red-200" };
                     default:
-                      return { bg: "bg-zinc-50", text: "text-zinc-600", border: "border-zinc-200" };
+                      return { bg: "bg-zinc-50 dark:bg-zinc-800", text: "text-zinc-600 dark:text-zinc-400", border: "border-zinc-200" };
                   }
                 };
-                
+
                 const diffStyles = getDifficultyStyles(q.difficulty);
                 const isSolved = completedIndexes.has(index);
 
@@ -362,7 +337,9 @@ export default function ChallengesPage() {
                     transition={{ delay: index * 0.05 }}
                     whileHover={{ scale: 1.02 }}
                     className={`border rounded-xl p-6 shadow-sm transition-all ${
-                      isSolved ? "border-green-200 bg-green-50/30" : "border-zinc-200 hover:border-orange-200 bg-white"
+                      isSolved
+                        ? "border-green-200 dark:border-green-500/30 bg-green-50/30 dark:bg-green-500/5"
+                        : "border-zinc-200 dark:border-zinc-800 hover:border-orange-200 dark:hover:border-orange-500/50 bg-white dark:bg-zinc-900"
                     }`}
                   >
                     <div className="flex justify-between items-center mb-4">
@@ -374,18 +351,18 @@ export default function ChallengesPage() {
                       </span>
                     </div>
 
-                    <h3 className="font-sans text-base font-semibold text-zinc-900 mb-3 line-clamp-2">
+                    <h3 className="font-sans text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-3 line-clamp-2">
                       {q.question}
                     </h3>
 
                     {q.description && (
-                      <p className="text-sm text-zinc-600 mb-4 line-clamp-3 leading-relaxed">
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 line-clamp-3 leading-relaxed">
                         {q.description}
                       </p>
                     )}
 
                     {isSolved ? (
-                      <div className="w-full py-3 bg-green-100 text-green-700 rounded-lg text-sm font-semibold flex items-center justify-center gap-2">
+                      <div className="w-full py-3 bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 rounded-lg text-sm font-semibold flex items-center justify-center gap-2">
                         <CheckCircle className="w-4 h-4" />
                         Solved!
                       </div>
@@ -417,7 +394,7 @@ export default function ChallengesPage() {
                 setCategory("");
                 setDifficulty("");
               }}
-              className="mt-8 mx-auto block px-6 py-3 bg-white border-2 border-zinc-200 hover:border-orange-200 text-zinc-900 rounded-xl text-base font-semibold transition-colors flex items-center gap-2"
+              className="mt-8 mx-auto block px-6 py-3 bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-700 hover:border-orange-200 dark:hover:border-orange-500/50 text-zinc-900 dark:text-zinc-100 rounded-xl text-base font-semibold transition-colors flex items-center gap-2"
             >
               <ArrowLeft className="w-5 h-5" />
               Generate New Questions
